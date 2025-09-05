@@ -1,0 +1,27 @@
+package main
+
+const (
+	KeyClass    = "class"
+	KeyFunc     = "func"
+	KeyVar      = "var"
+	KeyConst    = "const"
+	KeyLocal    = "local"
+	KeyEnum     = "enum"
+	KeyImport   = "import"
+	KeyExport   = "export"
+	KeyContinue = "continue"
+	KeyBreak    = "break"
+	KeyReturn   = "return"
+	KeyIf       = "if"
+	KeyElse     = "else"
+	KeySwitch   = "switch"
+	KeyCase     = "case"
+	KeyDefault  = "default"
+	KeyFor      = "for"
+	KeyWhile    = "while"
+	KeyDoWhile  = "do"
+	KetTrue     = "true"
+	KetFalse    = "false"
+	KetNull     = "null"
+	KeyNew      = "new"
+)
