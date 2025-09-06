@@ -2,4 +2,6 @@ package builtin
 
 import runtime "dev.runtime"
 
-type NativeFunction func(intereter *runtime.AtomInterpreter, argc int)
+type NativeModule struct {
+	Functions map[string]*runtime.AtomValue
+}

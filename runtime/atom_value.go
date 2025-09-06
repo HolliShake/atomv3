@@ -1,6 +1,8 @@
 package runtime
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type AtomType int
 
@@ -22,6 +24,8 @@ type AtomValue struct {
 	Next   *AtomValue
 	Marked bool
 }
+
+type NativeFunction func(intereter *AtomInterpreter, argc int)
 
 func NewAtomValue(atomType AtomType) *AtomValue {
 	obj := new(AtomValue)

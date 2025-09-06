@@ -99,40 +99,44 @@ func (c *AtomCompile) label(atomFunc *runtime.AtomValue, jumpAddress int) {
 	}
 }
 
+func (c *AtomCompile) identifier(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst, opcode runtime.OpCode) {
+	if !parentScope.HasSymbol(ast.Str0) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			fmt.Sprintf("Symbol %s not found", ast.Str0),
+			ast.Position,
+		)
+		return
+	}
+	symbol := parentScope.GetSymbol(ast.Str0)
+	if parentScope.HasCapture(ast.Str0) {
+		captureSymbol := parentScope.GetCapture(ast.Str0)
+		c.emitInt(parentFunc, opcode, captureSymbol.Offset)
+		return
+	}
+	if parentScope.HasLocal(ast.Str0) {
+		c.emitInt(parentFunc, opcode, symbol.Offset)
+		return
+	}
+	// Non-local symbol, save as capture
+	functionScope := parentScope.GetCurrentFunction()
+	captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+	functionScope.AddCapture(NewCaptureAtomSymbol(
+		ast.Str0,
+		captureOffset,
+		symbol.Global,
+		symbol.Const,
+		true,
+	))
+	c.emitInt(parentFunc, opcode, captureOffset)
+}
+
 func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	switch ast.AstType {
 	case AstTypeIdn:
 		{
-			if !parentScope.HasSymbol(ast.Str0) {
-				Error(
-					c.parser.tokenizer.file,
-					c.parser.tokenizer.data,
-					fmt.Sprintf("Symbol %s not found", ast.Str0),
-					ast.Position,
-				)
-				return
-			}
-			symbol := parentScope.GetSymbol(ast.Str0)
-			if parentScope.HasCapture(ast.Str0) {
-				captureSymbol := parentScope.GetCapture(ast.Str0)
-				c.emitInt(parentFunc, runtime.OpLoadLocal, captureSymbol.Offset)
-				return
-			}
-			if parentScope.HasLocal(ast.Str0) {
-				c.emitInt(parentFunc, runtime.OpLoadLocal, symbol.Offset)
-				return
-			}
-			// Non-local symbol, save as capture
-			functionScope := parentScope.GetCurrentFunction()
-			captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
-			functionScope.AddCapture(NewCaptureAtomSymbol(
-				ast.Str0,
-				captureOffset,
-				symbol.Global,
-				symbol.Const,
-				true,
-			))
-			c.emitInt(parentFunc, runtime.OpLoadLocal, captureOffset)
+			c.identifier(parentScope, parentFunc, ast, runtime.OpLoadLocal)
 		}
 
 	case AstTypeInt:
@@ -533,45 +537,7 @@ func (c *AtomCompile) assign(parentScope *AtomScope, parentFunc *runtime.AtomVal
 	switch lhs.AstType {
 	case AstTypeIdn:
 		{
-			if !parentScope.HasSymbol(lhs.Str0) {
-				Error(
-					c.parser.tokenizer.file,
-					c.parser.tokenizer.data,
-					fmt.Sprintf("Symbol %s referenced before assignment", lhs.Str0),
-					lhs.Position,
-				)
-				return
-			}
-			symbol := parentScope.GetSymbol(lhs.Str0)
-			if symbol.Const {
-				Error(
-					c.parser.tokenizer.file,
-					c.parser.tokenizer.data,
-					fmt.Sprintf("Symbol %s is const", lhs.Str0),
-					lhs.Position,
-				)
-				return
-			}
-			if parentScope.HasCapture(lhs.Str0) {
-				captureSymbol := parentScope.GetCapture(lhs.Str0)
-				c.emitInt(parentFunc, runtime.OpStoreLocal, captureSymbol.Offset)
-				return
-			}
-			if parentScope.HasLocal(lhs.Str0) {
-				c.emitInt(parentFunc, runtime.OpStoreLocal, symbol.Offset)
-				return
-			}
-			// Non-local symbol, save as capture
-			functionScope := parentScope.GetCurrentFunction()
-			captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
-			functionScope.AddCapture(NewCaptureAtomSymbol(
-				lhs.Str0,
-				captureOffset,
-				symbol.Global,
-				symbol.Const,
-				true,
-			))
-			c.emitInt(parentFunc, runtime.OpStoreLocal, captureOffset)
+			c.identifier(parentScope, parentFunc, lhs, runtime.OpStoreLocal)
 		}
 
 	case AstTypeMember:
