@@ -99,12 +99,21 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 			args := make([]*AtomAst, 0)
 			p.acceptV("(")
 			// arguments
-			arg := p.terminal()
+			arg := p.primary()
 			if arg != nil {
 				args = append(args, arg)
 				for p.checkT(TokenTypeSym) && p.checkV(",") {
 					p.acceptV(",")
-					arg = p.terminal()
+					arg = p.primary()
+					if arg == nil {
+						Error(
+							p.tokenizer.file,
+							p.tokenizer.data,
+							"Expected expression after comma",
+							p.lookahead.Position,
+						)
+						return nil
+					}
 					args = append(args, arg)
 				}
 			}

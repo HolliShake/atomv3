@@ -5,26 +5,26 @@ import (
 	"math"
 )
 
-func DoCall(intereter *AtomInterpreter, val0 *AtomValue, argc int) {
+func DoCall(intereter *AtomInterpreter, parent *AtomValue, funcValue *AtomValue, argc int) {
 	cleanupStack := func() {
-		for i := 0; i < argc; i++ {
+		for range argc {
 			intereter.pop()
 		}
 	}
-	if !CheckType(val0, AtomTypeFunc) {
+	if !CheckType(funcValue, AtomTypeFunc) {
 		cleanupStack()
 		message := "not a function"
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
-	code := val0.Value.(*AtomCode)
+	code := funcValue.Value.(*AtomCode)
 	if argc != code.Argc {
 		cleanupStack()
 		message := "argument count mismatch"
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
-	intereter.executeFrame(val0, 0)
+	intereter.executeFrame(parent, funcValue, 0)
 }
 
 func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -36,18 +36,18 @@ func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomVal
 		// Check for overflow using int64 arithmetic
 		result := int64(lhs) * int64(rhs)
 		if result >= math.MinInt32 && result <= math.MaxInt32 {
-			intereter.pushValue(NewAtomValueInt(int(result)))
+			intereter.pushVal(NewAtomValueInt(int(result)))
 			return
 		}
 		// Overflow occurred, promote to float64
-		intereter.pushValue(NewAtomValueNum(float64(result)))
+		intereter.pushVal(NewAtomValueNum(float64(result)))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -58,10 +58,10 @@ func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomVal
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.pushValue(NewAtomValueNum(result))
+	intereter.pushVal(NewAtomValueNum(result))
 }
 
 func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -71,18 +71,18 @@ func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		b := CoerceToInt(val1)
 		if b == 0 {
 			message := "division by zero"
-			intereter.pushValue(NewAtomValueError(message))
+			intereter.pushVal(NewAtomValueError(message))
 			return
 		}
 		result := a / b
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot divide types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -91,17 +91,17 @@ func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
 		message := "division by zero"
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 	result := lhsValue / rhsValue
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.pushValue(NewAtomValueNum(result))
+	intereter.pushVal(NewAtomValueNum(result))
 }
 
 func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -111,18 +111,18 @@ func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		b := CoerceToInt(val1)
 		if b == 0 {
 			message := "division by zero"
-			intereter.pushValue(NewAtomValueError(message))
+			intereter.pushVal(NewAtomValueError(message))
 			return
 		}
 		result := a % b
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot modulo types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -131,17 +131,17 @@ func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
 		message := "division by zero"
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 	result := math.Mod(lhsValue, rhsValue)
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.pushValue(NewAtomValueNum(result))
+	intereter.pushVal(NewAtomValueNum(result))
 }
 
 func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -153,10 +153,10 @@ func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		sum := a + b
 		if ((a ^ sum) & (b ^ sum)) < 0 {
 			// Overflow occurred, promote to double
-			intereter.pushValue(NewAtomValueNum(float64(a) + float64(b)))
+			intereter.pushVal(NewAtomValueNum(float64(a) + float64(b)))
 			return
 		}
-		intereter.pushValue(NewAtomValueInt(int(sum)))
+		intereter.pushVal(NewAtomValueInt(int(sum)))
 		return
 	}
 
@@ -165,14 +165,14 @@ func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhs := val0.Value.(string)
 		rhs := val1.Value.(string)
 		result := lhs + rhs
-		intereter.pushValue(NewAtomValueStr(result))
+		intereter.pushVal(NewAtomValueStr(result))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -183,10 +183,10 @@ func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.pushValue(NewAtomValueNum(result))
+	intereter.pushVal(NewAtomValueNum(result))
 }
 
 func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -197,17 +197,17 @@ func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue)
 		diff := a - b
 		if ((a ^ b) & (a ^ diff)) < 0 {
 			// Overflow occurred, promote to double
-			intereter.pushValue(NewAtomValueNum(float64(a) - float64(b)))
+			intereter.pushVal(NewAtomValueNum(float64(a) - float64(b)))
 			return
 		}
-		intereter.pushValue(NewAtomValueInt(int(diff)))
+		intereter.pushVal(NewAtomValueInt(int(diff)))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -218,10 +218,10 @@ func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue)
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.pushValue(NewAtomValueNum(result))
+	intereter.pushVal(NewAtomValueNum(result))
 }
 
 func DoShiftLeft(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -230,14 +230,14 @@ func DoShiftLeft(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		result := a << b
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot shift left types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -248,10 +248,10 @@ func DoShiftLeft(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if result can be represented as an int
 	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.pushValue(NewAtomValueNum(float64(result)))
+	intereter.pushVal(NewAtomValueNum(float64(result)))
 }
 
 func DoShiftRight(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -260,14 +260,14 @@ func DoShiftRight(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		result := a >> b
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot shift right types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -278,10 +278,10 @@ func DoShiftRight(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 
 	// Try to preserve integer types if possible
 	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.pushValue(NewAtomValueNum(float64(result)))
+	intereter.pushVal(NewAtomValueNum(float64(result)))
 }
 
 // Comparison operations
@@ -289,7 +289,7 @@ func DoShiftRight(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 func DoCmpLt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -308,7 +308,7 @@ func DoCmpLt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 func DoCmpLte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -327,7 +327,7 @@ func DoCmpLte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 func DoCmpGt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot compare greater than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -346,7 +346,7 @@ func DoCmpGt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 func DoCmpGte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot compare greater than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -444,13 +444,13 @@ func DoAnd(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		a := val0.Value.(int32)
 		b := val1.Value.(int32)
 		result := a & b
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -460,9 +460,9 @@ func DoAnd(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if result can be represented as an int
 	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 	} else {
-		intereter.pushValue(NewAtomValueNum(float64(result)))
+		intereter.pushVal(NewAtomValueNum(float64(result)))
 	}
 }
 
@@ -472,13 +472,13 @@ func DoOr(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		a := val0.Value.(int32)
 		b := val1.Value.(int32)
 		result := a | b
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -488,9 +488,9 @@ func DoOr(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if result can be represented as an int
 	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 	} else {
-		intereter.pushValue(NewAtomValueNum(float64(result)))
+		intereter.pushVal(NewAtomValueNum(float64(result)))
 	}
 }
 
@@ -500,13 +500,13 @@ func DoXor(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		a := val0.Value.(int32)
 		b := val1.Value.(int32)
 		result := a ^ b
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 		return
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := fmt.Sprintf("cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		intereter.pushValue(NewAtomValueError(message))
+		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
 
@@ -516,8 +516,8 @@ func DoXor(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if result can be represented as an int
 	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		intereter.pushValue(NewAtomValueInt(int(result)))
+		intereter.pushVal(NewAtomValueInt(int(result)))
 	} else {
-		intereter.pushValue(NewAtomValueNum(float64(result)))
+		intereter.pushVal(NewAtomValueNum(float64(result)))
 	}
 }

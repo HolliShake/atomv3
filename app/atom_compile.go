@@ -22,8 +22,8 @@ func NewAtomCompile(parser *AtomParser, state *runtime.AtomState) *AtomCompile {
 }
 
 func (c *AtomCompile) emit(atomFunc *runtime.AtomValue, opcode runtime.OpCode) {
-	atomFunc.Value.(*runtime.AtomCode).OpCodes =
-		append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode)
+	atomFunc.Value.(*runtime.AtomCode).Code =
+		append(atomFunc.Value.(*runtime.AtomCode).Code, opcode)
 }
 
 func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode, intValue int) {
@@ -31,9 +31,9 @@ func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 	bytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bytes, uint32(intValue))
 
-	atomFunc.Value.(*runtime.AtomCode).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).Code =
 		append(
-			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
 			runtime.OpCode(bytes[0]),
 			runtime.OpCode(bytes[1]),
 			runtime.OpCode(bytes[2]),
@@ -45,9 +45,9 @@ func (c *AtomCompile) emitNum(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, uint64(math.Float64bits(numValue)))
 
-	atomFunc.Value.(*runtime.AtomCode).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).Code =
 		append(
-			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
 			runtime.OpCode(bytes[0]),
 			runtime.OpCode(bytes[1]),
 			runtime.OpCode(bytes[2]),
@@ -68,22 +68,22 @@ func (c *AtomCompile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 		opcodes[i] = runtime.OpCode(b)
 	}
 
-	atomFunc.Value.(*runtime.AtomCode).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).Code =
 		append(
-			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
 			opcodes...,
 		)
 
-	atomFunc.Value.(*runtime.AtomCode).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).Code =
 		append(
-			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
 			0, // null byte
 		)
 }
 
 func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCode) int {
 	c.emit(atomFunc, opcode)
-	start := len(atomFunc.Value.(*runtime.AtomCode).OpCodes)
+	start := len(atomFunc.Value.(*runtime.AtomCode).Code)
 	// Emit 4 placeholder bytes for the jump address
 	for i := 0; i < 4; i++ {
 		c.emit(atomFunc, 0)
@@ -92,27 +92,41 @@ func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCod
 }
 
 func (c *AtomCompile) label(atomFunc *runtime.AtomValue, jumpAddress int) {
-	current := len(atomFunc.Value.(*runtime.AtomCode).OpCodes)
+	current := len(atomFunc.Value.(*runtime.AtomCode).Code)
 	for i := range 4 {
-		atomFunc.Value.(*runtime.AtomCode).OpCodes[i+jumpAddress] =
+		atomFunc.Value.(*runtime.AtomCode).Code[i+jumpAddress] =
 			runtime.OpCode((current >> (8 * i)) & 0xFF)
 	}
 }
 
-func (c *AtomCompile) expression(parent *AtomScope, atomFunc *runtime.AtomValue, ast *AtomAst) {
+func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	switch ast.AstType {
 	case AstTypeIdn:
-		if !parent.HasSymbol(ast.Str0) {
-			Error(
-				c.parser.tokenizer.file,
-				c.parser.tokenizer.data,
-				fmt.Sprintf("Symbol %s not found", ast.Str0),
-				ast.Position,
-			)
-			return
+		{
+			if !parentScope.HasSymbol(ast.Str0) {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					fmt.Sprintf("Symbol %s not found", ast.Str0),
+					ast.Position,
+				)
+				return
+			}
+			symbol := parentScope.GetSymbol(ast.Str0)
+			if parentScope.HasLocal(ast.Str0) {
+				c.emitInt(parentFunc, runtime.OpLoadLocal, symbol.Offset)
+				return
+			}
+			// Non-local symbol, save as capture
+			functionScope := parentScope.GetCurrentFunction()
+			captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementCapture()
+			functionScope.AddCapture(NewAtomSymbol(
+				ast.Str0,
+				captureOffset,
+				false,
+			))
+			c.emitInt(parentFunc, runtime.OpLoadCapture, captureOffset)
 		}
-		symbol := parent.GetSymbol(ast.Str0)
-		c.emitInt(atomFunc, runtime.OpLoadLocal, symbol.Offset)
 
 	case AstTypeInt:
 		intValue, err := strconv.Atoi(ast.Str0)
@@ -125,7 +139,7 @@ func (c *AtomCompile) expression(parent *AtomScope, atomFunc *runtime.AtomValue,
 			)
 		}
 		c.emitInt(
-			atomFunc,
+			parentFunc,
 			runtime.OpLoadInt,
 			intValue,
 		)
@@ -140,184 +154,184 @@ func (c *AtomCompile) expression(parent *AtomScope, atomFunc *runtime.AtomValue,
 				ast.Position,
 			)
 		}
-		c.emitNum(atomFunc, runtime.OpLoadNum, numValue)
+		c.emitNum(parentFunc, runtime.OpLoadNum, numValue)
 
 	case AstTypeStr:
-		c.emitStr(atomFunc, runtime.OpLoadStr, ast.Str0)
+		c.emitStr(parentFunc, runtime.OpLoadStr, ast.Str0)
 
 	case AstTypeCall:
 		{
 			funcAst := ast.Ast0
 			args := ast.Arr0
 			for i := len(args) - 1; i >= 0; i-- {
-				c.expression(parent, atomFunc, args[i])
+				c.expression(parentScope, parentFunc, args[i])
 			}
-			c.expression(parent, atomFunc, funcAst)
-			c.emitInt(atomFunc, runtime.OpCall, len(args))
+			c.expression(parentScope, parentFunc, funcAst)
+			c.emitInt(parentFunc, runtime.OpCall, len(args))
 		}
 
 	case AstTypeBinaryMul:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpMul)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpMul)
 		}
 
 	case AstTypeBinaryDiv:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpDiv)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpDiv)
 		}
 
 	case AstTypeBinaryMod:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpMod)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpMod)
 		}
 
 	case AstTypeBinaryAdd:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpAdd)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpAdd)
 		}
 
 	case AstTypeBinarySub:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpSub)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpSub)
 		}
 
 	case AstTypeBinaryShiftRight:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpShr)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpShr)
 		}
 
 	case AstTypeBinaryShiftLeft:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpShl)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpShl)
 		}
 
 	case AstTypeBinaryGreaterThan:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpCmpGt)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpCmpGt)
 		}
 
 	case AstTypeBinaryGreaterThanEqual:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpCmpGte)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpCmpGte)
 		}
 
 	case AstTypeBinaryLessThan:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpCmpLt)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpCmpLt)
 		}
 
 	case AstTypeBinaryLessThanEqual:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpCmpLte)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpCmpLte)
 		}
 
 	case AstTypeBinaryEqual:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpCmpEq)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpCmpEq)
 		}
 
 	case AstTypeBinaryNotEqual:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpCmpNe)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpCmpNe)
 		}
 
 	case AstTypeBinaryAnd:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpAnd)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpAnd)
 		}
 
 	case AstTypeBinaryOr:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpOr)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpOr)
 		}
 
 	case AstTypeBinaryXor:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			c.expression(parent, atomFunc, rhs)
-			c.emit(atomFunc, runtime.OpXor)
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpXor)
 		}
 
 	case AstTypeLogicalAnd:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			toEnd0 := c.emitJump(atomFunc, runtime.OpJumpIfFalseOrPop)
-			c.expression(parent, atomFunc, rhs)
-			c.label(atomFunc, toEnd0)
+			c.expression(parentScope, parentFunc, lhs)
+			toEnd0 := c.emitJump(parentFunc, runtime.OpJumpIfFalseOrPop)
+			c.expression(parentScope, parentFunc, rhs)
+			c.label(parentFunc, toEnd0)
 		}
 
 	case AstTypeLogicalOr:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parent, atomFunc, lhs)
-			toEnd0 := c.emitJump(atomFunc, runtime.OpJumpIfTrueOrPop)
-			c.expression(parent, atomFunc, rhs)
-			c.label(atomFunc, toEnd0)
+			c.expression(parentScope, parentFunc, lhs)
+			toEnd0 := c.emitJump(parentFunc, runtime.OpJumpIfTrueOrPop)
+			c.expression(parentScope, parentFunc, rhs)
+			c.label(parentFunc, toEnd0)
 		}
 
 	default:
@@ -330,40 +344,40 @@ func (c *AtomCompile) expression(parent *AtomScope, atomFunc *runtime.AtomValue,
 	}
 }
 
-func (c *AtomCompile) statement(parent *AtomScope, atomFunc *runtime.AtomValue, ast *AtomAst) {
+func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	switch ast.AstType {
 	case AstTypeReturnStatement:
 		c.returnStatement(
-			parent,
-			atomFunc,
+			parentScope,
+			parentFunc,
 			ast,
 		)
 
 	case AstTypeEmptyStatement:
 		c.emptyStatement(
-			parent,
-			atomFunc,
+			parentScope,
+			parentFunc,
 			ast,
 		)
 
 	case AstTypeExpressionStatement:
 		c.expressionStatement(
-			parent,
-			atomFunc,
+			parentScope,
+			parentFunc,
 			ast,
 		)
 
 	case AstTypeFunction:
 		c.function(
-			parent,
-			atomFunc,
+			parentScope,
+			parentFunc,
 			ast,
 		)
 
 	case AstTypeIfStatement:
 		c.ifStatement(
-			parent,
-			atomFunc,
+			parentScope,
+			parentFunc,
 			ast,
 		)
 
@@ -401,9 +415,7 @@ func (c *AtomCompile) expressionStatement(parentScope *AtomScope, parentFunc *ru
 }
 
 func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) *runtime.AtomValue {
-	funcScope := NewAtomScope(parentScope, AtomScopeTypeFunction)
-	atomFunc := runtime.NewFunction(c.parser.tokenizer.file, ast.Str0, len(ast.Arr0))
-	params := ast.Arr0
+	// Guard
 	if parentScope.Type != AtomScopeTypeGlobal {
 		Error(
 			c.parser.tokenizer.file,
@@ -413,6 +425,31 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		)
 		return nil
 	}
+
+	funcScope := NewAtomScope(parentScope, AtomScopeTypeFunction)
+	atomFunc := runtime.NewFunction(c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
+	params := ast.Arr0
+
+	//============================
+	fnOffset := c.state.SaveFunction(atomFunc)
+
+	if parentScope.HasLocal(ast.Ast0.Str0) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			fmt.Sprintf("Symbol %s already defined", ast.Ast0.Str0),
+			ast.Ast0.Position,
+		)
+	}
+	// Save to symbol table first to allow captures to reference it
+	offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+	parentScope.AddSymbol(NewAtomSymbol(
+		ast.Ast0.Str0,
+		offset,
+		parentScope.Type == AtomScopeTypeGlobal,
+	))
+	//============================
+
 	for _, param := range params {
 		if param.AstType != AstTypeIdn {
 			Error(
@@ -432,6 +469,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			)
 			return nil
 		}
+		// Save to symbol table
 		offset := atomFunc.Value.(*runtime.AtomCode).IncrementLocal()
 		funcScope.AddSymbol(NewAtomSymbol(
 			param.Str0,
@@ -446,28 +484,29 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	}
 	c.emit(atomFunc, runtime.OpLoadNull)
 	c.emit(atomFunc, runtime.OpReturn)
-	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
-
-	// save function to function table
-	fnOffset := c.state.SaveFunction(atomFunc)
+	//============================
 	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
-
-	if parentScope.HasLocal(ast.Ast0.Str0) {
-		Error(
-			c.parser.tokenizer.file,
-			c.parser.tokenizer.data,
-			fmt.Sprintf("Symbol %s already defined", ast.Ast0.Str0),
-			ast.Ast0.Position,
-		)
-	}
-
-	offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
-	parentScope.AddSymbol(NewAtomSymbol(
-		ast.Ast0.Str0,
-		offset,
-		parentScope.Type == AtomScopeTypeGlobal,
-	))
+	c.emit(parentFunc, runtime.OpDupTop)
 	c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
+	// Write captures
+	for _, capture := range funcScope.Captures {
+		offset := 0
+		opcode := runtime.OpLoadLocal
+		if parentScope.HasLocal(capture.Name) {
+			opcode = runtime.OpLoadLocal
+			offset = parentScope.GetSymbol(capture.Name).Offset
+		} else if parentScope.HasCapture(capture.Name) {
+			opcode = runtime.OpLoadCapture
+			offset = parentScope.GetCapture(capture.Name).Offset
+		} else {
+			panic(fmt.Sprintf("Symbol %s not found", capture.Name))
+		}
+		c.emitInt(parentFunc, opcode, offset)
+		c.emitInt(parentFunc, runtime.OpStoreCapture, capture.Offset)
+	}
+	//============================
+	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
+	atomFunc.Value.(*runtime.AtomCode).AllocateCaptures()
 	return atomFunc
 }
 
@@ -527,6 +566,7 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	c.emit(programFunc, runtime.OpLoadNull)
 	c.emit(programFunc, runtime.OpReturn)
 	programFunc.Value.(*runtime.AtomCode).AllocateLocals()
+	programFunc.Value.(*runtime.AtomCode).AllocateCaptures()
 	return programFunc
 }
 

@@ -23,7 +23,7 @@ func NewInterpreter(state *AtomState) *AtomInterpreter {
 	}
 }
 
-func (i *AtomInterpreter) pushValue(value *AtomValue) {
+func (i *AtomInterpreter) pushVal(value *AtomValue) {
 	i.GcRoot.Next = value
 	i.GcRoot = value
 	i.EvaluationStack.Push(value)
@@ -42,13 +42,13 @@ func (i *AtomInterpreter) peek() *AtomValue {
 	return i.EvaluationStack.Peek()
 }
 
-func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
+func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offset int) {
 	// Frame here is a function
 
 	offsetStart := offset
 
 	code := frame.Value.(*AtomCode)
-	size := len(code.OpCodes)
+	size := len(code.Code)
 
 	forward := func(offset int) {
 		offsetStart += offset
@@ -59,7 +59,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 	}
 
 	for offsetStart < size {
-		opCode := code.OpCodes[offsetStart]
+		opCode := code.Code[offsetStart]
 		offsetStart++
 
 		if (i.Allocation % TRESHOLD) == 0 {
@@ -68,46 +68,62 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		switch opCode {
 		case OpLoadInt:
-			value := ReadInt(code.OpCodes, offsetStart)
-			i.pushValue(
+			value := ReadInt(code.Code, offsetStart)
+			i.pushVal(
 				NewAtomValueInt(value),
 			)
 			forward(4)
 
 		case OpLoadNum:
-			value := ReadNum(code.OpCodes, offsetStart)
-			i.pushValue(
+			value := ReadNum(code.Code, offsetStart)
+			i.pushVal(
 				NewAtomValueNum(value),
 			)
 			forward(8)
 
 		case OpLoadStr:
-			value := ReadStr(code.OpCodes, offsetStart)
-			i.pushValue(
+			value := ReadStr(code.Code, offsetStart)
+			i.pushVal(
 				NewAtomValueStr(value),
 			)
 			forward(len(value) + 1)
 
 		case OpLoadNull:
-			i.pushValue(
+			i.pushVal(
 				i.state.NullValue,
 			)
 
 		case OpLoadFunction:
-			offset := ReadInt(code.OpCodes, offsetStart)
+			offset := ReadInt(code.Code, offsetStart)
 			fn := i.state.FunctionTable.Get(offset)
 			i.pushRef(fn)
 			forward(4)
 
 		case OpCall:
-			argc := ReadInt(code.OpCodes, offsetStart)
+			argc := ReadInt(code.Code, offsetStart)
 			forward(4)
 			call := i.pop()
-			DoCall(i, call, argc)
+			global := parent
+			if global == nil {
+				global = frame
+			}
+			DoCall(i, global, call, argc)
+
+		case OpLoadGlobal:
+			index := ReadInt(code.Code, offsetStart)
+			value := parent.Value.(*AtomCode).Env0[index]
+			i.pushRef(value)
+			forward(4)
+
+		case OpLoadCapture:
+			index := ReadInt(code.Code, offsetStart)
+			value := code.Env1[index]
+			i.pushRef(value)
+			forward(4)
 
 		case OpLoadLocal:
-			index := ReadInt(code.OpCodes, offsetStart)
-			value := code.Locals[index]
+			index := ReadInt(code.Code, offsetStart)
+			value := code.Env0[index]
 			i.pushRef(value)
 			forward(4)
 
@@ -191,14 +207,22 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			lhs := i.pop()
 			DoXor(i, lhs, rhs)
 
-		case OpStoreLocal:
-			index := ReadInt(code.OpCodes, offsetStart)
+		case OpStoreCapture:
+			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
-			code.Locals[index] = value
+			function := i.peek().Value.(*AtomCode)
+			println("FN:", function.Name, index, len(function.Env1))
+			function.Env1[index] = value
+			forward(4)
+
+		case OpStoreLocal:
+			index := ReadInt(code.Code, offsetStart)
+			value := i.pop()
+			code.Env0[index] = value
 			forward(4)
 
 		case OpJumpIfFalseOrPop:
-			offset := ReadInt(code.OpCodes, offsetStart)
+			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
 			value := i.peek()
 			if !CoerceToBool(value) {
@@ -208,7 +232,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			}
 
 		case OpJumpIfTrueOrPop:
-			offset := ReadInt(code.OpCodes, offsetStart)
+			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
 			value := i.peek()
 			if CoerceToBool(value) {
@@ -218,7 +242,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			}
 
 		case OpPopJumpIfFalse:
-			offset := ReadInt(code.OpCodes, offsetStart)
+			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
 			value := i.pop()
 			if !CoerceToBool(value) {
@@ -226,7 +250,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			}
 
 		case OpPopJumpIfTrue:
-			offset := ReadInt(code.OpCodes, offsetStart)
+			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
 			value := i.pop()
 			if CoerceToBool(value) {
@@ -234,9 +258,12 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			}
 
 		case OpJump:
-			offset := ReadInt(code.OpCodes, offsetStart)
+			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
 			jump(offset)
+
+		case OpDupTop:
+			i.pushVal(i.peek())
 
 		case OpPopTop:
 			v := i.pop()
@@ -252,12 +279,8 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 }
 
 func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
-	i.Frame.Push(atomFunc)
-
 	// Run while the frame is not empty
-	i.executeFrame(atomFunc, 0)
-
-	// While has pending frames for async
+	i.executeFrame(nil, atomFunc, 0)
 
 	// Dump stack
 	i.EvaluationStack.Dump()

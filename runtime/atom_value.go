@@ -80,6 +80,8 @@ func NewAtomValueError(message string) *AtomValue {
 func (v *AtomValue) String() string {
 	if CheckType(v, AtomTypeNull) {
 		return "null"
+	} else if CheckType(v, AtomTypeFunc) {
+		return fmt.Sprintf("function %s(...){}", v.Value.(*AtomCode).Name)
 	}
 	return fmt.Sprintf("%s: %v", GetTypeString(v), v.Value)
 }

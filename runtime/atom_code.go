@@ -1,13 +1,14 @@
 package runtime
 
 type AtomCode struct {
-	File       string
-	Name       string
-	Argc       int
-	OpCodes    []OpCode
-	Lines      []int
-	LocalCount int
-	Locals     []*AtomValue
+	File   string
+	Name   string
+	Argc   int
+	LCount int          // Local count
+	CCount int          // Capture count
+	Env0   []*AtomValue // Local environment
+	Env1   []*AtomValue // Capture environment
+	Code   []OpCode
 }
 
 func NewAtomCode(file, name string, argc int) *AtomCode {
@@ -15,19 +16,30 @@ func NewAtomCode(file, name string, argc int) *AtomCode {
 	code.File = file
 	code.Name = name
 	code.Argc = argc
-	code.OpCodes = make([]OpCode, 0)
-	code.Lines = make([]int, 0)
-	code.LocalCount = 0
-	code.Locals = make([]*AtomValue, 0)
+	code.LCount = 0
+	code.CCount = 0
+	code.Env0 = make([]*AtomValue, 0)
+	code.Env1 = make([]*AtomValue, 0)
+	code.Code = make([]OpCode, 0)
 	return code
 }
 
 func (c *AtomCode) IncrementLocal() int {
-	current := c.LocalCount
-	c.LocalCount++
+	current := c.LCount
+	c.LCount++
+	return current
+}
+
+func (c *AtomCode) IncrementCapture() int {
+	current := c.CCount
+	c.CCount++
 	return current
 }
 
 func (c *AtomCode) AllocateLocals() {
-	c.Locals = make([]*AtomValue, c.LocalCount)
+	c.Env0 = make([]*AtomValue, c.LCount)
+}
+
+func (c *AtomCode) AllocateCaptures() {
+	c.Env1 = make([]*AtomValue, c.CCount)
 }
