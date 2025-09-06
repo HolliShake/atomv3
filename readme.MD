@@ -1,29 +1,33 @@
 # Atom Programming Language
 
-Atom is a custom programming language implemented in Go, featuring a complete compiler and interpreter with support for functions, variables, control flow, and various data types.
+Atom is a custom programming language implemented in Go, featuring a complete compiler and interpreter with support for functions, variables, control flow, objects, arrays, and various data types. It uses a stack-based virtual machine for execution.
 
 ## Features
 
-- **Dynamic Typing**: Supports integers, floats, strings, booleans, arrays, and functions
+- **Dynamic Typing**: Supports integers, floats, strings, booleans, arrays, objects, and functions
 - **Function Support**: First-class functions with parameters and return statements
-- **Variable Declarations**: `var`, `const`, and `local` variable declarations
+- **Variable Declarations**: `var`, `const`, and `local` variable declarations with proper scoping
 - **Control Flow**: `if-else` statements with proper scoping
-- **Arithmetic Operations**: Full set of mathematical and bitwise operations
-- **Array Support**: Array literals and operations
+- **Arithmetic Operations**: Full set of mathematical, bitwise, and logical operations
+- **Assignment Operators**: Compound assignment operators (`+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`)
+- **Array Support**: Array literals, indexing, and element access
+- **Object Support**: Object literals with key-value pairs, property access, and method calls
+- **Stack-based VM**: Efficient bytecode execution with evaluation stack
 - **Error Handling**: Comprehensive error reporting with source location
-- **Garbage Collection**: Basic memory management with GC roots
+- **Memory Management**: Basic garbage collection with GC roots
 
 ## Language Syntax
 
 ### Data Types
 
 Atom supports the following primitive types:
-- **Integers**: `42`, `-17`, `0`
-- **Floats**: `3.14`, `-2.5`, `0.0`
-- **Strings**: `"hello"`, `"world"`
+- **Integers**: `42`, `-17`, `0` (32-bit signed integers)
+- **Floats**: `3.14`, `-2.5`, `0.0` (64-bit floating point numbers)
+- **Strings**: `"hello"`, `"world"` (Unicode strings with escape sequences)
 - **Booleans**: `true`, `false`
 - **Null**: `null`
-- **Arrays**: `[1, 2, 3, 4, 5]`
+- **Arrays**: `[1, 2, 3, 4, 5]` (dynamic arrays with indexing)
+- **Objects**: `{key: value, name: "test"}` (key-value pairs with property access)
 - **Functions**: First-class function objects
 
 ### Variable Declarations
@@ -125,6 +129,54 @@ var empty = [];
 
 // Arrays with function calls
 var results = [factorial(3), factorial(4), factorial(5)];
+
+// Array indexing
+var first = numbers[0];        // Access first element
+numbers[1] = 42;              // Modify second element
+```
+
+### Objects
+
+```atom
+// Object literals
+var person = {
+    name: "Alice",
+    age: 30,
+    greet: function() {
+        return "Hello, I'm " + this.name;
+    }
+};
+
+// Property access
+var name = person.name;        // Dot notation
+var age = person["age"];       // Bracket notation
+
+// Property assignment
+person.name = "Bob";
+person["age"] = 31;
+
+// Method calls
+var greeting = person.greet();
+```
+
+### Assignment Operators
+
+```atom
+var x = 10;
+
+// Compound assignment operators
+x += 5;    // x = x + 5 (15)
+x -= 3;    // x = x - 3 (12)
+x *= 2;    // x = x * 2 (24)
+x /= 4;    // x = x / 4 (6)
+x %= 5;    // x = x % 5 (1)
+
+// Bitwise assignment operators
+x &= 3;    // x = x & 3
+x |= 7;    // x = x | 7
+x ^= 4;    // x = x ^ 4
+x <<= 2;   // x = x << 2
+x >>= 1;   // x = x >> 1
 ```
 
 ### Expression Statements
@@ -173,7 +225,7 @@ var numbers = [1, 2, 3, 4, 5];
 sumArray(numbers);
 ```
 
-### Complex Example
+### Complex Example (from test.atom)
 ```atom
 var x = 1;
 
@@ -185,9 +237,9 @@ func add(a, b) {
 
 3 + 2 + add(12, 2);
 
-if (0 || 0) {
+if (0 || 0)
     2 + 2;
-} else {
+else {
     3 + 3;
     local x = 69420;
     local y = x + 1;
@@ -207,7 +259,64 @@ func fact(n) {
 const n = 3 + 2;
 fact(n);
 
-[1, 2, 3, 4, 5, 6, fact(n)];
+[1,2,3,4,5,6, fact(n), "Nah!!"];
+
+var obj = {
+    getName: "Hello",
+    add: add,
+    val: 0
+};
+
+obj;
+obj.getName;
+
+obj.val += 2;
+obj["val"] += 2;
+
+obj;
+
+var xh = 12;
+
+xh *= 2;
+xh = 100;
+
+obj.getName = "Hello World";
+obj;
+
+const arr = [
+    1,2,3,4,5,6,7,8,9,10
+];
+
+arr[0];
+
+xh  *= 2;
+xh  /= 3;
+xh  %= 4;
+xh  += 3;
+xh  -= 4;
+xh >>= 5;
+xh <<= 6;
+xh  &= 7;
+xh  |= 8;
+xh  ^= 9;
+
+var r = 0;
+
+func mutate() {
+    r;
+    r = 200;
+    local a = 300 + r;
+    a;
+    fact(3 + 2);
+    return a;
+}
+
+const b = mutate();
+b;
+r;
+b;
+r;
+fact(40);
 ```
 
 ## Architecture
@@ -215,9 +324,27 @@ fact(n);
 ### Compiler Pipeline
 
 1. **Tokenizer** (`atom_tokenizer.go`): Converts source code into tokens
+   - Supports Unicode strings with escape sequences (`\n`, `\t`, `\r`, `\uXXXX`)
+   - Handles single-line (`//`) and multi-line (`/* */`) comments
+   - Recognizes hexadecimal numbers (`0x1A`, `0xFF`)
+   - Supports scientific notation (`1.5e10`, `2E-3`)
+   - Multi-character operators (`==`, `!=`, `&&`, `||`, `+=`, `-=`, etc.)
+
 2. **Parser** (`atom_parser.go`): Builds Abstract Syntax Tree (AST) from tokens
+   - Recursive descent parser with operator precedence
+   - Supports all binary operators with proper precedence
+   - Handles function calls, array/object access, and member access
+   - Parses control flow statements and variable declarations
+
 3. **Compiler** (`atom_compile.go`): Compiles AST to bytecode
+   - Generates stack-based bytecode instructions
+   - Handles variable scoping and function compilation
+   - Optimizes expression evaluation order
+
 4. **Interpreter** (`atom_interpreter.go`): Executes bytecode
+   - Stack-based virtual machine execution
+   - Frame management for function calls
+   - Memory management with garbage collection roots
 
 ### Runtime System
 
@@ -229,13 +356,15 @@ fact(n);
 ### Bytecode Operations
 
 The VM supports the following opcodes:
-- **Load Operations**: `OpLoadInt`, `OpLoadNum`, `OpLoadStr`, `OpLoadArray`
+- **Load Operations**: `OpLoadInt`, `OpLoadNum`, `OpLoadStr`, `OpLoadBool`, `OpLoadNull`, `OpLoadArray`, `OpLoadObject`, `OpLoadFunction`
 - **Arithmetic**: `OpAdd`, `OpSub`, `OpMul`, `OpDiv`, `OpMod`
 - **Bitwise**: `OpAnd`, `OpOr`, `OpXor`, `OpShl`, `OpShr`
-- **Comparison**: `OpCmpLt`, `OpCmpGt`, `OpCmpEq`, `OpCmpNe`
-- **Control Flow**: `OpJump`, `OpJumpIfFalse`, `OpJumpIfTrue`
+- **Comparison**: `OpCmpLt`, `OpCmpLte`, `OpCmpGt`, `OpCmpGte`, `OpCmpEq`, `OpCmpNe`
+- **Control Flow**: `OpJump`, `OpJumpIfFalseOrPop`, `OpJumpIfTrueOrPop`, `OpPopJumpIfFalse`, `OpPopJumpIfTrue`
 - **Function Calls**: `OpCall`, `OpReturn`
-- **Variable Access**: `OpLoadLocal`, `OpStoreLocal`, `OpLoadCapture`
+- **Variable Access**: `OpLoadLocal`, `OpStoreLocal`, `OpLoadCapture`, `OpStoreCapture`, `OpStoreGlobal`
+- **Object/Array Operations**: `OpIndex`, `OpSetIndex`
+- **Stack Operations**: `OpDupTop`, `OpPopTop`, `OpNoOp`
 
 ## Building and Running
 
@@ -285,22 +414,32 @@ atom/
 ## Language Limitations
 
 - No loops (`for`, `while`) - only recursive functions
-- No object-oriented programming
+- No object-oriented programming (no classes, inheritance, or `this` context)
 - No modules or imports
 - No exception handling
-- Limited array operations
+- Limited array operations (no built-in methods like `push`, `pop`, `length`)
 - No string manipulation functions
-- No I/O operations
+- No I/O operations (no file reading, console input/output)
+- No built-in standard library
+- No closures (functions cannot capture variables from outer scope)
+- No type annotations or type checking
 
 ## Future Enhancements
 
-- Loop constructs (`for`, `while`)
-- Object-oriented features
-- Module system
-- Standard library
-- Better error messages
-- Optimizations
+- Loop constructs (`for`, `while`, `do-while`)
+- Object-oriented features (classes, inheritance, `this` context)
+- Module system and imports
+- Standard library with common functions
+- Better error messages and debugging support
+- Performance optimizations
 - REPL (Read-Eval-Print Loop)
+- Closures and lexical scoping
+- Type annotations and static type checking
+- String manipulation functions
+- I/O operations (file system, console)
+- Array and object built-in methods
+- Exception handling with try-catch
+- Garbage collection improvements
 
 ## License
 
