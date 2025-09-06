@@ -119,13 +119,15 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			}
 			// Non-local symbol, save as capture
 			functionScope := parentScope.GetCurrentFunction()
-			captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementCapture()
-			functionScope.AddCapture(NewAtomSymbol(
+			captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+			functionScope.AddSymbol(NewCaptureAtomSymbol(
 				ast.Str0,
 				captureOffset,
-				false,
+				symbol.Global,
+				symbol.Const,
+				true,
 			))
-			c.emitInt(parentFunc, runtime.OpLoadCapture, captureOffset)
+			c.emitInt(parentFunc, runtime.OpLoadLocal, captureOffset)
 		}
 
 	case AstTypeInt:
@@ -594,26 +596,20 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	c.emit(atomFunc, runtime.OpLoadNull)
 	c.emit(atomFunc, runtime.OpReturn)
 	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
-	atomFunc.Value.(*runtime.AtomCode).AllocateCaptures()
 	//============================
 	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
 	c.emit(parentFunc, runtime.OpDupTop)
 	c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
 	// Write captures
-	for _, capture := range funcScope.Captures {
-		opcode := runtime.OpLoadLocal
+	for _, capture := range funcScope.Captures() {
 		offset := 0
-		if parentScope.HasLocal(capture.Name) {
-			opcode = runtime.OpLoadLocalAsCapture
+		if parentScope.HasSymbol(capture.Name) {
 			offset = parentScope.GetSymbol(capture.Name).Offset
-		} else if parentScope.HasCapture(capture.Name) {
-			opcode = runtime.OpLoadCapture
-			offset = parentScope.GetCapture(capture.Name).Offset
 		} else {
 			// Possible, not handled properly
-			panic(fmt.Sprintf("Symbol %s not found", capture.Name))
+			panic(fmt.Sprintf("Capture %s not found", capture.Name))
 		}
-		c.emitInt(parentFunc, opcode, offset)
+		c.emitInt(parentFunc, runtime.OpLoadCapture, offset)
 		c.emitInt(parentFunc, runtime.OpStoreCapture, capture.Offset)
 	}
 	// Pop the function from the stack
@@ -813,7 +809,6 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	c.emit(programFunc, runtime.OpLoadNull)
 	c.emit(programFunc, runtime.OpReturn)
 	programFunc.Value.(*runtime.AtomCode).AllocateLocals()
-	programFunc.Value.(*runtime.AtomCode).AllocateCaptures()
 	return programFunc
 }
 

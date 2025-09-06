@@ -12,7 +12,6 @@ const (
 	AtomTypeNull
 	AtomTypeObj
 	AtomTypeArray
-	AtomTypeMemory
 	AtomTypeFunc
 	AtomTypeErr
 )
@@ -76,12 +75,6 @@ func NewAtomValueArray(elements []*AtomValue) *AtomValue {
 func NewAtomValueObject(elements map[string]*AtomValue) *AtomValue {
 	obj := NewAtomValue(AtomTypeObj)
 	obj.Value = NewAtomObject(elements)
-	return obj
-}
-
-func NewAtomValueCell(value uintptr) *AtomValue {
-	obj := NewAtomValue(AtomTypeMemory)
-	obj.Value = value
 	return obj
 }
 
@@ -157,6 +150,8 @@ func GetTypeString(value *AtomValue) string {
 		return "object"
 	case AtomTypeFunc:
 		return "function"
+	case AtomTypeErr:
+		return "error"
 	default:
 		return "unknown"
 	}

@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"math"
 	"strconv"
-	"unsafe"
 )
 
 func ReadInt(data []OpCode, offset int) int {
@@ -104,12 +103,4 @@ func CoerceToBool(value *AtomValue) bool {
 	default:
 		return true
 	}
-}
-
-func PointerToUintPointer(cell *AtomCell) uintptr {
-	return uintptr(unsafe.Pointer(cell))
-}
-
-func UintPointerToPointer(value uintptr) *AtomCell {
-	return (*AtomCell)(unsafe.Pointer(value))
 }

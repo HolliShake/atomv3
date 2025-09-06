@@ -128,11 +128,7 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			argc := ReadInt(code.Code, offsetStart)
 			forward(4)
 			call := i.pop()
-			global := parent
-			if global == nil {
-				global = frame
-			}
-			DoCall(i, global, call, argc)
+			DoCall(i, frame, call, argc)
 
 		case OpLoadLocal:
 			index := ReadInt(code.Code, offsetStart)
@@ -140,21 +136,10 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			i.pushRef(value.Get())
 			forward(4)
 
-		case OpLoadLocalAsCapture:
-			index := ReadInt(code.Code, offsetStart)
-			value := code.Env0[index]
-			addr := PointerToUintPointer(value)
-			i.pushRef(
-				NewAtomValueCell(addr),
-			)
-			forward(4)
-
 		case OpLoadCapture:
 			index := ReadInt(code.Code, offsetStart)
-			value := code.Env1[index]
-			addr := PointerToUintPointer(value)
 			i.pushRef(
-				NewAtomValueCell(addr),
+				NewAtomValueInt(index),
 			)
 			forward(4)
 
@@ -247,8 +232,9 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 		case OpStoreCapture:
 			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
+			parentCell := code.Env0[value.Value.(int32)]
 			function := i.peek().Value.(*AtomCode)
-			function.Env1[index] = UintPointerToPointer(value.Value.(uintptr))
+			function.Env0[index] = parentCell
 			forward(4)
 
 		case OpStoreLocal:
