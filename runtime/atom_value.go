@@ -1,5 +1,7 @@
 package runtime
 
+import "fmt"
+
 type AtomType int
 
 const (
@@ -44,6 +46,31 @@ func NewAtomValueStr(value string) *AtomValue {
 
 func NewFunction(file, name string) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
-	obj.Value = NewCode(file, name)
+	obj.Value = NewAtomCode(file, name)
 	return obj
+}
+
+func (v *AtomValue) String() string {
+	return fmt.Sprintf("%s: %v", GetTypeString(v), v.Value)
+}
+
+func GetTypeString(value *AtomValue) string {
+	switch value.Type {
+	case AtomTypeInt:
+		return "int"
+	case AtomTypeNum:
+		return "number"
+	case AtomTypeBool:
+		return "bool"
+	case AtomTypeStr:
+		return "string"
+	case AtomTypeNull:
+		return "null"
+	case AtomTypeObj:
+		return "object"
+	case AtomTypeFunc:
+		return "function"
+	default:
+		return "unknown"
+	}
 }

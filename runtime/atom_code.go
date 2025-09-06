@@ -1,6 +1,6 @@
 package runtime
 
-type Code struct {
+type AtomCode struct {
 	File       string
 	Name       string
 	OpCodes    []OpCode
@@ -9,8 +9,8 @@ type Code struct {
 	Locals     []*AtomValue
 }
 
-func NewCode(file, name string) *Code {
-	code := new(Code)
+func NewAtomCode(file, name string) *AtomCode {
+	code := new(AtomCode)
 	code.File = file
 	code.Name = name
 	code.OpCodes = make([]OpCode, 0)
@@ -20,12 +20,12 @@ func NewCode(file, name string) *Code {
 	return code
 }
 
-func (c *Code) IncrementLocal() int {
+func (c *AtomCode) IncrementLocal() int {
 	current := c.LocalCount
 	c.LocalCount++
 	return current
 }
 
-func (c *Code) AllocateLocals() {
+func (c *AtomCode) AllocateLocals() {
 	c.Locals = make([]*AtomValue, c.LocalCount)
 }

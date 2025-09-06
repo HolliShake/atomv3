@@ -2,11 +2,11 @@ package runtime
 
 import "math"
 
-func DoMultiplication(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
+func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
-	if CheckType(value1, AtomTypeInt) && CheckType(value2, AtomTypeInt) {
-		lhs := CoerceToInt(value1)
-		rhs := CoerceToInt(value2)
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		lhs := CoerceToInt(val0)
+		rhs := CoerceToInt(val1)
 
 		// Check for overflow using int64 arithmetic
 		result := int64(lhs) * int64(rhs)
@@ -20,14 +20,14 @@ func DoMultiplication(intereter *Interpreter, value1 *AtomValue, value2 *AtomVal
 	}
 
 	// Check if both values are numbers (int or float)
-	if !IsNumberType(value1) || !IsNumberType(value2) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
 		// TODO: Implement proper error handling instead of panic
-		panic("cannot multiply types: " + getTypeString(value1) + " and " + getTypeString(value2))
+		panic("cannot multiply types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
 	}
 
 	// Fallback path using coercion
-	lhsValue := CoerceToNum(value1)
-	rhsValue := CoerceToNum(value2)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 	result := lhsValue * rhsValue
 
 	// Try to preserve integer types if possible
@@ -38,11 +38,11 @@ func DoMultiplication(intereter *Interpreter, value1 *AtomValue, value2 *AtomVal
 	intereter.EvaluationStack.Push(NewAtomValueNum(result))
 }
 
-func DoDivision(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
+func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
-	if CheckType(value1, AtomTypeInt) && CheckType(value2, AtomTypeInt) {
-		a := CoerceToInt(value1)
-		b := CoerceToInt(value2)
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
 		if b == 0 {
 			// TODO: Implement proper error handling instead of panic
 			panic("division by zero")
@@ -53,14 +53,14 @@ func DoDivision(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
 	}
 
 	// Check if both values are numbers (int or float)
-	if !IsNumberType(value1) || !IsNumberType(value2) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
 		// TODO: Implement proper error handling instead of panic
-		panic("cannot divide types: " + getTypeString(value1) + " and " + getTypeString(value2))
+		panic("cannot divide types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
 	}
 
 	// Fallback path using coercion
-	lhsValue := CoerceToNum(value1)
-	rhsValue := CoerceToNum(value2)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
 		// TODO: Implement proper error handling instead of panic
 		panic("division by zero")
@@ -75,11 +75,11 @@ func DoDivision(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
 	intereter.EvaluationStack.Push(NewAtomValueNum(result))
 }
 
-func DoModulus(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
+func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
-	if CheckType(value1, AtomTypeInt) && CheckType(value2, AtomTypeInt) {
-		a := CoerceToInt(value1)
-		b := CoerceToInt(value2)
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
 		if b == 0 {
 			// TODO: Implement proper error handling instead of panic
 			panic("division by zero")
@@ -90,14 +90,14 @@ func DoModulus(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
 	}
 
 	// Check if both values are numbers (int or float)
-	if !IsNumberType(value1) || !IsNumberType(value2) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
 		// TODO: Implement proper error handling instead of panic
-		panic("cannot modulo types: " + getTypeString(value1) + " and " + getTypeString(value2))
+		panic("cannot modulo types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
 	}
 
 	// Fallback path using coercion
-	lhsValue := CoerceToNum(value1)
-	rhsValue := CoerceToNum(value2)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
 		// TODO: Implement proper error handling instead of panic
 		panic("division by zero")
@@ -112,12 +112,12 @@ func DoModulus(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
 	intereter.EvaluationStack.Push(NewAtomValueNum(result))
 }
 
-func DoAddition(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
+func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
-	if CheckType(value1, AtomTypeInt) && CheckType(value2, AtomTypeInt) {
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
 		// Use XOR trick to detect overflow
-		a := CoerceToInt(value1)
-		b := CoerceToInt(value2)
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
 		sum := a + b
 		if ((a ^ sum) & (b ^ sum)) < 0 {
 			// Overflow occurred, promote to double
@@ -129,23 +129,23 @@ func DoAddition(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
 	}
 
 	// Fast path for strings
-	if CheckType(value1, AtomTypeStr) && CheckType(value2, AtomTypeStr) {
-		lhs := value1.Value.(string)
-		rhs := value2.Value.(string)
+	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
+		lhs := val0.Value.(string)
+		rhs := val1.Value.(string)
 		result := lhs + rhs
 		intereter.EvaluationStack.Push(NewAtomValueStr(result))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
-	if !IsNumberType(value1) || !IsNumberType(value2) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
 		// TODO: Implement proper error handling instead of panic
-		panic("cannot add types: " + getTypeString(value1) + " and " + getTypeString(value2))
+		panic("cannot add types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
 	}
 
 	// Fallback path using coercion
-	lhsValue := CoerceToNum(value1)
-	rhsValue := CoerceToNum(value2)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 	result := lhsValue + rhsValue
 
 	// Try to preserve integer types if possible
@@ -156,11 +156,11 @@ func DoAddition(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
 	intereter.EvaluationStack.Push(NewAtomValueNum(result))
 }
 
-func DoSubtraction(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue) {
+func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
-	if CheckType(value1, AtomTypeInt) && CheckType(value2, AtomTypeInt) {
-		a := CoerceToInt(value1)
-		b := CoerceToInt(value2)
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
 		diff := a - b
 		if ((a ^ b) & (a ^ diff)) < 0 {
 			// Overflow occurred, promote to double
@@ -172,14 +172,14 @@ func DoSubtraction(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue)
 	}
 
 	// Check if both values are numbers (int or float)
-	if !IsNumberType(value1) || !IsNumberType(value2) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
 		// TODO: Implement proper error handling instead of panic
-		panic("cannot subtract types: " + getTypeString(value1) + " and " + getTypeString(value2))
+		panic("cannot subtract types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
 	}
 
 	// Fallback path using coercion
-	lhsValue := CoerceToNum(value1)
-	rhsValue := CoerceToNum(value2)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 	result := lhsValue - rhsValue
 
 	// Try to preserve integer types if possible
@@ -188,25 +188,4 @@ func DoSubtraction(intereter *Interpreter, value1 *AtomValue, value2 *AtomValue)
 		return
 	}
 	intereter.EvaluationStack.Push(NewAtomValueNum(result))
-}
-
-func getTypeString(value *AtomValue) string {
-	switch value.Type {
-	case AtomTypeInt:
-		return "int"
-	case AtomTypeNum:
-		return "number"
-	case AtomTypeBool:
-		return "bool"
-	case AtomTypeStr:
-		return "string"
-	case AtomTypeNull:
-		return "null"
-	case AtomTypeObj:
-		return "object"
-	case AtomTypeFunc:
-		return "function"
-	default:
-		return "unknown"
-	}
 }

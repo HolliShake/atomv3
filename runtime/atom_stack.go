@@ -1,5 +1,7 @@
 package runtime
 
+import "fmt"
+
 type AtomStack struct {
 	stack []*AtomValue
 }
@@ -26,4 +28,10 @@ func (s *AtomStack) Peek() *AtomValue {
 
 func (s *AtomStack) Len() int {
 	return len(s.stack)
+}
+
+func (s *AtomStack) Dump() {
+	for _, obj := range s.stack {
+		fmt.Println(obj)
+	}
 }

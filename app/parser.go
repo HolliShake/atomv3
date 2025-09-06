@@ -179,7 +179,21 @@ func (p *Parser) function() *Ast {
 	return NewFunction(name, params, body, start.Merge(ended))
 }
 
+func (p *Parser) program() *Ast {
+	start := p.lookahead.Position
+	ended := start
+	body := make([]*Ast, 0)
+	ast := p.statement()
+	for ast != nil {
+		body = append(body, ast)
+		ast = p.statement()
+	}
+	ended = p.lookahead.Position
+	p.acceptT(TokenTypeEof)
+	return NewProgram(body, start.Merge(ended))
+}
+
 func (p *Parser) Parse() *Ast {
 	p.lookahead = p.tokenizer.NextToken()
-	return p.statement()
+	return p.program()
 }

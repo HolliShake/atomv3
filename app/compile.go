@@ -21,8 +21,8 @@ func NewCompile(parser *Parser, state *runtime.AtomState) *Compile {
 }
 
 func (c *Compile) emit(atomFunc *runtime.AtomValue, opcode runtime.OpCode) {
-	atomFunc.Value.(*runtime.Code).OpCodes =
-		append(atomFunc.Value.(*runtime.Code).OpCodes, opcode)
+	atomFunc.Value.(*runtime.AtomCode).OpCodes =
+		append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode)
 }
 
 func (c *Compile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode, intValue int) {
@@ -30,9 +30,9 @@ func (c *Compile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode, in
 	bytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bytes, uint32(intValue))
 
-	atomFunc.Value.(*runtime.Code).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).OpCodes =
 		append(
-			append(atomFunc.Value.(*runtime.Code).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
 			runtime.OpCode(bytes[0]),
 			runtime.OpCode(bytes[1]),
 			runtime.OpCode(bytes[2]),
@@ -44,9 +44,9 @@ func (c *Compile) emitNum(atomFunc *runtime.AtomValue, opcode runtime.OpCode, nu
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, uint64(math.Float64bits(numValue)))
 
-	atomFunc.Value.(*runtime.Code).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).OpCodes =
 		append(
-			append(atomFunc.Value.(*runtime.Code).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
 			runtime.OpCode(bytes[0]),
 			runtime.OpCode(bytes[1]),
 			runtime.OpCode(bytes[2]),
@@ -67,30 +67,30 @@ func (c *Compile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode, st
 		opcodes[i] = runtime.OpCode(b)
 	}
 
-	atomFunc.Value.(*runtime.Code).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).OpCodes =
 		append(
-			append(atomFunc.Value.(*runtime.Code).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
 			opcodes...,
 		)
 
-	atomFunc.Value.(*runtime.Code).OpCodes =
+	atomFunc.Value.(*runtime.AtomCode).OpCodes =
 		append(
-			append(atomFunc.Value.(*runtime.Code).OpCodes, opcode),
+			append(atomFunc.Value.(*runtime.AtomCode).OpCodes, opcode),
 			0, // null byte
 		)
 }
 
 func (c *Compile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCode) int {
 	c.emit(atomFunc, opcode)
-	start := len(atomFunc.Value.(*runtime.Code).OpCodes)
+	start := len(atomFunc.Value.(*runtime.AtomCode).OpCodes)
 	c.emit(atomFunc, opcode)
 	return start
 }
 
 func (c *Compile) label(atomFunc *runtime.AtomValue, jumpAddress int) {
-	current := len(atomFunc.Value.(*runtime.Code).OpCodes)
+	current := len(atomFunc.Value.(*runtime.AtomCode).OpCodes)
 	for i := range 4 {
-		atomFunc.Value.(*runtime.Code).OpCodes[i+jumpAddress] =
+		atomFunc.Value.(*runtime.AtomCode).OpCodes[i+jumpAddress] =
 			runtime.OpCode((current >> (8 * i)) & 0xFF)
 	}
 }
@@ -193,10 +193,7 @@ func (c *Compile) statement(atomFunc *runtime.AtomValue, ast *Ast) {
 }
 
 func (c *Compile) function(ast *Ast) *runtime.AtomValue {
-	atomFunc := runtime.NewAtomValue(runtime.AtomTypeFunc)
-	atomFunc.Value = runtime.NewCode(c.parser.tokenizer.file, ast.Str0)
-
-	// compile parameters
+	atomFunc := runtime.NewFunction(c.parser.tokenizer.file, ast.Str0)
 	params := ast.Arr0
 	for _, param := range params {
 		if param.AstType != AstTypeIdn {
@@ -208,29 +205,29 @@ func (c *Compile) function(ast *Ast) *runtime.AtomValue {
 			)
 			return nil
 		}
-
-		// increment local count and add to locals
-		// offset := atomFunc.Value.(*runtime.Code).IncrementLocal()
-
-		// emit opcode
-		// c.emitInt(atomFunc, runtime.OpStoreLocal, offset)
+		offset := atomFunc.Value.(*runtime.AtomCode).IncrementLocal()
+		c.emitInt(atomFunc, runtime.OpStoreLocal, offset)
 	}
-
-	// compile body
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(atomFunc, stmt)
 	}
-
-	// emit return opcode
 	c.emit(atomFunc, runtime.OpReturn)
+	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
+	return atomFunc
+}
 
-	// allocate locals
-	atomFunc.Value.(*runtime.Code).AllocateLocals()
-
+func (c *Compile) program(ast *Ast) *runtime.AtomValue {
+	atomFunc := runtime.NewFunction(c.parser.tokenizer.file, ast.Str0)
+	body := ast.Arr1
+	for _, stmt := range body {
+		c.statement(atomFunc, stmt)
+	}
+	c.emit(atomFunc, runtime.OpReturn)
+	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
 	return atomFunc
 }
 
 func (c *Compile) Compile() *runtime.AtomValue {
-	return c.function(c.parser.Parse())
+	return c.program(c.parser.Parse())
 }

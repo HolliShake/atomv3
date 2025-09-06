@@ -35,6 +35,7 @@ const (
 	AstTypeBinaryAdd
 	AstTypeBinarySub
 	AstTypeFunction
+	AstTypeProgram
 	AstInvalid
 )
 
@@ -87,6 +88,12 @@ func NewFunction(name *Ast, params []*Ast, body []*Ast, position Position) *Ast 
 	ast := NewAst(AstTypeFunction, position)
 	ast.Ast0 = name
 	ast.Arr0 = params
+	ast.Arr1 = body
+	return ast
+}
+
+func NewProgram(body []*Ast, position Position) *Ast {
+	ast := NewAst(AstTypeProgram, position)
 	ast.Arr1 = body
 	return ast
 }

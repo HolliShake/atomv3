@@ -2,26 +2,26 @@ package runtime
 
 import "fmt"
 
-type Interpreter struct {
+type AtomInterpreter struct {
 	state           *AtomState
 	Frame           *AtomStack
 	EvaluationStack *AtomStack
 }
 
-func NewInterpreter(state *AtomState) *Interpreter {
-	return &Interpreter{
+func NewInterpreter(state *AtomState) *AtomInterpreter {
+	return &AtomInterpreter{
 		state:           state,
 		Frame:           NewAtomStack(),
 		EvaluationStack: NewAtomStack(),
 	}
 }
 
-func (i *Interpreter) executeFrame(frame *AtomValue, offset int) {
+func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 	// Frame here is a function
 
 	offsetStart := offset
 
-	code := frame.Value.(*Code)
+	code := frame.Value.(*AtomCode)
 	size := len(code.OpCodes)
 
 	forward := func(offset int) {
@@ -88,7 +88,7 @@ func (i *Interpreter) executeFrame(frame *AtomValue, offset int) {
 	}
 }
 
-func (i *Interpreter) Interpret(atomFunc *AtomValue) {
+func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	i.Frame.Push(atomFunc)
 
 	// Run while the frame is not empty
@@ -97,4 +97,7 @@ func (i *Interpreter) Interpret(atomFunc *AtomValue) {
 	}
 
 	// While has pending frames for async
+
+	// Dump stack
+	i.EvaluationStack.Dump()
 }
