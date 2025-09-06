@@ -6,7 +6,6 @@ type AtomScopeType int
 
 const (
 	AtomScopeTypeGlobal AtomScopeType = iota
-	AtomScopeTypeLocal
 	AtomScopeTypeFunction
 	AtomScopeTypeBlock
 	AtomScopeTypeLoop

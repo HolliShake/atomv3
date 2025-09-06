@@ -8,7 +8,6 @@ const (
 	OpLoadStr
 	OpLoadBool
 	OpLoadNull
-	OpLoadGlobal   // with 4 bytes argument
 	OpLoadLocal    // with 4 bytes argument
 	OpLoadCapture  // with 4 bytes argument
 	OpLoadFunction // with 4 bytes argument
@@ -29,8 +28,9 @@ const (
 	OpAnd
 	OpOr
 	OpXor
-	OpStoreLocal
-	OpStoreCapture
+	OpStoreGlobal  // with 4 bytes argument | alias for OpStoreLocal
+	OpStoreCapture // with 4 bytes argument
+	OpStoreLocal   // with 4 bytes argument
 	OpJumpIfFalseOrPop
 	OpJumpIfTrueOrPop
 	OpPopJumpIfFalse

@@ -327,6 +327,12 @@ func (p *AtomParser) mandatory() *AtomAst {
 func (p *AtomParser) statement() *AtomAst {
 	if p.checkT(TokenTypeKey) && p.checkV(KeyFunc) {
 		return p.function()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyVar) {
+		return p.varStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyConst) {
+		return p.constStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyLocal) {
+		return p.localStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyIf) {
 		return p.ifStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyReturn) {
@@ -369,6 +375,171 @@ func (p *AtomParser) function() *AtomAst {
 		name,
 		params,
 		body,
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) varStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeyVar)
+
+	keys := make([]*AtomAst, 0)
+	vals := make([]*AtomAst, 0)
+
+	var key *AtomAst = p.terminal()
+	var val *AtomAst = nil
+	if key == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected identifier",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	if p.checkT(TokenTypeSym) && p.checkV("=") {
+		p.acceptV("=")
+		val = p.mandatory()
+	}
+	keys = append(keys, key)
+	vals = append(vals, val)
+	for p.checkT(TokenTypeSym) && p.checkV(",") {
+		p.acceptV(",")
+		key = p.terminal()
+		if key == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected identifier",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		val = nil
+		if p.checkT(TokenTypeSym) && p.checkV("=") {
+			p.acceptV("=")
+			val = p.mandatory()
+		}
+
+		keys = append(keys, key)
+		vals = append(vals, val)
+	}
+	ended = p.lookahead.Position
+	p.acceptV(";")
+	return NewVarStatement(
+		keys,
+		vals,
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) constStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeyConst)
+
+	keys := make([]*AtomAst, 0)
+	vals := make([]*AtomAst, 0)
+
+	var key *AtomAst = p.terminal()
+	var val *AtomAst = nil
+	if key == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected identifier",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	if p.checkT(TokenTypeSym) && p.checkV("=") {
+		p.acceptV("=")
+		val = p.mandatory()
+	}
+	keys = append(keys, key)
+	vals = append(vals, val)
+	for p.checkT(TokenTypeSym) && p.checkV(",") {
+		p.acceptV(",")
+		key = p.terminal()
+		if key == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected identifier",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		val = nil
+		if p.checkT(TokenTypeSym) && p.checkV("=") {
+			p.acceptV("=")
+			val = p.mandatory()
+		}
+
+		keys = append(keys, key)
+		vals = append(vals, val)
+	}
+	ended = p.lookahead.Position
+	p.acceptV(";")
+	return NewConstStatement(
+		keys,
+		vals,
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) localStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeyLocal)
+
+	keys := make([]*AtomAst, 0)
+	vals := make([]*AtomAst, 0)
+
+	var key *AtomAst = p.terminal()
+	var val *AtomAst = nil
+	if key == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected identifier",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	if p.checkT(TokenTypeSym) && p.checkV("=") {
+		p.acceptV("=")
+		val = p.mandatory()
+	}
+	keys = append(keys, key)
+	vals = append(vals, val)
+	for p.checkT(TokenTypeSym) && p.checkV(",") {
+		p.acceptV(",")
+		key = p.terminal()
+		if key == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected identifier",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		val = nil
+		if p.checkT(TokenTypeSym) && p.checkV("=") {
+			p.acceptV("=")
+			val = p.mandatory()
+		}
+
+		keys = append(keys, key)
+		vals = append(vals, val)
+	}
+	ended = p.lookahead.Position
+	p.acceptV(";")
+	return NewLocalStatement(
+		keys,
+		vals,
 		start.Merge(ended),
 	)
 }

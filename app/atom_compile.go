@@ -27,7 +27,7 @@ func (c *AtomCompile) emit(atomFunc *runtime.AtomValue, opcode runtime.OpCode) {
 }
 
 func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode, intValue int) {
-	// convert int32 to 4 bytes using little-endian encoding
+	// Convert int32 to 4 bytes using little-endian encoding
 	bytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bytes, uint32(intValue))
 
@@ -77,7 +77,7 @@ func (c *AtomCompile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 	atomFunc.Value.(*runtime.AtomCode).Code =
 		append(
 			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
-			0, // null byte
+			0, // Null byte
 		)
 }
 
@@ -85,7 +85,7 @@ func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCod
 	c.emit(atomFunc, opcode)
 	start := len(atomFunc.Value.(*runtime.AtomCode).Code)
 	// Emit 4 placeholder bytes for the jump address
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		c.emit(atomFunc, 0)
 	}
 	return start
@@ -374,6 +374,27 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeVarStatement:
+		c.varStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
+	case AstTypeConstStatement:
+		c.constStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
+	case AstTypeLocalStatement:
+		c.localStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	case AstTypeIfStatement:
 		c.ifStatement(
 			parentScope,
@@ -499,15 +520,119 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			opcode = runtime.OpLoadCapture
 			offset = parentScope.GetCapture(capture.Name).Offset
 		} else {
+			// Possible, not handled properly
 			panic(fmt.Sprintf("Symbol %s not found", capture.Name))
 		}
 		c.emitInt(parentFunc, opcode, offset)
 		c.emitInt(parentFunc, runtime.OpStoreCapture, capture.Offset)
 	}
+	// Pop the function from the stack
+	c.emit(parentFunc, runtime.OpPopTop)
 	//============================
 	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
 	atomFunc.Value.(*runtime.AtomCode).AllocateCaptures()
 	return atomFunc
+}
+
+func (c *AtomCompile) varStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	if parentScope.Type != AtomScopeTypeGlobal {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Var statement must be in global scope",
+			ast.Position,
+		)
+		return
+	}
+	for idx, key := range ast.Arr0 {
+		val := ast.Arr1[idx]
+
+		if key.AstType != AstTypeIdn {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				key.Position,
+			)
+			return
+		}
+		if val == nil {
+			c.emitInt(parentFunc, runtime.OpLoadNull, 0)
+		} else {
+			c.expression(parentScope, parentFunc, val)
+		}
+		offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+		parentScope.AddSymbol(NewAtomSymbol(
+			key.Str0,
+			offset,
+			parentScope.Type == AtomScopeTypeGlobal,
+		))
+		c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
+	}
+}
+
+func (c *AtomCompile) constStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	for idx, key := range ast.Arr0 {
+		val := ast.Arr1[idx]
+
+		if key.AstType != AstTypeIdn {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				key.Position,
+			)
+			return
+		}
+		if val == nil {
+			c.emitInt(parentFunc, runtime.OpLoadNull, 0)
+		} else {
+			c.expression(parentScope, parentFunc, val)
+		}
+		offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+		parentScope.AddSymbol(NewConstAtomSymbol(
+			key.Str0,
+			offset,
+			parentScope.Type == AtomScopeTypeGlobal,
+		))
+		c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
+	}
+}
+
+func (c *AtomCompile) localStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	if parentScope.Type != AtomScopeTypeBlock {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Local statement must be in block scope",
+			ast.Position,
+		)
+		return
+	}
+	for idx, key := range ast.Arr0 {
+		val := ast.Arr1[idx]
+
+		if key.AstType != AstTypeIdn {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				key.Position,
+			)
+		}
+		if val == nil {
+			c.emitInt(parentFunc, runtime.OpLoadNull, 0)
+		} else {
+			c.expression(parentScope, parentFunc, val)
+		}
+		offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+		parentScope.AddSymbol(NewAtomSymbol(
+			key.Str0,
+			offset,
+			false,
+		))
+		c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
+	}
 }
 
 func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {

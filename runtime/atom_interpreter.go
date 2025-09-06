@@ -89,7 +89,7 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			forward(len(value) + 1)
 
 		case OpLoadNull:
-			i.pushVal(
+			i.pushRef(
 				i.state.NullValue,
 			)
 
@@ -108,12 +108,6 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 				global = frame
 			}
 			DoCall(i, global, call, argc)
-
-		case OpLoadGlobal:
-			index := ReadInt(code.Code, offsetStart)
-			value := parent.Value.(*AtomCode).Env0[index]
-			i.pushRef(value)
-			forward(4)
 
 		case OpLoadCapture:
 			index := ReadInt(code.Code, offsetStart)
@@ -206,6 +200,12 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			rhs := i.pop()
 			lhs := i.pop()
 			DoXor(i, lhs, rhs)
+
+		case OpStoreGlobal:
+			index := ReadInt(code.Code, offsetStart)
+			value := i.pop()
+			code.Env0[index] = value
+			forward(4)
 
 		case OpStoreCapture:
 			index := ReadInt(code.Code, offsetStart)

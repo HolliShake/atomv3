@@ -52,6 +52,9 @@ const (
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
 	AstTypeFunction
+	AstTypeVarStatement
+	AstTypeConstStatement
+	AstTypeLocalStatement
 	AstTypeIfStatement
 	AstTypeProgram
 	AstInvalid
@@ -160,6 +163,27 @@ func NewFunction(name *AtomAst, params []*AtomAst, body []*AtomAst, position Ato
 	return ast
 }
 
+func NewVarStatement(keys []*AtomAst, vals []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeVarStatement, position)
+	ast.Arr0 = keys
+	ast.Arr1 = vals
+	return ast
+}
+
+func NewConstStatement(keys []*AtomAst, vals []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeConstStatement, position)
+	ast.Arr0 = keys
+	ast.Arr1 = vals
+	return ast
+}
+
+func NewLocalStatement(keys []*AtomAst, vals []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeLocalStatement, position)
+	ast.Arr0 = keys
+	ast.Arr1 = vals
+	return ast
+}
+
 func NewIfStatement(condition *AtomAst, thenValue *AtomAst, elseValue *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeIfStatement, position)
 	ast.Ast0 = condition
@@ -215,6 +239,36 @@ func (a *AtomAst) String() string {
 			}
 			return fmt.Sprintf("func %s(%s) {\n%s\n}", a.Ast0.String(), params, body)
 		}
+	case AstTypeVarStatement:
+		vals := ""
+		for idx, key := range a.Arr0 {
+			val := a.Arr1[idx]
+			vals += key.String() + " = " + val.String()
+			if idx < len(a.Arr0)-1 {
+				vals += ", "
+			}
+		}
+		return fmt.Sprintf("var %s;", vals)
+	case AstTypeConstStatement:
+		vals := ""
+		for idx, key := range a.Arr0 {
+			val := a.Arr1[idx]
+			vals += key.String() + " = " + val.String()
+			if idx < len(a.Arr0)-1 {
+				vals += ", "
+			}
+		}
+		return fmt.Sprintf("const %s;", vals)
+	case AstTypeLocalStatement:
+		vals := ""
+		for idx, key := range a.Arr0 {
+			val := a.Arr1[idx]
+			vals += key.String() + " = " + val.String()
+			if idx < len(a.Arr0)-1 {
+				vals += ", "
+			}
+		}
+		return fmt.Sprintf("local %s;", vals)
 	case AstTypeIfStatement:
 		return fmt.Sprintf("if (%s) {\n%s\n} else {\n%s\n}", a.Ast0.String(), a.Ast1.String(), a.Ast2.String())
 	default:
