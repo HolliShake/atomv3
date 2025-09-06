@@ -146,6 +146,51 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			lhs := i.pop()
 			DoShiftRight(i, lhs, rhs)
 
+		case OpCmpLt:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoCmpLt(i, lhs, rhs)
+
+		case OpCmpLte:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoCmpLte(i, lhs, rhs)
+
+		case OpCmpGt:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoCmpGt(i, lhs, rhs)
+
+		case OpCmpGte:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoCmpGte(i, lhs, rhs)
+
+		case OpCmpEq:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoCmpEq(i, lhs, rhs)
+
+		case OpCmpNe:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoCmpNe(i, lhs, rhs)
+
+		case OpAnd:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoAnd(i, lhs, rhs)
+
+		case OpOr:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoOr(i, lhs, rhs)
+
+		case OpXor:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoXor(i, lhs, rhs)
+
 		case OpStoreLocal:
 			index := ReadInt(code.OpCodes, offsetStart)
 			value := i.pop()
@@ -170,8 +215,17 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 				jump(offset)
 			}
 
+		case OpPopJumpIfTrue:
+			offset := ReadInt(code.OpCodes, offsetStart)
+			forward(4)
+			value := i.pop()
+			if CoerceToBool(value) {
+				jump(offset)
+			}
+
 		case OpJump:
 			offset := ReadInt(code.OpCodes, offsetStart)
+			forward(4)
 			jump(offset)
 
 		case OpPopTop:

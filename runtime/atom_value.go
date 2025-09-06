@@ -12,6 +12,7 @@ const (
 	AtomTypeNull
 	AtomTypeObj
 	AtomTypeFunc
+	AtomTypeErr
 )
 
 type AtomValue struct {
@@ -67,6 +68,12 @@ func NewAtomValueTrue() *AtomValue {
 func NewFunction(file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
 	obj.Value = NewAtomCode(file, name, argc)
+	return obj
+}
+
+func NewAtomValueError(message string) *AtomValue {
+	obj := NewAtomValue(AtomTypeErr)
+	obj.Value = message
 	return obj
 }
 

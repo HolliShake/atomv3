@@ -18,9 +18,19 @@ const (
 	OpSub
 	OpShl
 	OpShr
+	OpCmpLt
+	OpCmpLte
+	OpCmpGt
+	OpCmpGte
+	OpCmpEq
+	OpCmpNe
+	OpAnd
+	OpOr
+	OpXor
 	OpStoreLocal
 	OpJumpIfTrueOrPop
 	OpPopJumpIfFalse
+	OpPopJumpIfTrue
 	OpJump
 	OpNoOp
 	OpPopTop

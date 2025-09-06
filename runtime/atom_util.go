@@ -44,6 +44,28 @@ func CoerceToInt(value *AtomValue) int32 {
 	}
 }
 
+func CoerceToLong(value *AtomValue) int64 {
+	switch value.Type {
+	case AtomTypeInt:
+		return int64(value.Value.(int32))
+	case AtomTypeNum:
+		return int64(value.Value.(float64))
+	case AtomTypeStr:
+		val, err := strconv.ParseInt(value.Value.(string), 10, 64)
+		if err != nil {
+			return 0
+		}
+		return val
+	case AtomTypeBool:
+		if value.Value.(bool) {
+			return 1
+		}
+		return 0
+	default:
+		return 0
+	}
+}
+
 func CoerceToNum(value *AtomValue) float64 {
 	switch value.Type {
 	case AtomTypeInt:

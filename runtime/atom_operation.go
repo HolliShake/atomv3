@@ -1,14 +1,28 @@
 package runtime
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 func DoCall(intereter *AtomInterpreter, val0 *AtomValue, argc int) {
+	cleanupStack := func() {
+		for i := 0; i < argc; i++ {
+			intereter.pop()
+		}
+	}
 	if !CheckType(val0, AtomTypeFunc) {
-		panic("not a function")
+		cleanupStack()
+		message := "not a function"
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 	code := val0.Value.(*AtomCode)
 	if argc != code.Argc {
-		panic("argument count mismatch")
+		cleanupStack()
+		message := "argument count mismatch"
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 	intereter.executeFrame(val0, 0)
 }
@@ -32,8 +46,9 @@ func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomVal
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		// TODO: Implement proper error handling instead of panic
-		panic("cannot multiply types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+		message := fmt.Sprintf("cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 
 	// Fallback path using coercion
@@ -55,8 +70,9 @@ func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		if b == 0 {
-			// TODO: Implement proper error handling instead of panic
-			panic("division by zero")
+			message := "division by zero"
+			intereter.pushValue(NewAtomValueError(message))
+			return
 		}
 		result := a / b
 		intereter.pushValue(NewAtomValueInt(int(result)))
@@ -65,16 +81,18 @@ func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		// TODO: Implement proper error handling instead of panic
-		panic("cannot divide types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+		message := fmt.Sprintf("cannot divide types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
-		// TODO: Implement proper error handling instead of panic
-		panic("division by zero")
+		message := "division by zero"
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 	result := lhsValue / rhsValue
 
@@ -92,8 +110,9 @@ func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		if b == 0 {
-			// TODO: Implement proper error handling instead of panic
-			panic("division by zero")
+			message := "division by zero"
+			intereter.pushValue(NewAtomValueError(message))
+			return
 		}
 		result := a % b
 		intereter.pushValue(NewAtomValueInt(int(result)))
@@ -102,16 +121,18 @@ func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		// TODO: Implement proper error handling instead of panic
-		panic("cannot modulo types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+		message := fmt.Sprintf("cannot modulo types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
-		// TODO: Implement proper error handling instead of panic
-		panic("division by zero")
+		message := "division by zero"
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 	result := math.Mod(lhsValue, rhsValue)
 
@@ -150,8 +171,9 @@ func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		// TODO: Implement proper error handling instead of panic
-		panic("cannot add types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+		message := fmt.Sprintf("cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 
 	// Fallback path using coercion
@@ -184,8 +206,9 @@ func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue)
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		// TODO: Implement proper error handling instead of panic
-		panic("cannot subtract types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+		message := fmt.Sprintf("cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 
 	// Fallback path using coercion
@@ -213,8 +236,9 @@ func DoShiftLeft(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		// TODO: Implement proper error handling instead of panic
-		panic("cannot shift left types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+		message := fmt.Sprintf("cannot shift left types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 
 	// Fallback path using coercion
@@ -242,8 +266,9 @@ func DoShiftRight(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		// TODO: Implement proper error handling instead of panic
-		panic("cannot shift right types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+		message := fmt.Sprintf("cannot shift right types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
 	}
 
 	// Fallback path using coercion
@@ -257,4 +282,242 @@ func DoShiftRight(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 		return
 	}
 	intereter.pushValue(NewAtomValueNum(float64(result)))
+}
+
+// Comparison operations
+
+func DoCmpLt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
+	}
+
+	// Coerce to long to avoid floating point comparisons
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+
+	// Compare the long values
+	if lhsValue < rhsValue {
+		intereter.pushRef(intereter.state.TrueValue)
+		return
+	}
+	intereter.pushRef(intereter.state.FalseValue)
+}
+
+func DoCmpLte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
+	}
+
+	// Coerce to long to avoid floating point comparisons
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+
+	// Compare the long values
+	if lhsValue <= rhsValue {
+		intereter.pushRef(intereter.state.TrueValue)
+		return
+	}
+	intereter.pushRef(intereter.state.FalseValue)
+}
+
+func DoCmpGt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot compare greater than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
+	}
+
+	// Coerce to long to avoid floating point comparisons
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+
+	// Compare the long values
+	if lhsValue > rhsValue {
+		intereter.pushRef(intereter.state.TrueValue)
+		return
+	}
+	intereter.pushRef(intereter.state.FalseValue)
+}
+
+func DoCmpGte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot compare greater than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
+	}
+
+	// Coerce to long to avoid floating point comparisons
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+
+	// Compare the long values
+	if lhsValue >= rhsValue {
+		intereter.pushRef(intereter.state.TrueValue)
+		return
+	}
+	intereter.pushRef(intereter.state.FalseValue)
+}
+
+func DoCmpEq(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if IsNumberType(val0) && IsNumberType(val1) {
+		lhsValue := CoerceToLong(val0)
+		rhsValue := CoerceToLong(val1)
+		if lhsValue == rhsValue {
+			intereter.pushRef(intereter.state.TrueValue)
+			return
+		}
+		intereter.pushRef(intereter.state.FalseValue)
+		return
+	}
+
+	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
+		lhsStr := val0.Value.(string)
+		rhsStr := val1.Value.(string)
+		if lhsStr == rhsStr {
+			intereter.pushRef(intereter.state.TrueValue)
+			return
+		}
+		intereter.pushRef(intereter.state.FalseValue)
+		return
+	}
+
+	if CheckType(val0, AtomTypeNull) && CheckType(val1, AtomTypeNull) {
+		intereter.pushRef(intereter.state.TrueValue)
+		return
+	}
+
+	// For other types, use simple reference equality for now
+	if val0 == val1 {
+		intereter.pushRef(intereter.state.TrueValue)
+		return
+	}
+
+	intereter.pushRef(intereter.state.FalseValue)
+}
+
+func DoCmpNe(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if IsNumberType(val0) && IsNumberType(val1) {
+		lhsValue := CoerceToLong(val0)
+		rhsValue := CoerceToLong(val1)
+		if lhsValue != rhsValue {
+			intereter.pushRef(intereter.state.TrueValue)
+			return
+		}
+		intereter.pushRef(intereter.state.FalseValue)
+		return
+	}
+
+	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
+		lhsStr := val0.Value.(string)
+		rhsStr := val1.Value.(string)
+		if lhsStr != rhsStr {
+			intereter.pushRef(intereter.state.TrueValue)
+			return
+		}
+		intereter.pushRef(intereter.state.FalseValue)
+		return
+	}
+
+	if CheckType(val0, AtomTypeNull) || CheckType(val1, AtomTypeNull) {
+		intereter.pushRef(intereter.state.FalseValue)
+		return
+	}
+
+	// For other types, use simple reference equality for now
+	if val0 != val1 {
+		intereter.pushRef(intereter.state.TrueValue)
+		return
+	}
+
+	intereter.pushRef(intereter.state.FalseValue)
+}
+
+// Bitwise operations
+
+func DoAnd(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a & b
+		intereter.pushValue(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue & rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		intereter.pushValue(NewAtomValueInt(int(result)))
+	} else {
+		intereter.pushValue(NewAtomValueNum(float64(result)))
+	}
+}
+
+func DoOr(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a | b
+		intereter.pushValue(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue | rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		intereter.pushValue(NewAtomValueInt(int(result)))
+	} else {
+		intereter.pushValue(NewAtomValueNum(float64(result)))
+	}
+}
+
+func DoXor(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a ^ b
+		intereter.pushValue(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		intereter.pushValue(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue ^ rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		intereter.pushValue(NewAtomValueInt(int(result)))
+	} else {
+		intereter.pushValue(NewAtomValueNum(float64(result)))
+	}
 }

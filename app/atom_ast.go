@@ -37,6 +37,10 @@ const (
 	AstTypeBinarySub
 	AstTypeBinaryShiftRight
 	AstTypeBinaryShiftLeft
+	AstTypeBinaryGreaterThan
+	AstTypeBinaryGreaterThanEqual
+	AstTypeBinaryLessThan
+	AstTypeBinaryLessThanEqual
 	AstTypeBinaryEqual
 	AstTypeBinaryNotEqual
 	AstTypeBinaryStrictEqual
@@ -44,6 +48,8 @@ const (
 	AstTypeBinaryAnd
 	AstTypeBinaryOr
 	AstTypeBinaryXor
+	AstTypeLogicalAnd
+	AstTypeLogicalOr
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
@@ -84,6 +90,14 @@ func getBinaryAstType(op AtomToken) AtomAstType {
 		return AstTypeBinaryShiftRight
 	case "<<":
 		return AstTypeBinaryShiftLeft
+	case ">":
+		return AstTypeBinaryGreaterThan
+	case ">=":
+		return AstTypeBinaryGreaterThanEqual
+	case "<":
+		return AstTypeBinaryLessThan
+	case "<=":
+		return AstTypeBinaryLessThanEqual
 	case "==":
 		return AstTypeBinaryEqual
 	case "!=":
@@ -98,6 +112,10 @@ func getBinaryAstType(op AtomToken) AtomAstType {
 		return AstTypeBinaryOr
 	case "^":
 		return AstTypeBinaryXor
+	case "&&":
+		return AstTypeLogicalAnd
+	case "||":
+		return AstTypeLogicalOr
 	default:
 		return AstInvalid
 	}

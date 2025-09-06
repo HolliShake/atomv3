@@ -371,15 +371,49 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 }
 
 func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
-	c.expression(parentScope, parentFunc, ast.Ast0)
-	toElse := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
-	c.statement(parentScope, parentFunc, ast.Ast1)
-	toEnd := c.emitJump(parentFunc, runtime.OpJump)
-	c.label(parentFunc, toElse)
-	if ast.Ast2 != nil {
-		c.statement(parentScope, parentFunc, ast.Ast2)
+	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
+	if !isLogical {
+		c.expression(parentScope, parentFunc, ast.Ast0)
+		toElse := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+		c.statement(parentScope, parentFunc, ast.Ast1)
+		toEnd := c.emitJump(parentFunc, runtime.OpJump)
+		c.label(parentFunc, toElse)
+		if ast.Ast2 != nil {
+			c.statement(parentScope, parentFunc, ast.Ast2)
+		}
+		c.label(parentFunc, toEnd)
+	} else {
+		isAnd := ast.Ast0.AstType == AstTypeLogicalAnd
+		lhs := ast.Ast0.Ast0
+		rhs := ast.Ast0.Ast1
+		if isAnd {
+			c.expression(parentScope, parentFunc, lhs)
+			toEnd0 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+			c.expression(parentScope, parentFunc, rhs)
+			toEnd1 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+			c.statement(parentScope, parentFunc, ast.Ast1)
+			toEnd2 := c.emitJump(parentFunc, runtime.OpJump)
+			c.label(parentFunc, toEnd0)
+			c.label(parentFunc, toEnd1)
+			if ast.Ast2 != nil {
+				c.statement(parentScope, parentFunc, ast.Ast2)
+			}
+			c.label(parentFunc, toEnd2)
+		} else {
+			c.expression(parentScope, parentFunc, lhs)
+			toThen := c.emitJump(parentFunc, runtime.OpPopJumpIfTrue)
+			c.expression(parentScope, parentFunc, rhs)
+			toElse := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+			c.label(parentFunc, toThen)
+			c.statement(parentScope, parentFunc, ast.Ast1)
+			toEnd1 := c.emitJump(parentFunc, runtime.OpJump)
+			c.label(parentFunc, toElse)
+			if ast.Ast2 != nil {
+				c.statement(parentScope, parentFunc, ast.Ast2)
+			}
+			c.label(parentFunc, toEnd1)
+		}
 	}
-	c.label(parentFunc, toEnd)
 }
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
