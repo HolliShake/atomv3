@@ -1,5 +1,3 @@
-
-
 var x = 1;
 
 func add(a, b) {
@@ -24,6 +22,6 @@ func fact(n) {
     return n * fact(n - 1);
 }
 
-const n = 5;
+const n = 3 + 2;
 
 fact(n);
