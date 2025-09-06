@@ -134,16 +134,28 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			}
 			DoCall(i, global, call, argc)
 
-		case OpLoadCapture:
-			index := ReadInt(code.Code, offsetStart)
-			value := code.Env1[index]
-			i.pushRef(value)
-			forward(4)
-
 		case OpLoadLocal:
 			index := ReadInt(code.Code, offsetStart)
 			value := code.Env0[index]
-			i.pushRef(value)
+			i.pushRef(value.Get())
+			forward(4)
+
+		case OpLoadLocalAsCapture:
+			index := ReadInt(code.Code, offsetStart)
+			value := code.Env0[index]
+			addr := PointerToUintPointer(value)
+			i.pushRef(
+				NewAtomValueCell(addr),
+			)
+			forward(4)
+
+		case OpLoadCapture:
+			index := ReadInt(code.Code, offsetStart)
+			value := code.Env1[index]
+			addr := PointerToUintPointer(value)
+			i.pushRef(
+				NewAtomValueCell(addr),
+			)
 			forward(4)
 
 		case OpMul:
@@ -229,20 +241,20 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 		case OpStoreGlobal:
 			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
-			code.Env0[index] = value
+			code.Env0[index].Set(value)
 			forward(4)
 
 		case OpStoreCapture:
 			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
 			function := i.peek().Value.(*AtomCode)
-			function.Env1[index] = value
+			function.Env1[index] = UintPointerToPointer(value.Value.(uintptr))
 			forward(4)
 
 		case OpStoreLocal:
 			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
-			code.Env0[index] = value
+			code.Env0[index].Set(value)
 			forward(4)
 
 		case OpJumpIfFalseOrPop:

@@ -8,12 +8,13 @@ const (
 	OpLoadStr
 	OpLoadBool
 	OpLoadNull
-	OpLoadArray    // with 4 bytes argument
-	OpLoadObject   // with 4 bytes argument
-	OpLoadLocal    // with 4 bytes argument
-	OpLoadCapture  // with 4 bytes argument
-	OpLoadFunction // with 4 bytes argument
-	OpCall         // with 4 bytes argument
+	OpLoadArray          // with 4 bytes argument
+	OpLoadObject         // with 4 bytes argument
+	OpLoadLocal          // with 4 bytes argument
+	OpLoadLocalAsCapture // with 4 bytes argument
+	OpLoadCapture        // with 4 bytes argument
+	OpLoadFunction       // with 4 bytes argument
+	OpCall               // with 4 bytes argument
 	OpMul
 	OpDiv
 	OpMod

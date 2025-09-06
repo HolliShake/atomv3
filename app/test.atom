@@ -1,3 +1,5 @@
+
+
 var x = 1;
 
 func add(a, b) {
@@ -32,10 +34,26 @@ const n = 3 + 2;
 
 fact(n);
 
-[1,2,3,4,5,6, fact(n)];
+[1,2,3,4,5,6, fact(n), "Nah!!"];
 
 var obj = {
-    getName: "Hello"
+    getName: "Hello",
+    add: add
 };
 
 obj;
+
+var xh = 1;
+
+/*
+xh *= 2;
+xh /= 3;
+xh %= 4;
+xh += 3;
+xh -= 4;
+xh >>= 5;
+xh <<= 6;
+xh &= 7;
+xh |= 8;
+xh ^= 9;
+*/

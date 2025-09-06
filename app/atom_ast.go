@@ -49,6 +49,17 @@ const (
 	AstTypeBinaryXor
 	AstTypeLogicalAnd
 	AstTypeLogicalOr
+	AstTypeAssign
+	AstTypeMulAssign
+	AstTypeDivAssign
+	AstTypeModAssign
+	AstTypeAddAssign
+	AstTypeSubAssign
+	AstTypeLeftShiftAssign
+	AstTypeRightShiftAssign
+	AstTypeBitwiseAndAssign
+	AstTypeBitwiseOrAssign
+	AstTypeBitwiseXorAssign
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
@@ -115,6 +126,28 @@ func getBinaryAstType(op AtomToken) AtomAstType {
 		return AstTypeLogicalAnd
 	case "||":
 		return AstTypeLogicalOr
+	case "=":
+		return AstTypeAssign
+	case "*=":
+		return AstTypeMulAssign
+	case "/=":
+		return AstTypeDivAssign
+	case "%=":
+		return AstTypeModAssign
+	case "+=":
+		return AstTypeAddAssign
+	case "-=":
+		return AstTypeSubAssign
+	case ">>=":
+		return AstTypeRightShiftAssign
+	case "<<=":
+		return AstTypeLeftShiftAssign
+	case "&=":
+		return AstTypeBitwiseAndAssign
+	case "|=":
+		return AstTypeBitwiseOrAssign
+	case "^=":
+		return AstTypeBitwiseXorAssign
 	default:
 		return AstInvalid
 	}

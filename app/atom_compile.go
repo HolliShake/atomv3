@@ -366,6 +366,37 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			c.label(parentFunc, toEnd0)
 		}
 
+	case AstTypeAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, rhs)
+			switch lhs.AstType {
+			case AstTypeIdn:
+				{
+					c.assign0(parentScope, parentFunc, lhs)
+				}
+			default:
+				{
+					Error(
+						c.parser.tokenizer.file,
+						c.parser.tokenizer.data,
+						"Expected identifier",
+						lhs.Position,
+					)
+				}
+			}
+		}
+
+	case AstTypeMulAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, rhs)
+			c.expression(parentScope, parentFunc, lhs)
+			c.emit(parentFunc, runtime.OpMul)
+		}
+
 	default:
 		Error(
 			c.parser.tokenizer.file,
@@ -373,6 +404,24 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			"Expected expression",
 			ast.Position,
 		)
+	}
+}
+
+func (c *AtomCompile) assign0(parentScope *AtomScope, parentFunc *runtime.AtomValue, lhs *AtomAst) {
+	switch lhs.AstType {
+	case AstTypeIdn:
+		{
+			c.expression(parentScope, parentFunc, lhs)
+		}
+	default:
+		{
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				lhs.Position,
+			)
+		}
 	}
 }
 
@@ -544,16 +593,18 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	}
 	c.emit(atomFunc, runtime.OpLoadNull)
 	c.emit(atomFunc, runtime.OpReturn)
+	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
+	atomFunc.Value.(*runtime.AtomCode).AllocateCaptures()
 	//============================
 	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
 	c.emit(parentFunc, runtime.OpDupTop)
 	c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
 	// Write captures
 	for _, capture := range funcScope.Captures {
-		offset := 0
 		opcode := runtime.OpLoadLocal
+		offset := 0
 		if parentScope.HasLocal(capture.Name) {
-			opcode = runtime.OpLoadLocal
+			opcode = runtime.OpLoadLocalAsCapture
 			offset = parentScope.GetSymbol(capture.Name).Offset
 		} else if parentScope.HasCapture(capture.Name) {
 			opcode = runtime.OpLoadCapture
@@ -568,8 +619,6 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	// Pop the function from the stack
 	c.emit(parentFunc, runtime.OpPopTop)
 	//============================
-	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
-	atomFunc.Value.(*runtime.AtomCode).AllocateCaptures()
 	return atomFunc
 }
 
