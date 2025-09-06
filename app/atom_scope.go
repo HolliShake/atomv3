@@ -52,3 +52,14 @@ func (s *AtomScope) GetSymbol(name string) *AtomSymbol {
 	}
 	panic(fmt.Sprintf("Symbol %s not found", name))
 }
+
+func (s *AtomScope) InSide(scope AtomScopeType) bool {
+	current := s
+	for current != nil {
+		if current.Type == scope {
+			return true
+		}
+		current = current.Parent
+	}
+	return false
+}

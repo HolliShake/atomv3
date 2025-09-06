@@ -157,13 +157,44 @@ func (p *AtomParser) additive() *AtomAst {
 			)
 			return nil
 		}
-		ast = NewBinary(ast, opt, rhs, ast.Position.Merge(rhs.Position))
+		ast = NewBinary(
+			ast,
+			opt,
+			rhs,
+			ast.Position.Merge(rhs.Position),
+		)
+	}
+	return ast
+}
+
+func (p *AtomParser) shift() *AtomAst {
+	ast := p.additive()
+	for p.checkT(TokenTypeSym) && (p.checkV(">>") || p.checkV("<<")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+
+		rhs := p.additive()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		ast = NewBinary(
+			ast,
+			opt,
+			rhs,
+			ast.Position.Merge(rhs.Position),
+		)
 	}
 	return ast
 }
 
 func (p *AtomParser) primary() *AtomAst {
-	return p.additive()
+	return p.shift()
 }
 
 func (p *AtomParser) mandatory() *AtomAst {
@@ -183,6 +214,8 @@ func (p *AtomParser) mandatory() *AtomAst {
 func (p *AtomParser) statement() *AtomAst {
 	if p.checkT(TokenTypeKey) && p.checkV(KeyFunc) {
 		return p.function()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyIf) {
+		return p.ifStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyReturn) {
 		return p.returnStatement()
 	}
@@ -219,7 +252,63 @@ func (p *AtomParser) function() *AtomAst {
 	}
 	ended = p.lookahead.Position
 	p.acceptV("}")
-	return NewFunction(name, params, body, start.Merge(ended))
+	return NewFunction(
+		name,
+		params,
+		body,
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) ifStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeyIf)
+	p.acceptV("(")
+	condition := p.primary()
+	if condition == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected expression",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	p.acceptV(")")
+	thenValue := p.statement()
+	if thenValue == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected statement",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	var elseValue *AtomAst = nil
+	ended = thenValue.Position
+
+	if p.checkT(TokenTypeKey) && p.checkV(KeyElse) {
+		p.acceptV(KeyElse)
+		elseValue = p.statement()
+		if elseValue == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected statement",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		ended = elseValue.Position
+	}
+	return NewIfStatement(
+		condition,
+		thenValue,
+		elseValue,
+		start.Merge(ended),
+	)
 }
 
 func (p *AtomParser) returnStatement() *AtomAst {
@@ -228,7 +317,10 @@ func (p *AtomParser) returnStatement() *AtomAst {
 	p.acceptV(KeyReturn)
 	expr := p.primary()
 	p.acceptV(";")
-	return NewReturnStatement(expr, start.Merge(ended))
+	return NewReturnStatement(
+		expr,
+		start.Merge(ended),
+	)
 }
 
 func (p *AtomParser) expressionStatement() *AtomAst {
@@ -241,13 +333,18 @@ func (p *AtomParser) expressionStatement() *AtomAst {
 				ended = p.lookahead.Position
 				p.acceptV(";")
 			}
-			return NewEmptyStatement(start.Merge(ended))
+			return NewEmptyStatement(
+				start.Merge(ended),
+			)
 		}
 		return nil
 	}
 	ended := p.lookahead.Position
 	p.acceptV(";")
-	return NewExpressionStatement(expr, expr.Position.Merge(ended))
+	return NewExpressionStatement(
+		expr,
+		expr.Position.Merge(ended),
+	)
 }
 
 func (p *AtomParser) program() *AtomAst {
@@ -261,7 +358,10 @@ func (p *AtomParser) program() *AtomAst {
 	}
 	ended = p.lookahead.Position
 	p.acceptT(TokenTypeEof)
-	return NewProgram(body, start.Merge(ended))
+	return NewProgram(
+		body,
+		start.Merge(ended),
+	)
 }
 
 func (p *AtomParser) Parse() *AtomAst {

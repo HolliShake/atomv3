@@ -39,6 +39,7 @@ const (
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
 	AstTypeFunction
+	AstTypeIfStatement
 	AstTypeProgram
 	AstInvalid
 )
@@ -95,14 +96,6 @@ func NewBinary(ast0 *AtomAst, op AtomToken, ast1 *AtomAst, position AtomPosition
 	return ast
 }
 
-func NewFunction(name *AtomAst, params []*AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
-	ast := NewAtomAst(AstTypeFunction, position)
-	ast.Ast0 = name
-	ast.Arr0 = params
-	ast.Arr1 = body
-	return ast
-}
-
 func NewReturnStatement(expr *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeReturnStatement, position)
 	ast.Ast0 = expr
@@ -117,6 +110,22 @@ func NewEmptyStatement(position AtomPosition) *AtomAst {
 func NewExpressionStatement(expr *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeExpressionStatement, position)
 	ast.Ast0 = expr
+	return ast
+}
+
+func NewFunction(name *AtomAst, params []*AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeFunction, position)
+	ast.Ast0 = name
+	ast.Arr0 = params
+	ast.Arr1 = body
+	return ast
+}
+
+func NewIfStatement(condition *AtomAst, thenValue *AtomAst, elseValue *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeIfStatement, position)
+	ast.Ast0 = condition
+	ast.Ast1 = thenValue
+	ast.Ast2 = elseValue
 	return ast
 }
 
@@ -167,6 +176,8 @@ func (a *AtomAst) String() string {
 			}
 			return fmt.Sprintf("func %s(%s) {\n%s\n}", a.Ast0.String(), params, body)
 		}
+	case AstTypeIfStatement:
+		return fmt.Sprintf("if (%s) {\n%s\n} else {\n%s\n}", a.Ast0.String(), a.Ast1.String(), a.Ast2.String())
 	default:
 		return a.String()
 	}

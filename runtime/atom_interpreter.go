@@ -2,11 +2,16 @@ package runtime
 
 import "fmt"
 
+const (
+	TRESHOLD = 1000
+)
+
 type AtomInterpreter struct {
 	state           *AtomState
 	Frame           *AtomStack
 	EvaluationStack *AtomStack
 	GcRoot          *AtomValue
+	Allocation      int
 }
 
 func NewInterpreter(state *AtomState) *AtomInterpreter {
@@ -22,6 +27,7 @@ func (i *AtomInterpreter) pushValue(value *AtomValue) {
 	i.GcRoot.Next = value
 	i.GcRoot = value
 	i.EvaluationStack.Push(value)
+	i.Allocation++
 }
 
 func (i *AtomInterpreter) pushRef(value *AtomValue) {
@@ -30,6 +36,10 @@ func (i *AtomInterpreter) pushRef(value *AtomValue) {
 
 func (i *AtomInterpreter) pop() *AtomValue {
 	return i.EvaluationStack.Pop()
+}
+
+func (i *AtomInterpreter) peek() *AtomValue {
+	return i.EvaluationStack.Peek()
 }
 
 func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
@@ -44,9 +54,18 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 		offsetStart += offset
 	}
 
+	jump := func(offset int) {
+		offsetStart = offset
+	}
+
 	for offsetStart < size {
 		opCode := code.OpCodes[offsetStart]
 		offsetStart++
+
+		if (i.Allocation % TRESHOLD) == 0 {
+			// TODO: Garbage collection
+		}
+
 		switch opCode {
 		case OpLoadInt:
 			value := ReadInt(code.OpCodes, offsetStart)
@@ -122,6 +141,28 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			value := i.pop()
 			code.Locals[index] = value
 			forward(4)
+
+		case OpJumpIfTrueOrPop:
+			offset := ReadInt(code.OpCodes, offsetStart)
+			forward(4)
+			value := i.peek()
+			if CoerceToBool(value) {
+				jump(offset)
+			} else {
+				i.pop()
+			}
+
+		case OpPopJumpIfFalse:
+			offset := ReadInt(code.OpCodes, offsetStart)
+			forward(4)
+			value := i.pop()
+			if !CoerceToBool(value) {
+				jump(offset)
+			}
+
+		case OpJump:
+			offset := ReadInt(code.OpCodes, offsetStart)
+			jump(offset)
 
 		case OpPopTop:
 			v := i.pop()

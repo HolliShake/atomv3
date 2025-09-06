@@ -65,3 +65,20 @@ func CoerceToNum(value *AtomValue) float64 {
 		return 0
 	}
 }
+
+func CoerceToBool(value *AtomValue) bool {
+	switch value.Type {
+	case AtomTypeInt:
+		return value.Value.(int32) != 0
+	case AtomTypeNum:
+		return value.Value.(float64) != 0
+	case AtomTypeStr:
+		return value.Value.(string) != ""
+	case AtomTypeBool:
+		return value.Value.(bool)
+	case AtomTypeNull:
+		return false
+	default:
+		return true
+	}
+}

@@ -84,7 +84,10 @@ func (c *AtomCompile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCode) int {
 	c.emit(atomFunc, opcode)
 	start := len(atomFunc.Value.(*runtime.AtomCode).OpCodes)
-	c.emit(atomFunc, opcode)
+	// Emit 4 placeholder bytes for the jump address
+	for i := 0; i < 4; i++ {
+		c.emit(atomFunc, 0)
+	}
 	return start
 }
 
@@ -210,13 +213,6 @@ func (c *AtomCompile) expression(parent *AtomScope, atomFunc *runtime.AtomValue,
 
 func (c *AtomCompile) statement(parent *AtomScope, atomFunc *runtime.AtomValue, ast *AtomAst) {
 	switch ast.AstType {
-	case AstTypeFunction:
-		c.function(
-			parent,
-			atomFunc,
-			ast,
-		)
-
 	case AstTypeReturnStatement:
 		c.returnStatement(
 			parent,
@@ -238,6 +234,20 @@ func (c *AtomCompile) statement(parent *AtomScope, atomFunc *runtime.AtomValue, 
 			ast,
 		)
 
+	case AstTypeFunction:
+		c.function(
+			parent,
+			atomFunc,
+			ast,
+		)
+
+	case AstTypeIfStatement:
+		c.ifStatement(
+			parent,
+			atomFunc,
+			ast,
+		)
+
 	default:
 		Error(
 			c.parser.tokenizer.file,
@@ -246,6 +256,29 @@ func (c *AtomCompile) statement(parent *AtomScope, atomFunc *runtime.AtomValue, 
 			ast.Position,
 		)
 	}
+}
+
+func (c *AtomCompile) returnStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	if !parentScope.InSide(AtomScopeTypeFunction) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Return statement must be inside a function",
+			ast.Position,
+		)
+		return
+	}
+	c.expression(parentScope, parentFunc, ast.Ast0)
+	c.emit(parentFunc, runtime.OpReturn)
+}
+
+func (c *AtomCompile) emptyStatement(_ *AtomScope, parentFunc *runtime.AtomValue, _ *AtomAst) {
+	c.emit(parentFunc, runtime.OpNoOp)
+}
+
+func (c *AtomCompile) expressionStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	c.expression(parentScope, parentFunc, ast.Ast0)
+	c.emit(parentFunc, runtime.OpPopTop)
 }
 
 func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) *runtime.AtomValue {
@@ -316,22 +349,19 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		parentScope.Type == AtomScopeTypeGlobal,
 	))
 	c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
-
 	return atomFunc
 }
 
-func (c *AtomCompile) returnStatement(parent *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
-	c.expression(parent, parentFunc, ast.Ast0)
-	c.emit(parentFunc, runtime.OpReturn)
-}
-
-func (c *AtomCompile) emptyStatement(_ *AtomScope, parentFunc *runtime.AtomValue, _ *AtomAst) {
-	c.emit(parentFunc, runtime.OpNoOp)
-}
-
-func (c *AtomCompile) expressionStatement(parent *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
-	c.expression(parent, parentFunc, ast.Ast0)
-	c.emit(parentFunc, runtime.OpPopTop)
+func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	c.expression(parentScope, parentFunc, ast.Ast0)
+	toElse := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+	c.statement(parentScope, parentFunc, ast.Ast1)
+	toEnd := c.emitJump(parentFunc, runtime.OpJump)
+	c.label(parentFunc, toElse)
+	if ast.Ast2 != nil {
+		c.statement(parentScope, parentFunc, ast.Ast2)
+	}
+	c.label(parentFunc, toEnd)
 }
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {

@@ -18,6 +18,8 @@ const (
 	OpSub
 	OpStoreLocal
 	OpJumpIfTrueOrPop
+	OpPopJumpIfFalse
+	OpJump
 	OpNoOp
 	OpPopTop
 	OpReturn
