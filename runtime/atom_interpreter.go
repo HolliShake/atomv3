@@ -136,6 +136,16 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			lhs := i.pop()
 			DoSubtraction(i, lhs, rhs)
 
+		case OpShl:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoShiftLeft(i, lhs, rhs)
+
+		case OpShr:
+			rhs := i.pop()
+			lhs := i.pop()
+			DoShiftRight(i, lhs, rhs)
+
 		case OpStoreLocal:
 			index := ReadInt(code.OpCodes, offsetStart)
 			value := i.pop()

@@ -200,3 +200,61 @@ func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue)
 	}
 	intereter.pushValue(NewAtomValueNum(result))
 }
+
+func DoShiftLeft(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
+		result := a << b
+		intereter.pushValue(NewAtomValueInt(int(result)))
+		return
+	}
+
+	// Check if both values are numbers (int or float)
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		// TODO: Implement proper error handling instead of panic
+		panic("cannot shift left types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+	}
+
+	// Fallback path using coercion
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
+	result := int64(lhsValue) << int64(rhsValue)
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		intereter.pushValue(NewAtomValueInt(int(result)))
+		return
+	}
+	intereter.pushValue(NewAtomValueNum(float64(result)))
+}
+
+func DoShiftRight(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
+		result := a >> b
+		intereter.pushValue(NewAtomValueInt(int(result)))
+		return
+	}
+
+	// Check if both values are numbers (int or float)
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		// TODO: Implement proper error handling instead of panic
+		panic("cannot shift right types: " + GetTypeString(val0) + " and " + GetTypeString(val1))
+	}
+
+	// Fallback path using coercion
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
+	result := int64(lhsValue) >> int64(rhsValue)
+
+	// Try to preserve integer types if possible
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		intereter.pushValue(NewAtomValueInt(int(result)))
+		return
+	}
+	intereter.pushValue(NewAtomValueNum(float64(result)))
+}

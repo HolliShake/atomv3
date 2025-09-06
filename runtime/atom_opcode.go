@@ -16,6 +16,8 @@ const (
 	OpMod
 	OpAdd
 	OpSub
+	OpShl
+	OpShr
 	OpStoreLocal
 	OpJumpIfTrueOrPop
 	OpPopJumpIfFalse

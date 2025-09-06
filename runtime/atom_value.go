@@ -15,14 +15,16 @@ const (
 )
 
 type AtomValue struct {
-	Type  AtomType
-	Value any
-	Next  *AtomValue
+	Type   AtomType
+	Value  any
+	Next   *AtomValue
+	Marked bool
 }
 
 func NewAtomValue(atomType AtomType) *AtomValue {
 	obj := new(AtomValue)
 	obj.Type = atomType
+	obj.Marked = false
 	return obj
 }
 

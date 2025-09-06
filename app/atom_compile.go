@@ -201,6 +201,24 @@ func (c *AtomCompile) expression(parent *AtomScope, atomFunc *runtime.AtomValue,
 			c.emit(atomFunc, runtime.OpSub)
 		}
 
+	case AstTypeBinaryShiftRight:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpShr)
+		}
+
+	case AstTypeBinaryShiftLeft:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpShl)
+		}
+
 	default:
 		Error(
 			c.parser.tokenizer.file,

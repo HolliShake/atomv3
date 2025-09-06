@@ -35,6 +35,8 @@ const (
 	AstTypeBinaryMod
 	AstTypeBinaryAdd
 	AstTypeBinarySub
+	AstTypeBinaryShiftRight
+	AstTypeBinaryShiftLeft
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
@@ -71,6 +73,10 @@ func getBinaryAstType(op AtomToken) AtomAstType {
 		return AstTypeBinaryAdd
 	case "-":
 		return AstTypeBinarySub
+	case ">>":
+		return AstTypeBinaryShiftRight
+	case "<<":
+		return AstTypeBinaryShiftLeft
 	default:
 		return AstInvalid
 	}
