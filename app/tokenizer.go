@@ -26,7 +26,7 @@ func NewTokenizer(file string, data string) *Tokenizer {
 func (t *Tokenizer) isKeyword(word string) bool {
 	keywords := []string{
 		KeyClass, KeyFunc, KeyVar, KeyConst, KeyLocal, KeyEnum,
-		KeyImport, KeyExport, KeyContinue, KeyBreak, KeyReturn,
+		KeyImport, KeyContinue, KeyBreak, KeyReturn,
 		KeyIf, KeyElse, KeySwitch, KeyCase, KeyDefault, KeyFor,
 		KeyWhile, KeyDoWhile, KetTrue, KetFalse, KetNull, KeyNew,
 	}
@@ -57,6 +57,16 @@ func (t *Tokenizer) isHexDigit(r rune) bool {
 // isWhitespace checks if a rune is whitespace
 func (t *Tokenizer) isWhitespace(r rune) bool {
 	return unicode.IsSpace(r)
+}
+
+// containsDecimalOrScientific checks if a number string contains decimal point or scientific notation
+func containsDecimalOrScientific(numStr string) bool {
+	for _, r := range numStr {
+		if r == '.' || r == 'e' || r == 'E' {
+			return true
+		}
+	}
+	return false
 }
 
 // current returns the current rune or 0 if at end
@@ -278,8 +288,13 @@ func (t *Tokenizer) NextToken() Token {
 	// Numbers
 	if t.isDigit(r) {
 		value := t.readNumber()
+		// Determine if it's a floating point number or integer
+		tokenType := TokenTypeInt
+		if containsDecimalOrScientific(value) {
+			tokenType = TokenTypeNum
+		}
 		return Token{
-			ttype:    TokenTypeNum,
+			ttype:    tokenType,
 			value:    value,
 			position: Position{LineStart: startLine, LineEnded: t.line, ColumnStart: startColumn, ColumnEnded: t.column},
 		}

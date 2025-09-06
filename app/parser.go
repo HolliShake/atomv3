@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type Parser struct {
 	tokenizer *Tokenizer
 	lookahead Token
@@ -23,6 +25,8 @@ func (p *Parser) acceptT(ttype TokenType) {
 	if p.checkT(ttype) {
 		p.lookahead = p.tokenizer.NextToken()
 	}
+	expected := ttype.String()
+	Error(p.tokenizer.file, p.tokenizer.data, fmt.Sprintf("Expected %s, got %s", expected, p.lookahead.ttype.String()), p.lookahead.position)
 }
 
 func (p *Parser) acceptV(value string) bool {
@@ -30,5 +34,11 @@ func (p *Parser) acceptV(value string) bool {
 		p.lookahead = p.tokenizer.NextToken()
 		return true
 	}
+	expected := value
+	Error(p.tokenizer.file, p.tokenizer.data, fmt.Sprintf("Expected %s, got %s", expected, p.lookahead.value), p.lookahead.position)
 	return false
+}
+
+func (p *Parser) terminal() *Ast {
+
 }
