@@ -80,11 +80,14 @@ func (s *AtomScope) GetCurrentFunction() *AtomScope {
 	return nil
 }
 
-func (s *AtomScope) InSide(scope AtomScopeType) bool {
+func (s *AtomScope) InSide(scope AtomScopeType, recurse bool) bool {
 	current := s
 	for current != nil {
 		if current.Type == scope {
 			return true
+		}
+		if !recurse {
+			break
 		}
 		current = current.Parent
 	}

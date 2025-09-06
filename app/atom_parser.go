@@ -327,6 +327,8 @@ func (p *AtomParser) mandatory() *AtomAst {
 func (p *AtomParser) statement() *AtomAst {
 	if p.checkT(TokenTypeKey) && p.checkV(KeyFunc) {
 		return p.function()
+	} else if p.checkT(TokenTypeSym) && p.checkV("{") {
+		return p.block()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyVar) {
 		return p.varStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyConst) {
@@ -377,6 +379,21 @@ func (p *AtomParser) function() *AtomAst {
 		body,
 		start.Merge(ended),
 	)
+}
+
+func (p *AtomParser) block() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV("{")
+	body := make([]*AtomAst, 0)
+	stmt := p.statement()
+	for stmt != nil {
+		body = append(body, stmt)
+		stmt = p.statement()
+	}
+	ended = p.lookahead.Position
+	p.acceptV("}")
+	return NewBlock(body, start.Merge(ended))
 }
 
 func (p *AtomParser) varStatement() *AtomAst {

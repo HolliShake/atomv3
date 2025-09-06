@@ -52,6 +52,7 @@ const (
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
 	AstTypeFunction
+	AstTypeBlock
 	AstTypeVarStatement
 	AstTypeConstStatement
 	AstTypeLocalStatement
@@ -159,6 +160,12 @@ func NewFunction(name *AtomAst, params []*AtomAst, body []*AtomAst, position Ato
 	ast := NewAtomAst(AstTypeFunction, position)
 	ast.Ast0 = name
 	ast.Arr0 = params
+	ast.Arr1 = body
+	return ast
+}
+
+func NewBlock(body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeBlock, position)
 	ast.Arr1 = body
 	return ast
 }

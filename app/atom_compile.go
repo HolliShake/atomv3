@@ -374,6 +374,13 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeBlock:
+		c.block(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	case AstTypeVarStatement:
 		c.varStatement(
 			parentScope,
@@ -413,7 +420,7 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 }
 
 func (c *AtomCompile) returnStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
-	if !parentScope.InSide(AtomScopeTypeFunction) {
+	if !parentScope.InSide(AtomScopeTypeFunction, true) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
@@ -437,7 +444,7 @@ func (c *AtomCompile) expressionStatement(parentScope *AtomScope, parentFunc *ru
 
 func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) *runtime.AtomValue {
 	// Guard
-	if parentScope.Type != AtomScopeTypeGlobal {
+	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
@@ -467,7 +474,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	parentScope.AddSymbol(NewAtomSymbol(
 		ast.Ast0.Str0,
 		offset,
-		parentScope.Type == AtomScopeTypeGlobal,
+		parentScope.InSide(AtomScopeTypeGlobal, false),
 	))
 	//============================
 
@@ -534,8 +541,15 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	return atomFunc
 }
 
+func (c *AtomCompile) block(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	blockScope := NewAtomScope(parentScope, AtomScopeTypeBlock)
+	for _, stmt := range ast.Arr1 {
+		c.statement(blockScope, parentFunc, stmt)
+	}
+}
+
 func (c *AtomCompile) varStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
-	if parentScope.Type != AtomScopeTypeGlobal {
+	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
@@ -561,11 +575,20 @@ func (c *AtomCompile) varStatement(parentScope *AtomScope, parentFunc *runtime.A
 		} else {
 			c.expression(parentScope, parentFunc, val)
 		}
+		if parentScope.HasLocal(key.Str0) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Symbol %s already defined", key.Str0),
+				key.Position,
+			)
+			return
+		}
 		offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
 		parentScope.AddSymbol(NewAtomSymbol(
 			key.Str0,
 			offset,
-			parentScope.Type == AtomScopeTypeGlobal,
+			parentScope.InSide(AtomScopeTypeGlobal, false),
 		))
 		c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
 	}
@@ -589,18 +612,27 @@ func (c *AtomCompile) constStatement(parentScope *AtomScope, parentFunc *runtime
 		} else {
 			c.expression(parentScope, parentFunc, val)
 		}
+		if parentScope.HasLocal(key.Str0) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Symbol %s already defined", key.Str0),
+				key.Position,
+			)
+			return
+		}
 		offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
 		parentScope.AddSymbol(NewConstAtomSymbol(
 			key.Str0,
 			offset,
-			parentScope.Type == AtomScopeTypeGlobal,
+			parentScope.InSide(AtomScopeTypeGlobal, false),
 		))
 		c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
 	}
 }
 
 func (c *AtomCompile) localStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
-	if parentScope.Type != AtomScopeTypeBlock {
+	if !parentScope.InSide(AtomScopeTypeBlock, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
@@ -625,11 +657,20 @@ func (c *AtomCompile) localStatement(parentScope *AtomScope, parentFunc *runtime
 		} else {
 			c.expression(parentScope, parentFunc, val)
 		}
+		if parentScope.HasLocal(key.Str0) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Symbol %s already defined", key.Str0),
+				key.Position,
+			)
+			return
+		}
 		offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
 		parentScope.AddSymbol(NewAtomSymbol(
 			key.Str0,
 			offset,
-			false,
+			parentScope.InSide(AtomScopeTypeGlobal, false),
 		))
 		c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
 	}

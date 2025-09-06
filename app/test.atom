@@ -10,14 +10,19 @@ func add(a, b) {
 
 if (0 || 0)
     2 + 2;
-else 
+else {
     3 + 3;
+    local x = 69420;
+    local y = 69420;
+    x;
+}
 
 1 && 2;
 
 func fact(n) {
-    if (n == 0) 
+    if (n == 0) {
         return 1;
+    }
 
     return n * fact(n - 1);
 }
