@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 	"strings"
 )
 
@@ -21,8 +22,7 @@ func Error(file string, data []rune, message string, position Position) {
 	end := int(math.Min(float64(len(lines)-1), float64(position.LineEnded+padding)))
 
 	// Print error header
-	fmt.Printf("Error in %s: %s\n", file, message)
-	fmt.Println(strings.Repeat("=", 50))
+	err_message := fmt.Sprintf("Error in %s: %s\n", file, message)
 
 	// Display lines with padding
 	for i := start; i <= end; i++ {
@@ -30,7 +30,7 @@ func Error(file string, data []rune, message string, position Position) {
 		line := lines[i]
 
 		// Format line number with padding
-		fmt.Printf("%4d | %s\n", lineNum, line)
+		err_message += fmt.Sprintf("%4d | %s\n", lineNum, line)
 
 		// Add error highlighting if this is the error line
 		if i >= position.LineStart && i <= position.LineEnded {
@@ -38,8 +38,8 @@ func Error(file string, data []rune, message string, position Position) {
 			// Add carets to show the exact error position
 			if i == position.LineStart {
 				// Show column range for the error
-				colStart := position.ColumnStart
-				colEnd := position.ColumnEnded
+				colStart := position.ColmStart
+				colEnd := position.ColmEnded
 
 				// Ensure column positions are within bounds
 				if colStart < 0 {
@@ -55,10 +55,11 @@ func Error(file string, data []rune, message string, position Position) {
 				// Create the error indicator line
 				errorLine := strings.Repeat(" ", colStart)
 				errorLine += strings.Repeat("^", colEnd-colStart+1)
-				fmt.Printf("%4s | %s\n", "", errorLine)
+				err_message += fmt.Sprintf("%4s | %s\n", "", errorLine)
 			}
 		}
 	}
 
-	fmt.Println(strings.Repeat("=", 50))
+	fmt.Print(err_message)
+	os.Exit(1)
 }

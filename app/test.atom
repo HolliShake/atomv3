@@ -1,16 +1,4 @@
-// This is a comment
-local 你好 = "Hello 世界!";
-const π = 3.14159;
-var unicode = "\u0048\u0065\u006C\u006C\u006F";
-
-func greet(name) {
-    if (name === "世界") {
-        return "你好, " + name + "!";
-    }
-    return "Hello, " + name + "!";
+func add(a, b) {
+    2 + 23 / 23 -2
+    3 + 2
 }
-
-/* Multi-line comment
-    with Unicode: 🚀 */
-local result = greet("世界");
-console.log(result);

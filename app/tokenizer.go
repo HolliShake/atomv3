@@ -4,6 +4,9 @@ import (
 	"unicode"
 )
 
+/*
+ * Hide everything.
+ */
 type Tokenizer struct {
 	file   string
 	data   []rune
@@ -265,9 +268,9 @@ func (t *Tokenizer) NextToken() Token {
 
 	if t.pos >= len(t.data) {
 		return Token{
-			ttype:    TokenTypeEof,
-			value:    "",
-			position: Position{LineStart: t.line, LineEnded: t.line, ColumnStart: t.column, ColumnEnded: t.column},
+			Type:     TokenTypeEof,
+			Value:    "",
+			Position: Position{LineStart: t.line, LineEnded: t.line, ColmStart: t.column, ColmEnded: t.column},
 		}
 	}
 
@@ -279,9 +282,9 @@ func (t *Tokenizer) NextToken() Token {
 	if r == '"' || r == '\'' {
 		value, _ := t.readString()
 		return Token{
-			ttype:    TokenTypeStr,
-			value:    value,
-			position: Position{LineStart: startLine, LineEnded: t.line, ColumnStart: startColumn, ColumnEnded: t.column},
+			Type:     TokenTypeStr,
+			Value:    value,
+			Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 		}
 	}
 
@@ -294,9 +297,9 @@ func (t *Tokenizer) NextToken() Token {
 			tokenType = TokenTypeNum
 		}
 		return Token{
-			ttype:    tokenType,
-			value:    value,
-			position: Position{LineStart: startLine, LineEnded: t.line, ColumnStart: startColumn, ColumnEnded: t.column},
+			Type:     tokenType,
+			Value:    value,
+			Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 		}
 	}
 
@@ -308,9 +311,9 @@ func (t *Tokenizer) NextToken() Token {
 			tokenType = TokenTypeKey
 		}
 		return Token{
-			ttype:    tokenType,
-			value:    value,
-			position: Position{LineStart: startLine, LineEnded: t.line, ColumnStart: startColumn, ColumnEnded: t.column},
+			Type:     tokenType,
+			Value:    value,
+			Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 		}
 	}
 
@@ -376,8 +379,8 @@ func (t *Tokenizer) NextToken() Token {
 	}
 
 	return Token{
-		ttype:    TokenTypeSym,
-		value:    symbol,
-		position: Position{LineStart: startLine, LineEnded: t.line, ColumnStart: startColumn, ColumnEnded: t.column},
+		Type:     TokenTypeSym,
+		Value:    symbol,
+		Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 	}
 }

@@ -14,10 +14,13 @@ const (
 	TokenTypeEof
 )
 
+/*
+ * Export everything for Compiler
+ */
 type Token struct {
-	ttype    TokenType
-	value    string
-	position Position
+	Type     TokenType
+	Value    string
+	Position Position
 }
 
 func (t TokenType) String() string {
@@ -41,6 +44,6 @@ func (t TokenType) String() string {
 }
 
 func (t *Token) String() string {
-	typeStr := t.ttype.String()
-	return fmt.Sprintf("Token { %s %s %d:%d-%d:%d }", typeStr, t.value, t.position.LineStart, t.position.ColumnStart, t.position.LineEnded, t.position.ColumnEnded)
+	typeStr := t.Type.String()
+	return fmt.Sprintf("Token { %s %s %d:%d-%d:%d }", typeStr, t.Value, t.Position.LineStart, t.Position.ColmStart, t.Position.LineEnded, t.Position.ColmEnded)
 }
