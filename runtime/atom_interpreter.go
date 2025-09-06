@@ -104,6 +104,20 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			)
 			forward(4)
 
+		case OpLoadObject:
+			length := ReadInt(code.Code, offsetStart)
+			elements := make(map[string]*AtomValue, 0)
+			for range length {
+				k := i.pop()
+				v := i.pop()
+
+				elements[k.Value.(string)] = v
+			}
+			i.pushVal(
+				NewAtomValueObject(elements),
+			)
+			forward(4)
+
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, offsetStart)
 			fn := i.state.FunctionTable.Get(offset)

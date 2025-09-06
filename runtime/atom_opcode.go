@@ -9,6 +9,7 @@ const (
 	OpLoadBool
 	OpLoadNull
 	OpLoadArray    // with 4 bytes argument
+	OpLoadObject   // with 4 bytes argument
 	OpLoadLocal    // with 4 bytes argument
 	OpLoadCapture  // with 4 bytes argument
 	OpLoadFunction // with 4 bytes argument

@@ -33,3 +33,9 @@ const n = 3 + 2;
 fact(n);
 
 [1,2,3,4,5,6, fact(n)];
+
+var obj = {
+    getName: "Hello"
+};
+
+obj;

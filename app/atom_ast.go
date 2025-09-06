@@ -29,6 +29,7 @@ const (
 	AstTypeNull
 	AstTypeArray
 	AstTypeObject
+	AstTypeKeyValue
 	AstTypeCall
 	AstTypeBinaryMul
 	AstTypeBinaryDiv
@@ -128,6 +129,19 @@ func NewTerminal(astType AtomAstType, value string, position AtomPosition) *Atom
 func NewArray(elements []*AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeArray, position)
 	ast.Arr0 = elements
+	return ast
+}
+
+func NewObject(elements []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeObject, position)
+	ast.Arr0 = elements
+	return ast
+}
+
+func NewKeyValue(key *AtomAst, val *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeKeyValue, position)
+	ast.Ast0 = key
+	ast.Ast1 = val
 	return ast
 }
 

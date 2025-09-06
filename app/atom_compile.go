@@ -168,6 +168,29 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			c.emitInt(parentFunc, runtime.OpLoadArray, len(ast.Arr0))
 		}
 
+	case AstTypeObject:
+		{
+			for i := len(ast.Arr0) - 1; i >= 0; i-- {
+				element := ast.Arr0[i]
+				k := element.Ast0
+				v := element.Ast1
+
+				if k.AstType != AstTypeIdn {
+					Error(
+						c.parser.tokenizer.file,
+						c.parser.tokenizer.data,
+						"Expected identifier",
+						k.Position,
+					)
+					return
+				}
+
+				c.expression(parentScope, parentFunc, v)
+				c.emitStr(parentFunc, runtime.OpLoadStr, k.Str0)
+			}
+			c.emitInt(parentFunc, runtime.OpLoadObject, len(ast.Arr0))
+		}
+
 	case AstTypeCall:
 		{
 			funcAst := ast.Ast0

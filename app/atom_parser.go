@@ -92,6 +92,16 @@ func (p *AtomParser) terminal() *AtomAst {
 	return nil
 }
 
+func (p *AtomParser) keyValue() *AtomAst {
+	key := p.terminal()
+	if key == nil {
+		return nil
+	}
+	p.acceptV(":")
+	val := p.primary()
+	return NewKeyValue(key, val, key.Position.Merge(val.Position))
+}
+
 func (p *AtomParser) group() *AtomAst {
 	start := p.lookahead.Position
 	ended := start
@@ -124,6 +134,30 @@ func (p *AtomParser) group() *AtomAst {
 		ended = p.lookahead.Position
 		p.acceptV("]")
 		return NewArray(elements, start.Merge(ended))
+	} else if p.checkT(TokenTypeSym) && p.checkV("{") {
+		p.acceptV("{")
+		elements := make([]*AtomAst, 0)
+		n := p.keyValue()
+		if n != nil {
+			elements = append(elements, n)
+			for p.checkT(TokenTypeSym) && p.checkV(",") {
+				p.acceptV(",")
+				n = p.keyValue()
+				if n == nil {
+					Error(
+						p.tokenizer.file,
+						p.tokenizer.data,
+						"Expected key-value pair after comma",
+						p.lookahead.Position,
+					)
+					return nil
+				}
+				elements = append(elements, n)
+			}
+		}
+		ended = p.lookahead.Position
+		p.acceptV("}")
+		return NewObject(elements, start.Merge(ended))
 	}
 	return p.terminal()
 }

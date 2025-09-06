@@ -72,6 +72,12 @@ func NewAtomValueArray(elements []*AtomValue) *AtomValue {
 	return obj
 }
 
+func NewAtomValueObject(elements map[string]*AtomValue) *AtomValue {
+	obj := NewAtomValue(AtomTypeObj)
+	obj.Value = NewAtomObject(elements)
+	return obj
+}
+
 func NewFunction(file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
 	obj.Value = NewAtomCode(file, name, argc)
@@ -92,12 +98,35 @@ func (v *AtomValue) String() string {
 	} else if CheckType(v, AtomTypeArray) {
 		str := "["
 		for i, element := range v.Value.(*AtomArray).Elements {
-			str += element.String()
+			if CheckType(element, AtomTypeStr) {
+				str += "'" + element.Value.(string) + "'"
+			} else {
+				str += element.String()
+			}
 			if i < len(v.Value.(*AtomArray).Elements)-1 {
 				str += ", "
 			}
 		}
 		str += "]"
+		return str
+	} else if CheckType(v, AtomTypeObj) {
+		str := "{"
+		first := true
+		for keyStr, value := range v.Value.(*AtomObject).Elements {
+			if !first {
+				str += ", "
+			}
+			valueStr := ""
+			if CheckType(value, AtomTypeStr) {
+				valueStr = "'" + value.Value.(string) + "'"
+			} else {
+				valueStr = value.String()
+			}
+
+			str += keyStr + ": " + valueStr
+			first = false
+		}
+		str += "}"
 		return str
 	}
 	return fmt.Sprintf("%v", v.Value)
@@ -115,6 +144,8 @@ func GetTypeString(value *AtomValue) string {
 		return "string"
 	case AtomTypeNull:
 		return "null"
+	case AtomTypeArray:
+		return "array"
 	case AtomTypeObj:
 		return "object"
 	case AtomTypeFunc:
