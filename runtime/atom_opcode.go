@@ -28,6 +28,7 @@ const (
 	OpOr
 	OpXor
 	OpStoreLocal
+	OpJumpIfFalseOrPop
 	OpJumpIfTrueOrPop
 	OpPopJumpIfFalse
 	OpPopJumpIfTrue

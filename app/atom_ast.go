@@ -43,8 +43,6 @@ const (
 	AstTypeBinaryLessThanEqual
 	AstTypeBinaryEqual
 	AstTypeBinaryNotEqual
-	AstTypeBinaryStrictEqual
-	AstTypeBinaryStrictNotEqual
 	AstTypeBinaryAnd
 	AstTypeBinaryOr
 	AstTypeBinaryXor
@@ -102,10 +100,6 @@ func getBinaryAstType(op AtomToken) AtomAstType {
 		return AstTypeBinaryEqual
 	case "!=":
 		return AstTypeBinaryNotEqual
-	case "===":
-		return AstTypeBinaryStrictEqual
-	case "!==":
-		return AstTypeBinaryStrictNotEqual
 	case "&":
 		return AstTypeBinaryAnd
 	case "|":

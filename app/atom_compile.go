@@ -219,6 +219,107 @@ func (c *AtomCompile) expression(parent *AtomScope, atomFunc *runtime.AtomValue,
 			c.emit(atomFunc, runtime.OpShl)
 		}
 
+	case AstTypeBinaryGreaterThan:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpCmpGt)
+		}
+
+	case AstTypeBinaryGreaterThanEqual:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpCmpGte)
+		}
+
+	case AstTypeBinaryLessThan:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpCmpLt)
+		}
+
+	case AstTypeBinaryLessThanEqual:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpCmpLte)
+		}
+
+	case AstTypeBinaryEqual:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpCmpEq)
+		}
+
+	case AstTypeBinaryNotEqual:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpCmpNe)
+		}
+
+	case AstTypeBinaryAnd:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpAnd)
+		}
+
+	case AstTypeBinaryOr:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpOr)
+		}
+
+	case AstTypeBinaryXor:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			c.expression(parent, atomFunc, rhs)
+			c.emit(atomFunc, runtime.OpXor)
+		}
+
+	case AstTypeLogicalAnd:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			toEnd0 := c.emitJump(atomFunc, runtime.OpJumpIfFalseOrPop)
+			c.expression(parent, atomFunc, rhs)
+			c.label(atomFunc, toEnd0)
+		}
+
+	case AstTypeLogicalOr:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parent, atomFunc, lhs)
+			toEnd0 := c.emitJump(atomFunc, runtime.OpJumpIfTrueOrPop)
+			c.expression(parent, atomFunc, rhs)
+			c.label(atomFunc, toEnd0)
+		}
+
 	default:
 		Error(
 			c.parser.tokenizer.file,

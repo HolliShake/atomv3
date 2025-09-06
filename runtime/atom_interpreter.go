@@ -197,6 +197,16 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			code.Locals[index] = value
 			forward(4)
 
+		case OpJumpIfFalseOrPop:
+			offset := ReadInt(code.OpCodes, offsetStart)
+			forward(4)
+			value := i.peek()
+			if !CoerceToBool(value) {
+				jump(offset)
+			} else {
+				i.pop()
+			}
+
 		case OpJumpIfTrueOrPop:
 			offset := ReadInt(code.OpCodes, offsetStart)
 			forward(4)
