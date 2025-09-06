@@ -6,6 +6,7 @@ type AtomInterpreter struct {
 	state           *AtomState
 	Frame           *AtomStack
 	EvaluationStack *AtomStack
+	GcRoot          *AtomValue
 }
 
 func NewInterpreter(state *AtomState) *AtomInterpreter {
@@ -13,7 +14,22 @@ func NewInterpreter(state *AtomState) *AtomInterpreter {
 		state:           state,
 		Frame:           NewAtomStack(),
 		EvaluationStack: NewAtomStack(),
+		GcRoot:          NewAtomValue(AtomTypeObj),
 	}
+}
+
+func (i *AtomInterpreter) pushValue(value *AtomValue) {
+	i.GcRoot.Next = value
+	i.GcRoot = value
+	i.EvaluationStack.Push(value)
+}
+
+func (i *AtomInterpreter) pushRef(value *AtomValue) {
+	i.EvaluationStack.Push(value)
+}
+
+func (i *AtomInterpreter) pop() *AtomValue {
+	return i.EvaluationStack.Pop()
 }
 
 func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
@@ -34,81 +50,81 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 		switch opCode {
 		case OpLoadInt:
 			value := ReadInt(code.OpCodes, offsetStart)
-			i.EvaluationStack.Push(
+			i.pushValue(
 				NewAtomValueInt(value),
 			)
 			forward(4)
 
 		case OpLoadNum:
 			value := ReadNum(code.OpCodes, offsetStart)
-			i.EvaluationStack.Push(
+			i.pushValue(
 				NewAtomValueNum(value),
 			)
 			forward(8)
 
 		case OpLoadStr:
 			value := ReadStr(code.OpCodes, offsetStart)
-			i.EvaluationStack.Push(
+			i.pushValue(
 				NewAtomValueStr(value),
 			)
 			forward(len(value) + 1)
 
 		case OpLoadNull:
-			i.EvaluationStack.Push(
+			i.pushValue(
 				i.state.NullValue,
 			)
 
 		case OpLoadFunction:
 			offset := ReadInt(code.OpCodes, offsetStart)
 			fn := i.state.FunctionTable.Get(offset)
-			i.EvaluationStack.Push(fn)
+			i.pushRef(fn)
 			forward(4)
 
 		case OpCall:
 			argc := ReadInt(code.OpCodes, offsetStart)
-			call := i.EvaluationStack.Pop()
-			DoCall(i, call, argc)
 			forward(4)
+			call := i.pop()
+			DoCall(i, call, argc)
 
 		case OpLoadLocal:
 			index := ReadInt(code.OpCodes, offsetStart)
 			value := code.Locals[index]
-			i.EvaluationStack.Push(value)
+			i.pushRef(value)
 			forward(4)
 
 		case OpMul:
-			rhs := i.EvaluationStack.Pop()
-			lhs := i.EvaluationStack.Pop()
+			rhs := i.pop()
+			lhs := i.pop()
 			DoMultiplication(i, lhs, rhs)
 
 		case OpDiv:
-			rhs := i.EvaluationStack.Pop()
-			lhs := i.EvaluationStack.Pop()
+			rhs := i.pop()
+			lhs := i.pop()
 			DoDivision(i, lhs, rhs)
 
 		case OpMod:
-			rhs := i.EvaluationStack.Pop()
-			lhs := i.EvaluationStack.Pop()
+			rhs := i.pop()
+			lhs := i.pop()
 			DoModulus(i, lhs, rhs)
 
 		case OpAdd:
-			rhs := i.EvaluationStack.Pop()
-			lhs := i.EvaluationStack.Pop()
+			rhs := i.pop()
+			lhs := i.pop()
 			DoAddition(i, lhs, rhs)
 
 		case OpSub:
-			rhs := i.EvaluationStack.Pop()
-			lhs := i.EvaluationStack.Pop()
+			rhs := i.pop()
+			lhs := i.pop()
 			DoSubtraction(i, lhs, rhs)
 
 		case OpStoreLocal:
 			index := ReadInt(code.OpCodes, offsetStart)
-			value := i.EvaluationStack.Pop()
+			value := i.pop()
 			code.Locals[index] = value
 			forward(4)
 
 		case OpPopTop:
-			v := i.EvaluationStack.Pop()
+			v := i.pop()
 			fmt.Println("PopTop", v.String())
 
 		case OpReturn:

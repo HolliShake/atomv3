@@ -22,11 +22,11 @@ func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomVal
 		// Check for overflow using int64 arithmetic
 		result := int64(lhs) * int64(rhs)
 		if result >= math.MinInt32 && result <= math.MaxInt32 {
-			intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+			intereter.pushValue(NewAtomValueInt(int(result)))
 			return
 		}
 		// Overflow occurred, promote to float64
-		intereter.EvaluationStack.Push(NewAtomValueNum(float64(result)))
+		intereter.pushValue(NewAtomValueNum(float64(result)))
 		return
 	}
 
@@ -43,10 +43,10 @@ func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomVal
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+		intereter.pushValue(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.EvaluationStack.Push(NewAtomValueNum(result))
+	intereter.pushValue(NewAtomValueNum(result))
 }
 
 func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -59,7 +59,7 @@ func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 			panic("division by zero")
 		}
 		result := a / b
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+		intereter.pushValue(NewAtomValueInt(int(result)))
 		return
 	}
 
@@ -80,10 +80,10 @@ func DoDivision(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+		intereter.pushValue(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.EvaluationStack.Push(NewAtomValueNum(result))
+	intereter.pushValue(NewAtomValueNum(result))
 }
 
 func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -96,7 +96,7 @@ func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 			panic("division by zero")
 		}
 		result := a % b
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+		intereter.pushValue(NewAtomValueInt(int(result)))
 		return
 	}
 
@@ -117,10 +117,10 @@ func DoModulus(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+		intereter.pushValue(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.EvaluationStack.Push(NewAtomValueNum(result))
+	intereter.pushValue(NewAtomValueNum(result))
 }
 
 func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -132,10 +132,10 @@ func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		sum := a + b
 		if ((a ^ sum) & (b ^ sum)) < 0 {
 			// Overflow occurred, promote to double
-			intereter.EvaluationStack.Push(NewAtomValueNum(float64(a) + float64(b)))
+			intereter.pushValue(NewAtomValueNum(float64(a) + float64(b)))
 			return
 		}
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(sum)))
+		intereter.pushValue(NewAtomValueInt(int(sum)))
 		return
 	}
 
@@ -144,7 +144,7 @@ func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhs := val0.Value.(string)
 		rhs := val1.Value.(string)
 		result := lhs + rhs
-		intereter.EvaluationStack.Push(NewAtomValueStr(result))
+		intereter.pushValue(NewAtomValueStr(result))
 		return
 	}
 
@@ -161,10 +161,10 @@ func DoAddition(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+		intereter.pushValue(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.EvaluationStack.Push(NewAtomValueNum(result))
+	intereter.pushValue(NewAtomValueNum(result))
 }
 
 func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -175,10 +175,10 @@ func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue)
 		diff := a - b
 		if ((a ^ b) & (a ^ diff)) < 0 {
 			// Overflow occurred, promote to double
-			intereter.EvaluationStack.Push(NewAtomValueNum(float64(a) - float64(b)))
+			intereter.pushValue(NewAtomValueNum(float64(a) - float64(b)))
 			return
 		}
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(diff)))
+		intereter.pushValue(NewAtomValueInt(int(diff)))
 		return
 	}
 
@@ -195,8 +195,8 @@ func DoSubtraction(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue)
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		intereter.EvaluationStack.Push(NewAtomValueInt(int(result)))
+		intereter.pushValue(NewAtomValueInt(int(result)))
 		return
 	}
-	intereter.EvaluationStack.Push(NewAtomValueNum(result))
+	intereter.pushValue(NewAtomValueNum(result))
 }
