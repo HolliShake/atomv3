@@ -7,6 +7,10 @@ const (
 	OpLoadNum
 	OpLoadStr
 	OpLoadBool
+	OpLoadNull
+	OpLoadLocal    // with 4 bytes argument
+	OpLoadFunction // with 4 bytes argument
+	OpCall         // with 4 bytes argument
 	OpMul
 	OpDiv
 	OpMod
@@ -14,5 +18,7 @@ const (
 	OpSub
 	OpStoreLocal
 	OpJumpIfTrueOrPop
+	OpNoOp
+	OpPopTop
 	OpReturn
 )

@@ -7,7 +7,7 @@ import (
 /*
  * Hide everything.
  */
-type Tokenizer struct {
+type AtomTokenizer struct {
 	file   string
 	data   []rune
 	pos    int
@@ -15,8 +15,8 @@ type Tokenizer struct {
 	column int
 }
 
-func NewTokenizer(file string, data string) *Tokenizer {
-	return &Tokenizer{
+func NewAtomTokenizer(file string, data string) *AtomTokenizer {
+	return &AtomTokenizer{
 		file:   file,
 		data:   []rune(data),
 		pos:    0,
@@ -26,7 +26,7 @@ func NewTokenizer(file string, data string) *Tokenizer {
 }
 
 // isKeyword checks if a string is a JavaScript keyword
-func (t *Tokenizer) isKeyword(word string) bool {
+func (t *AtomTokenizer) isKeyword(word string) bool {
 	keywords := []string{
 		KeyClass, KeyFunc, KeyVar, KeyConst, KeyLocal, KeyEnum,
 		KeyImport, KeyContinue, KeyBreak, KeyReturn,
@@ -43,22 +43,22 @@ func (t *Tokenizer) isKeyword(word string) bool {
 }
 
 // isLetter checks if a rune is a letter (including Unicode letters)
-func (t *Tokenizer) isLetter(r rune) bool {
+func (t *AtomTokenizer) isLetter(r rune) bool {
 	return unicode.IsLetter(r) || r == '_' || r == '$'
 }
 
 // isDigit checks if a rune is a digit
-func (t *Tokenizer) isDigit(r rune) bool {
+func (t *AtomTokenizer) isDigit(r rune) bool {
 	return unicode.IsDigit(r)
 }
 
 // isHexDigit checks if a rune is a hexadecimal digit
-func (t *Tokenizer) isHexDigit(r rune) bool {
+func (t *AtomTokenizer) isHexDigit(r rune) bool {
 	return unicode.IsDigit(r) || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
 }
 
 // isWhitespace checks if a rune is whitespace
-func (t *Tokenizer) isWhitespace(r rune) bool {
+func (t *AtomTokenizer) isWhitespace(r rune) bool {
 	return unicode.IsSpace(r)
 }
 
@@ -73,7 +73,7 @@ func containsDecimalOrScientific(numStr string) bool {
 }
 
 // current returns the current rune or 0 if at end
-func (t *Tokenizer) current() rune {
+func (t *AtomTokenizer) current() rune {
 	if t.pos >= len(t.data) {
 		return 0
 	}
@@ -81,7 +81,7 @@ func (t *Tokenizer) current() rune {
 }
 
 // peek returns the next rune without advancing position
-func (t *Tokenizer) peek() rune {
+func (t *AtomTokenizer) peek() rune {
 	if t.pos+1 >= len(t.data) {
 		return 0
 	}
@@ -89,7 +89,7 @@ func (t *Tokenizer) peek() rune {
 }
 
 // advance moves to the next character
-func (t *Tokenizer) advance() {
+func (t *AtomTokenizer) advance() {
 	if t.pos < len(t.data) {
 		if t.data[t.pos] == '\n' {
 			t.line++
@@ -102,7 +102,7 @@ func (t *Tokenizer) advance() {
 }
 
 // skipWhitespace skips whitespace and comments
-func (t *Tokenizer) skipWhitespace() {
+func (t *AtomTokenizer) skipWhitespace() {
 	for t.pos < len(t.data) {
 		r := t.current()
 		if t.isWhitespace(r) {
@@ -131,7 +131,7 @@ func (t *Tokenizer) skipWhitespace() {
 }
 
 // readString reads a string literal with Unicode support
-func (t *Tokenizer) readString() (string, error) {
+func (t *AtomTokenizer) readString() (string, error) {
 	quote := t.current()
 	t.advance() // skip opening quote
 
@@ -203,7 +203,7 @@ func (t *Tokenizer) readString() (string, error) {
 }
 
 // readNumber reads a numeric literal
-func (t *Tokenizer) readNumber() string {
+func (t *AtomTokenizer) readNumber() string {
 	var result []rune
 
 	// Handle hexadecimal
@@ -253,7 +253,7 @@ func (t *Tokenizer) readNumber() string {
 }
 
 // readIdentifier reads an identifier or keyword
-func (t *Tokenizer) readIdentifier() string {
+func (t *AtomTokenizer) readIdentifier() string {
 	var result []rune
 	for t.pos < len(t.data) && (t.isLetter(t.current()) || t.isDigit(t.current())) {
 		result = append(result, t.current())
@@ -263,14 +263,14 @@ func (t *Tokenizer) readIdentifier() string {
 }
 
 // NextToken returns the next token from the input
-func (t *Tokenizer) NextToken() Token {
+func (t *AtomTokenizer) NextToken() AtomToken {
 	t.skipWhitespace()
 
 	if t.pos >= len(t.data) {
-		return Token{
+		return AtomToken{
 			Type:     TokenTypeEof,
 			Value:    "",
-			Position: Position{LineStart: t.line, LineEnded: t.line, ColmStart: t.column, ColmEnded: t.column},
+			Position: AtomPosition{LineStart: t.line, LineEnded: t.line, ColmStart: t.column, ColmEnded: t.column},
 		}
 	}
 
@@ -281,10 +281,10 @@ func (t *Tokenizer) NextToken() Token {
 	// String literals
 	if r == '"' || r == '\'' {
 		value, _ := t.readString()
-		return Token{
+		return AtomToken{
 			Type:     TokenTypeStr,
 			Value:    value,
-			Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
+			Position: AtomPosition{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 		}
 	}
 
@@ -296,10 +296,10 @@ func (t *Tokenizer) NextToken() Token {
 		if containsDecimalOrScientific(value) {
 			tokenType = TokenTypeNum
 		}
-		return Token{
+		return AtomToken{
 			Type:     tokenType,
 			Value:    value,
-			Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
+			Position: AtomPosition{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 		}
 	}
 
@@ -310,10 +310,10 @@ func (t *Tokenizer) NextToken() Token {
 		if t.isKeyword(value) {
 			tokenType = TokenTypeKey
 		}
-		return Token{
+		return AtomToken{
 			Type:     tokenType,
 			Value:    value,
-			Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
+			Position: AtomPosition{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 		}
 	}
 
@@ -378,9 +378,9 @@ func (t *Tokenizer) NextToken() Token {
 		}
 	}
 
-	return Token{
+	return AtomToken{
 		Type:     TokenTypeSym,
 		Value:    symbol,
-		Position: Position{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
+		Position: AtomPosition{LineStart: startLine, LineEnded: t.line, ColmStart: startColumn, ColmEnded: t.column},
 	}
 }

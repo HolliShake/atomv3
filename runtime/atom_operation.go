@@ -2,6 +2,17 @@ package runtime
 
 import "math"
 
+func DoCall(intereter *AtomInterpreter, val0 *AtomValue, argc int) {
+	if !CheckType(val0, AtomTypeFunc) {
+		panic("not a function")
+	}
+	code := val0.Value.(*AtomCode)
+	if argc != code.Argc {
+		panic("argument count mismatch")
+	}
+	intereter.executeFrame(val0, 0)
+}
+
 func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {

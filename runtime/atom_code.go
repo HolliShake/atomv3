@@ -3,16 +3,18 @@ package runtime
 type AtomCode struct {
 	File       string
 	Name       string
+	Argc       int
 	OpCodes    []OpCode
 	Lines      []int
 	LocalCount int
 	Locals     []*AtomValue
 }
 
-func NewAtomCode(file, name string) *AtomCode {
+func NewAtomCode(file, name string, argc int) *AtomCode {
 	code := new(AtomCode)
 	code.File = file
 	code.Name = name
+	code.Argc = argc
 	code.OpCodes = make([]OpCode, 0)
 	code.Lines = make([]int, 0)
 	code.LocalCount = 0

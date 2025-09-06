@@ -44,13 +44,34 @@ func NewAtomValueStr(value string) *AtomValue {
 	return obj
 }
 
-func NewFunction(file, name string) *AtomValue {
+func NewAtomValueNull() *AtomValue {
+	obj := NewAtomValue(AtomTypeNull)
+	obj.Value = nil
+	return obj
+}
+
+func NewAtomValueFalse() *AtomValue {
+	obj := NewAtomValue(AtomTypeBool)
+	obj.Value = false
+	return obj
+}
+
+func NewAtomValueTrue() *AtomValue {
+	obj := NewAtomValue(AtomTypeBool)
+	obj.Value = true
+	return obj
+}
+
+func NewFunction(file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
-	obj.Value = NewAtomCode(file, name)
+	obj.Value = NewAtomCode(file, name, argc)
 	return obj
 }
 
 func (v *AtomValue) String() string {
+	if CheckType(v, AtomTypeNull) {
+		return "null"
+	}
 	return fmt.Sprintf("%s: %v", GetTypeString(v), v.Value)
 }
 

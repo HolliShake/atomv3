@@ -53,33 +53,65 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			)
 			forward(len(value) + 1)
 
+		case OpLoadNull:
+			i.EvaluationStack.Push(
+				i.state.NullValue,
+			)
+
+		case OpLoadFunction:
+			offset := ReadInt(code.OpCodes, offsetStart)
+			fn := i.state.FunctionTable.Get(offset)
+			i.EvaluationStack.Push(fn)
+			forward(4)
+
+		case OpCall:
+			argc := ReadInt(code.OpCodes, offsetStart)
+			call := i.EvaluationStack.Pop()
+			DoCall(i, call, argc)
+			forward(4)
+
+		case OpLoadLocal:
+			index := ReadInt(code.OpCodes, offsetStart)
+			value := code.Locals[index]
+			i.EvaluationStack.Push(value)
+			forward(4)
+
 		case OpMul:
-			lhs := i.EvaluationStack.Pop()
 			rhs := i.EvaluationStack.Pop()
+			lhs := i.EvaluationStack.Pop()
 			DoMultiplication(i, lhs, rhs)
 
 		case OpDiv:
-			lhs := i.EvaluationStack.Pop()
 			rhs := i.EvaluationStack.Pop()
+			lhs := i.EvaluationStack.Pop()
 			DoDivision(i, lhs, rhs)
 
 		case OpMod:
-			lhs := i.EvaluationStack.Pop()
 			rhs := i.EvaluationStack.Pop()
+			lhs := i.EvaluationStack.Pop()
 			DoModulus(i, lhs, rhs)
 
 		case OpAdd:
-			lhs := i.EvaluationStack.Pop()
 			rhs := i.EvaluationStack.Pop()
+			lhs := i.EvaluationStack.Pop()
 			DoAddition(i, lhs, rhs)
 
 		case OpSub:
-			lhs := i.EvaluationStack.Pop()
 			rhs := i.EvaluationStack.Pop()
+			lhs := i.EvaluationStack.Pop()
 			DoSubtraction(i, lhs, rhs)
 
+		case OpStoreLocal:
+			index := ReadInt(code.OpCodes, offsetStart)
+			value := i.EvaluationStack.Pop()
+			code.Locals[index] = value
+			forward(4)
+
+		case OpPopTop:
+			v := i.EvaluationStack.Pop()
+			fmt.Println("PopTop", v.String())
+
 		case OpReturn:
-			i.Frame.Pop()
 			return
 
 		default:
@@ -92,9 +124,7 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	i.Frame.Push(atomFunc)
 
 	// Run while the frame is not empty
-	for i.Frame.Len() > 0 {
-		i.executeFrame(i.Frame.Peek(), 0)
-	}
+	i.executeFrame(atomFunc, 0)
 
 	// While has pending frames for async
 

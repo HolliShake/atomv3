@@ -2,26 +2,26 @@ package main
 
 import "fmt"
 
-type AstType int
+type AtomAstType int
 
 /*
  * Export everything for Compiler
  */
-type Ast struct {
-	AstType  AstType
+type AtomAst struct {
+	AstType  AtomAstType
 	Str0     string
-	Ast0     *Ast
-	Ast1     *Ast
-	Ast2     *Ast
-	Ast3     *Ast
-	Arr0     []*Ast
-	Arr1     []*Ast
-	Arr2     []*Ast
-	Position Position
+	Ast0     *AtomAst
+	Ast1     *AtomAst
+	Ast2     *AtomAst
+	Ast3     *AtomAst
+	Arr0     []*AtomAst
+	Arr1     []*AtomAst
+	Arr2     []*AtomAst
+	Position AtomPosition
 }
 
 const (
-	AstTypeIdn AstType = iota
+	AstTypeIdn AtomAstType = iota
 	AstTypeInt
 	AstTypeNum
 	AstTypeStr
@@ -29,18 +29,22 @@ const (
 	AstTypeNull
 	AstTypeArray
 	AstTypeObject
+	AstTypeCall
 	AstTypeBinaryMul
 	AstTypeBinaryDiv
 	AstTypeBinaryMod
 	AstTypeBinaryAdd
 	AstTypeBinarySub
+	AstTypeReturnStatement
+	AstTypeEmptyStatement
+	AstTypeExpressionStatement
 	AstTypeFunction
 	AstTypeProgram
 	AstInvalid
 )
 
-func NewAst(astType AstType, position Position) *Ast {
-	ast := new(Ast)
+func NewAtomAst(astType AtomAstType, position AtomPosition) *AtomAst {
+	ast := new(AtomAst)
 	ast.AstType = astType
 	ast.Str0 = ""
 	ast.Ast0 = nil
@@ -54,7 +58,7 @@ func NewAst(astType AstType, position Position) *Ast {
 	return ast
 }
 
-func getBinaryAstType(op Token) AstType {
+func getBinaryAstType(op AtomToken) AtomAstType {
 	switch op.Value {
 	case "*":
 		return AstTypeBinaryMul
@@ -71,34 +75,58 @@ func getBinaryAstType(op Token) AstType {
 	}
 }
 
-func NewTerminal(astType AstType, value string, position Position) *Ast {
-	ast := NewAst(astType, position)
+func NewTerminal(astType AtomAstType, value string, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(astType, position)
 	ast.Str0 = value
 	return ast
 }
 
-func NewBinary(ast0 *Ast, op Token, ast1 *Ast, position Position) *Ast {
-	ast := NewAst(getBinaryAstType(op), position)
+func NewCall(ast0 *AtomAst, args []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeCall, position)
+	ast.Ast0 = ast0
+	ast.Arr0 = args
+	return ast
+}
+
+func NewBinary(ast0 *AtomAst, op AtomToken, ast1 *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(getBinaryAstType(op), position)
 	ast.Ast0 = ast0
 	ast.Ast1 = ast1
 	return ast
 }
 
-func NewFunction(name *Ast, params []*Ast, body []*Ast, position Position) *Ast {
-	ast := NewAst(AstTypeFunction, position)
+func NewFunction(name *AtomAst, params []*AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeFunction, position)
 	ast.Ast0 = name
 	ast.Arr0 = params
 	ast.Arr1 = body
 	return ast
 }
 
-func NewProgram(body []*Ast, position Position) *Ast {
-	ast := NewAst(AstTypeProgram, position)
+func NewReturnStatement(expr *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeReturnStatement, position)
+	ast.Ast0 = expr
+	return ast
+}
+
+func NewEmptyStatement(position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeEmptyStatement, position)
+	return ast
+}
+
+func NewExpressionStatement(expr *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeExpressionStatement, position)
+	ast.Ast0 = expr
+	return ast
+}
+
+func NewProgram(body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeProgram, position)
 	ast.Arr1 = body
 	return ast
 }
 
-func (a *Ast) String() string {
+func (a *AtomAst) String() string {
 	switch a.AstType {
 	case AstTypeIdn,
 		AstTypeInt,

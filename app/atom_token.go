@@ -2,10 +2,10 @@ package main
 
 import "fmt"
 
-type TokenType int
+type AtomTokenType int
 
 const (
-	TokenTypeKey TokenType = iota
+	TokenTypeKey AtomTokenType = iota
 	TokenTypeIdn
 	TokenTypeInt
 	TokenTypeNum
@@ -17,13 +17,13 @@ const (
 /*
  * Export everything for Compiler
  */
-type Token struct {
-	Type     TokenType
+type AtomToken struct {
+	Type     AtomTokenType
 	Value    string
-	Position Position
+	Position AtomPosition
 }
 
-func (t TokenType) String() string {
+func (t AtomTokenType) String() string {
 	switch t {
 	case TokenTypeKey:
 		return "KEYWORD"
@@ -43,7 +43,7 @@ func (t TokenType) String() string {
 	return "UNKNOWN"
 }
 
-func (t *Token) String() string {
+func (t *AtomToken) String() string {
 	typeStr := t.Type.String()
 	return fmt.Sprintf("Token { %s %s %d:%d-%d:%d }", typeStr, t.Value, t.Position.LineStart, t.Position.ColmStart, t.Position.LineEnded, t.Position.ColmEnded)
 }

@@ -12,6 +12,10 @@ func NewAtomStack() *AtomStack {
 	}
 }
 
+func (s *AtomStack) Get(index int) *AtomValue {
+	return s.stack[index]
+}
+
 func (s *AtomStack) Push(obj *AtomValue) {
 	s.stack = append(s.stack, obj)
 }
@@ -32,6 +36,6 @@ func (s *AtomStack) Len() int {
 
 func (s *AtomStack) Dump() {
 	for _, obj := range s.stack {
-		fmt.Println(obj)
+		fmt.Println(obj.String())
 	}
 }

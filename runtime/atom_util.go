@@ -27,7 +27,7 @@ func CoerceToInt(value *AtomValue) int32 {
 	case AtomTypeInt:
 		return value.Value.(int32)
 	case AtomTypeNum:
-		return value.Value.(int32)
+		return int32(value.Value.(float64))
 	case AtomTypeStr:
 		val, err := strconv.Atoi(value.Value.(string))
 		if err != nil {

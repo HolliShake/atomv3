@@ -22,7 +22,7 @@ func testErrorDisplay() {
 
 	// Test 1: Single line error
 	fmt.Println("Test 1: Single line error")
-	position1 := Position{
+	position1 := AtomPosition{
 		LineStart: 1, // 0-based line number (line 2)
 		LineEnded: 1, // Same line
 		ColmStart: 5, // 0-based column
@@ -34,7 +34,7 @@ func testErrorDisplay() {
 
 	// Test 2: Multi-line error
 	fmt.Println("Test 2: Multi-line error")
-	position2 := Position{
+	position2 := AtomPosition{
 		LineStart: 5, // 0-based line number (line 6)
 		LineEnded: 7, // 0-based line number (line 8)
 		ColmStart: 0, // 0-based column
@@ -46,7 +46,7 @@ func testErrorDisplay() {
 
 	// Test 3: Error at the beginning of file
 	fmt.Println("Test 3: Error at beginning of file")
-	position3 := Position{
+	position3 := AtomPosition{
 		LineStart: 0, // 0-based line number (line 1)
 		LineEnded: 0, // Same line
 		ColmStart: 0, // 0-based column
@@ -66,13 +66,18 @@ func main() {
 	// fmt.Println("\n" + strings.Repeat("=", 60) + "\n")
 
 	// Test JavaScript-style tokenizer with Unicode support
-	code := readFile("./test.atom")
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: go run *.go <file.atom>")
+		os.Exit(1)
+	}
+	code := readFile(os.Args[1])
 
 	state := runtime.NewAtomState()
 
-	tokenizer := NewTokenizer("test.atom", code)
-	parser := NewParser(tokenizer)
-	compile := NewCompile(parser, state)
+	tokenizer := NewAtomTokenizer(os.Args[1], code)
+	parser := NewAtomParser(tokenizer)
+	compile := NewAtomCompile(parser, state)
+	compiled := compile.Compile()
 	i := runtime.NewInterpreter(state)
-	i.Interpret(compile.Compile())
+	i.Interpret(compiled)
 }

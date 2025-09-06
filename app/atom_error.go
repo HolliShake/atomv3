@@ -4,10 +4,17 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	"strings"
 )
 
-func Error(file string, data []rune, message string, position Position) {
+func Error(file string, data []rune, message string, position AtomPosition) {
+	pc, _, _, ok := runtime.Caller(1) // 1 = caller frame
+	caller := ""
+	if ok {
+		caller = runtime.FuncForPC(pc).Name()
+	}
+
 	// Split the data into lines
 	content := string(data)
 	lines := strings.Split(content, "\n")
@@ -22,7 +29,7 @@ func Error(file string, data []rune, message string, position Position) {
 	end := int(math.Min(float64(len(lines)-1), float64(position.LineEnded+padding)))
 
 	// Print error header
-	err_message := fmt.Sprintf("Error in %s: %s\n", file, message)
+	err_message := fmt.Sprintf("DEBUG(%s)Error in [%s:%d:%d] %s\n", caller, file, position.LineStart, position.ColmStart, message)
 
 	// Display lines with padding
 	for i := start; i <= end; i++ {
