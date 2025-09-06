@@ -193,8 +193,112 @@ func (p *AtomParser) shift() *AtomAst {
 	return ast
 }
 
+func (p *AtomParser) relational() *AtomAst {
+	ast := p.shift()
+	for p.checkT(TokenTypeSym) && (p.checkV("<") || p.checkV("<=") || p.checkV(">") || p.checkV(">=")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+
+		rhs := p.shift()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		ast = NewBinary(
+			ast,
+			opt,
+			rhs,
+			ast.Position.Merge(rhs.Position),
+		)
+	}
+	return ast
+}
+
+func (p *AtomParser) equality() *AtomAst {
+	ast := p.relational()
+	for p.checkT(TokenTypeSym) && (p.checkV("==") || p.checkV("!=") || p.checkV("===") || p.checkV("!==")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+
+		rhs := p.relational()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		ast = NewBinary(
+			ast,
+			opt,
+			rhs,
+			ast.Position.Merge(rhs.Position),
+		)
+	}
+	return ast
+}
+
+func (p *AtomParser) bitwise() *AtomAst {
+	ast := p.equality()
+	for p.checkT(TokenTypeSym) && (p.checkV("&") || p.checkV("|") || p.checkV("^")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+
+		rhs := p.equality()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		ast = NewBinary(
+			ast,
+			opt,
+			rhs,
+			ast.Position.Merge(rhs.Position),
+		)
+	}
+	return ast
+}
+
+func (p *AtomParser) logical() *AtomAst {
+	ast := p.bitwise()
+	for p.checkT(TokenTypeSym) && (p.checkV("&&") || p.checkV("||")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+
+		rhs := p.bitwise()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		ast = NewBinary(
+			ast,
+			opt,
+			rhs,
+			ast.Position.Merge(rhs.Position),
+		)
+	}
+	return ast
+}
+
 func (p *AtomParser) primary() *AtomAst {
-	return p.shift()
+	return p.logical()
 }
 
 func (p *AtomParser) mandatory() *AtomAst {
@@ -286,6 +390,7 @@ func (p *AtomParser) ifStatement() *AtomAst {
 		)
 		return nil
 	}
+
 	var elseValue *AtomAst = nil
 	ended = thenValue.Position
 
