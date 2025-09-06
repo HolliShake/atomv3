@@ -42,8 +42,19 @@ var obj = {
 };
 
 obj;
+obj.getName;
 
-var xh = 1;
+var xh = 12;
+
+xh *= 2;
+xh = 100;
+
+const arr = [
+    1,2,3,4,5,6,7,8,9,10
+];
+
+arr[0];
+
 
 /*
 xh *= 2;

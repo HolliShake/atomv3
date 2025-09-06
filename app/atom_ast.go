@@ -31,6 +31,8 @@ const (
 	AstTypeObject
 	AstTypeKeyValue
 	AstTypeCall
+	AstTypeIndex
+	AstTypeMember
 	AstTypeBinaryMul
 	AstTypeBinaryDiv
 	AstTypeBinaryMod
@@ -175,6 +177,20 @@ func NewKeyValue(key *AtomAst, val *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeKeyValue, position)
 	ast.Ast0 = key
 	ast.Ast1 = val
+	return ast
+}
+
+func NewMember(obj *AtomAst, key *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeMember, position)
+	ast.Ast0 = obj
+	ast.Ast1 = key
+	return ast
+}
+
+func NewIndex(obj *AtomAst, index *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeIndex, position)
+	ast.Ast0 = obj
+	ast.Ast1 = index
 	return ast
 }
 

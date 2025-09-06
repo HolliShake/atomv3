@@ -193,6 +193,33 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			c.emitInt(parentFunc, runtime.OpLoadObject, len(ast.Arr0))
 		}
 
+	case AstTypeMember:
+		{
+			obj := ast.Ast0
+			key := ast.Ast1
+			if key.AstType != AstTypeIdn {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					"Expected identifier",
+					key.Position,
+				)
+				return
+			}
+			c.expression(parentScope, parentFunc, obj)
+			c.emitStr(parentFunc, runtime.OpLoadStr, key.Str0)
+			c.emit(parentFunc, runtime.OpIndex)
+		}
+
+	case AstTypeIndex:
+		{
+			obj := ast.Ast0
+			index := ast.Ast1
+			c.expression(parentScope, parentFunc, obj)
+			c.expression(parentScope, parentFunc, index)
+			c.emit(parentFunc, runtime.OpIndex)
+		}
+
 	case AstTypeCall:
 		{
 			funcAst := ast.Ast0
@@ -373,30 +400,118 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(parentScope, parentFunc, rhs)
-			switch lhs.AstType {
-			case AstTypeIdn:
-				{
-					c.assign0(parentScope, parentFunc, lhs)
-				}
-			default:
-				{
-					Error(
-						c.parser.tokenizer.file,
-						c.parser.tokenizer.data,
-						"Expected identifier",
-						lhs.Position,
-					)
-				}
-			}
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
 		}
 
 	case AstTypeMulAssign:
 		{
 			lhs := ast.Ast0
 			rhs := ast.Ast1
-			c.expression(parentScope, parentFunc, rhs)
 			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
 			c.emit(parentFunc, runtime.OpMul)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeDivAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpDiv)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeModAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpMod)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeAddAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpAdd)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeSubAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpSub)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeLeftShiftAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpShl)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeRightShiftAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpShr)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeBitwiseAndAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpAnd)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeBitwiseOrAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpOr)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
+		}
+
+	case AstTypeBitwiseXorAssign:
+		{
+			lhs := ast.Ast0
+			rhs := ast.Ast1
+			c.expression(parentScope, parentFunc, lhs)
+			c.expression(parentScope, parentFunc, rhs)
+			c.emit(parentFunc, runtime.OpXor)
+			c.emit(parentFunc, runtime.OpDupTop)
+			c.assign(parentScope, parentFunc, lhs)
 		}
 
 	default:
@@ -406,6 +521,44 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			"Expected expression",
 			ast.Position,
 		)
+	}
+}
+
+func (c *AtomCompile) assign(parentScope *AtomScope, parentFunc *runtime.AtomValue, lhs *AtomAst) {
+	switch lhs.AstType {
+	case AstTypeIdn:
+		{
+			if !parentScope.HasSymbol(lhs.Str0) {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					fmt.Sprintf("Symbol %s referenced before assignment", lhs.Str0),
+					lhs.Position,
+				)
+				return
+			}
+			symbol := parentScope.GetSymbol(lhs.Str0)
+			if symbol.Const {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					fmt.Sprintf("Symbol %s is const", lhs.Str0),
+					lhs.Position,
+				)
+				return
+			}
+			c.emitInt(parentFunc, runtime.OpStoreLocal, symbol.Offset)
+		}
+
+	default:
+		{
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				lhs.Position,
+			)
+		}
 	}
 }
 
@@ -560,7 +713,6 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		parentScope.InSide(AtomScopeTypeGlobal, false),
 	))
 	//============================
-
 	for _, param := range params {
 		if param.AstType != AstTypeIdn {
 			Error(

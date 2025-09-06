@@ -13,7 +13,7 @@ func NewAtomSymbol(name string, offset int, global bool) *AtomSymbol {
 }
 
 func NewConstAtomSymbol(name string, offset int, global bool) *AtomSymbol {
-	return &AtomSymbol{Name: name, Offset: offset, Global: global}
+	return &AtomSymbol{Name: name, Offset: offset, Global: global, Const: true}
 }
 
 func NewCaptureAtomSymbol(name string, offset int, global bool, isConst bool, isConstCapture bool) *AtomSymbol {

@@ -44,7 +44,7 @@ func (s *AtomScope) HasSymbol(name string) bool {
 }
 
 func (s *AtomScope) HasLocal(name string) bool {
-	return s.Symbols[name] != nil
+	return s.Symbols[name] != nil && !s.Symbols[name].Capture
 }
 
 func (s *AtomScope) HasCapture(name string) bool {

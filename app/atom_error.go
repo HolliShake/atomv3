@@ -45,8 +45,8 @@ func Error(file string, data []rune, message string, position AtomPosition) {
 			// Add carets to show the exact error position
 			if i == position.LineStart {
 				// Show column range for the error
-				colStart := position.ColmStart
-				colEnd := position.ColmEnded
+				colStart := position.ColmStart - 1 // Convert to 0-based indexing
+				colEnd := position.ColmEnded - 1   // Convert to 0-based indexing
 
 				// Ensure column positions are within bounds
 				if colStart < 0 {

@@ -5,6 +5,47 @@ import (
 	"math"
 )
 
+func DoIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
+	if CheckType(obj, AtomTypeArray) {
+
+		if !IsNumberType(index) {
+			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		array := obj.Value.(*AtomArray)
+		indexValue := CoerceToLong(index)
+
+		if !array.ValidIndex(int(indexValue)) {
+			message := fmt.Sprintf("index out of bounds: %d", indexValue)
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		intereter.pushVal(array.Get(int(indexValue)))
+		return
+
+	} else if CheckType(obj, AtomTypeObj) {
+		objValue := obj.Value.(*AtomObject)
+		indexValue := index.String()
+
+		value := objValue.Get(indexValue)
+		if value == nil {
+			intereter.pushRef(intereter.state.NullValue)
+			return
+		}
+
+		intereter.pushVal(value)
+		return
+
+	} else {
+		message := fmt.Sprintf("cannot index type: %s", GetTypeString(obj))
+		intereter.pushVal(NewAtomValueError(message))
+		return
+	}
+}
+
 func DoCall(intereter *AtomInterpreter, parent *AtomValue, funcValue *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {

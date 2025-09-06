@@ -164,8 +164,26 @@ func (p *AtomParser) group() *AtomAst {
 
 func (p *AtomParser) memberOrCall() *AtomAst {
 	ast := p.group()
-	for p.checkT(TokenTypeSym) && (p.checkV("(")) {
-		if p.checkV("(") {
+	for p.checkT(TokenTypeSym) && (p.checkV(".") || p.checkV("[") || p.checkV("(")) {
+
+		if p.checkV(".") {
+			p.acceptV(".")
+			key := p.terminal()
+			ast = NewMember(
+				ast,
+				key,
+				ast.Position.Merge(key.Position),
+			)
+		} else if p.checkV("[") {
+			p.acceptV("[")
+			index := p.primary()
+			p.acceptV("]")
+			ast = NewIndex(
+				ast,
+				index,
+				ast.Position.Merge(index.Position),
+			)
+		} else if p.checkV("(") {
 			args := make([]*AtomAst, 0)
 			p.acceptV("(")
 			// arguments

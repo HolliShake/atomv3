@@ -124,6 +124,11 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			i.pushRef(fn)
 			forward(4)
 
+		case OpIndex:
+			index := i.pop()
+			obj := i.pop()
+			DoIndex(i, obj, index)
+
 		case OpCall:
 			argc := ReadInt(code.Code, offsetStart)
 			forward(4)

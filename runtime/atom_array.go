@@ -16,6 +16,10 @@ func (a *AtomArray) Set(index int, value *AtomValue) {
 	a.Elements[index] = value
 }
 
+func (a *AtomArray) ValidIndex(index int) bool {
+	return index >= 0 && index < len(a.Elements)
+}
+
 func (a *AtomArray) Len() int {
 	return len(a.Elements)
 }
