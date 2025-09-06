@@ -93,6 +93,17 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 				i.state.NullValue,
 			)
 
+		case OpLoadArray:
+			length := ReadInt(code.Code, offsetStart)
+			elements := make([]*AtomValue, 0)
+			for range length {
+				elements = append(elements, i.pop())
+			}
+			i.pushVal(
+				NewAtomValueArray(elements),
+			)
+			forward(4)
+
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, offsetStart)
 			fn := i.state.FunctionTable.Get(offset)
@@ -211,7 +222,6 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
 			function := i.peek().Value.(*AtomCode)
-			println("FN:", function.Name, index, len(function.Env1))
 			function.Env1[index] = value
 			forward(4)
 
@@ -266,8 +276,8 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			i.pushVal(i.peek())
 
 		case OpPopTop:
-			v := i.pop()
-			fmt.Println("PopTop", v.String())
+			t := i.pop()
+			fmt.Println("PopTop", t.String())
 
 		case OpReturn:
 			return

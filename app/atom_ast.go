@@ -125,6 +125,12 @@ func NewTerminal(astType AtomAstType, value string, position AtomPosition) *Atom
 	return ast
 }
 
+func NewArray(elements []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeArray, position)
+	ast.Arr0 = elements
+	return ast
+}
+
 func NewCall(ast0 *AtomAst, args []*AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeCall, position)
 	ast.Ast0 = ast0

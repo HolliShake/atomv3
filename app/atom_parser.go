@@ -92,8 +92,44 @@ func (p *AtomParser) terminal() *AtomAst {
 	return nil
 }
 
+func (p *AtomParser) group() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	if p.checkT(TokenTypeSym) && p.checkV("(") {
+		p.acceptV("(")
+		ast := p.mandatory()
+		p.acceptV(")")
+		return ast
+	} else if p.checkT(TokenTypeSym) && p.checkV("[") {
+		p.acceptV("[")
+		elements := make([]*AtomAst, 0)
+		n := p.primary()
+		if n != nil {
+			elements = append(elements, n)
+			for p.checkT(TokenTypeSym) && p.checkV(",") {
+				p.acceptV(",")
+				n = p.primary()
+				if n == nil {
+					Error(
+						p.tokenizer.file,
+						p.tokenizer.data,
+						"Expected expression after comma",
+						p.lookahead.Position,
+					)
+					return nil
+				}
+				elements = append(elements, n)
+			}
+		}
+		ended = p.lookahead.Position
+		p.acceptV("]")
+		return NewArray(elements, start.Merge(ended))
+	}
+	return p.terminal()
+}
+
 func (p *AtomParser) memberOrCall() *AtomAst {
-	ast := p.terminal()
+	ast := p.group()
 	for p.checkT(TokenTypeSym) && (p.checkV("(")) {
 		if p.checkV("(") {
 			args := make([]*AtomAst, 0)

@@ -13,7 +13,7 @@ if (0 || 0)
 else {
     3 + 3;
     local x = 69420;
-    local y = 69420;
+    local y = x;
     x;
 }
 
@@ -30,3 +30,5 @@ func fact(n) {
 const n = 3 + 2;
 
 fact(n);
+
+[1,2,3,4,5,6];

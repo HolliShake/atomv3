@@ -11,6 +11,7 @@ const (
 	AtomTypeStr
 	AtomTypeNull
 	AtomTypeObj
+	AtomTypeArray
 	AtomTypeFunc
 	AtomTypeErr
 )
@@ -65,6 +66,12 @@ func NewAtomValueTrue() *AtomValue {
 	return obj
 }
 
+func NewAtomValueArray(elements []*AtomValue) *AtomValue {
+	obj := NewAtomValue(AtomTypeArray)
+	obj.Value = NewAtomArray(elements)
+	return obj
+}
+
 func NewFunction(file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
 	obj.Value = NewAtomCode(file, name, argc)
@@ -82,8 +89,18 @@ func (v *AtomValue) String() string {
 		return "null"
 	} else if CheckType(v, AtomTypeFunc) {
 		return fmt.Sprintf("function %s(...){}", v.Value.(*AtomCode).Name)
+	} else if CheckType(v, AtomTypeArray) {
+		str := "["
+		for i, element := range v.Value.(*AtomArray).Elements {
+			str += element.String()
+			if i < len(v.Value.(*AtomArray).Elements)-1 {
+				str += ", "
+			}
+		}
+		str += "]"
+		return str
 	}
-	return fmt.Sprintf("%s: %v", GetTypeString(v), v.Value)
+	return fmt.Sprintf("%v", v.Value)
 }
 
 func GetTypeString(value *AtomValue) string {

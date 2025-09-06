@@ -159,6 +159,15 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 	case AstTypeStr:
 		c.emitStr(parentFunc, runtime.OpLoadStr, ast.Str0)
 
+	case AstTypeArray:
+		{
+			for i := len(ast.Arr0) - 1; i >= 0; i-- {
+				element := ast.Arr0[i]
+				c.expression(parentScope, parentFunc, element)
+			}
+			c.emitInt(parentFunc, runtime.OpLoadArray, len(ast.Arr0))
+		}
+
 	case AstTypeCall:
 		{
 			funcAst := ast.Ast0
