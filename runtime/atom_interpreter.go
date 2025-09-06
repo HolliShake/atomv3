@@ -24,10 +24,10 @@ func NewInterpreter(state *AtomState) *AtomInterpreter {
 }
 
 func (i *AtomInterpreter) pushVal(value *AtomValue) {
-	i.GcRoot.Next = value
-	i.GcRoot = value
+	// i.GcRoot.Next = value
+	// i.GcRoot = value
 	i.EvaluationStack.Push(value)
-	i.Allocation++
+	// i.Allocation++
 }
 
 func (i *AtomInterpreter) pushRef(value *AtomValue) {
@@ -42,7 +42,7 @@ func (i *AtomInterpreter) peek() *AtomValue {
 	return i.EvaluationStack.Peek()
 }
 
-func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offset int) {
+func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 	// Frame here is a function
 
 	offsetStart := offset
@@ -133,7 +133,7 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			argc := ReadInt(code.Code, offsetStart)
 			forward(4)
 			call := i.pop()
-			DoCall(i, frame, call, argc)
+			DoCall(i, call, argc)
 
 		case OpLoadLocal:
 			index := ReadInt(code.Code, offsetStart)
@@ -248,6 +248,11 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 			code.Env0[index].Set(value)
 			forward(4)
 
+		case OpSetIndex:
+			index := i.pop()
+			obj := i.pop()
+			DoSetIndex(i, obj, index)
+
 		case OpJumpIfFalseOrPop:
 			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
@@ -292,6 +297,9 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 		case OpDupTop:
 			i.pushVal(i.peek())
 
+		case OpNoOp:
+			forward(0)
+
 		case OpPopTop:
 			t := i.pop()
 			fmt.Println("PopTop", t.String())
@@ -307,7 +315,7 @@ func (i *AtomInterpreter) executeFrame(parent *AtomValue, frame *AtomValue, offs
 
 func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	// Run while the frame is not empty
-	i.executeFrame(nil, atomFunc, 0)
+	i.executeFrame(atomFunc, 0)
 
 	// Dump stack
 	i.EvaluationStack.Dump()

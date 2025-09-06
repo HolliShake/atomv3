@@ -27,6 +27,8 @@ func NewAtomValue(atomType AtomType) *AtomValue {
 	obj := new(AtomValue)
 	obj.Type = atomType
 	obj.Marked = false
+	obj.Next = nil
+	obj.Value = nil
 	return obj
 }
 

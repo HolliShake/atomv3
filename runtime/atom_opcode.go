@@ -34,6 +34,7 @@ const (
 	OpStoreGlobal  // with 4 bytes argument | alias for OpStoreLocal
 	OpStoreCapture // with 4 bytes argument
 	OpStoreLocal   // with 4 bytes argument
+	OpSetIndex
 	OpJumpIfFalseOrPop
 	OpJumpIfTrueOrPop
 	OpPopJumpIfFalse

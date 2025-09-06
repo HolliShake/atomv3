@@ -113,6 +113,11 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 				return
 			}
 			symbol := parentScope.GetSymbol(ast.Str0)
+			if parentScope.HasCapture(ast.Str0) {
+				captureSymbol := parentScope.GetCapture(ast.Str0)
+				c.emitInt(parentFunc, runtime.OpLoadLocal, captureSymbol.Offset)
+				return
+			}
 			if parentScope.HasLocal(ast.Str0) {
 				c.emitInt(parentFunc, runtime.OpLoadLocal, symbol.Offset)
 				return
@@ -120,7 +125,7 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			// Non-local symbol, save as capture
 			functionScope := parentScope.GetCurrentFunction()
 			captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
-			functionScope.AddSymbol(NewCaptureAtomSymbol(
+			functionScope.AddCapture(NewCaptureAtomSymbol(
 				ast.Str0,
 				captureOffset,
 				symbol.Global,
@@ -547,7 +552,40 @@ func (c *AtomCompile) assign(parentScope *AtomScope, parentFunc *runtime.AtomVal
 				)
 				return
 			}
-			c.emitInt(parentFunc, runtime.OpStoreLocal, symbol.Offset)
+			if parentScope.HasCapture(lhs.Str0) {
+				captureSymbol := parentScope.GetCapture(lhs.Str0)
+				c.emitInt(parentFunc, runtime.OpStoreLocal, captureSymbol.Offset)
+				return
+			}
+			if parentScope.HasLocal(lhs.Str0) {
+				c.emitInt(parentFunc, runtime.OpStoreLocal, symbol.Offset)
+				return
+			}
+			// Non-local symbol, save as capture
+			functionScope := parentScope.GetCurrentFunction()
+			captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+			functionScope.AddCapture(NewCaptureAtomSymbol(
+				lhs.Str0,
+				captureOffset,
+				symbol.Global,
+				symbol.Const,
+				true,
+			))
+			c.emitInt(parentFunc, runtime.OpStoreLocal, captureOffset)
+		}
+
+	case AstTypeMember:
+		{
+			c.expression(parentScope, parentFunc, lhs.Ast0)
+			c.emitStr(parentFunc, runtime.OpLoadStr, lhs.Ast1.Str0)
+			c.emit(parentFunc, runtime.OpSetIndex)
+		}
+
+	case AstTypeIndex:
+		{
+			c.expression(parentScope, parentFunc, lhs.Ast0)
+			c.expression(parentScope, parentFunc, lhs.Ast1)
+			c.emit(parentFunc, runtime.OpSetIndex)
 		}
 
 	default:
@@ -723,7 +761,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			)
 			return nil
 		}
-		if funcScope.HasSymbol(param.Str0) {
+		if funcScope.HasLocal(param.Str0) {
 			Error(
 				c.parser.tokenizer.file,
 				c.parser.tokenizer.data,
@@ -755,7 +793,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	// Write captures
 	for _, capture := range funcScope.Captures() {
 		offset := 0
-		if parentScope.HasSymbol(capture.Name) {
+		if parentScope.HasLocal(capture.Name) {
 			offset = parentScope.GetSymbol(capture.Name).Offset
 		} else {
 			// Possible, not handled properly
@@ -861,7 +899,7 @@ func (c *AtomCompile) constStatement(parentScope *AtomScope, parentFunc *runtime
 }
 
 func (c *AtomCompile) localStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
-	if !parentScope.InSide(AtomScopeTypeBlock, false) {
+	if !parentScope.InSide(AtomScopeTypeBlock, false) && !parentScope.InSide(AtomScopeTypeFunction, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,

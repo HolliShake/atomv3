@@ -363,6 +363,9 @@ func (t *AtomTokenizer) NextToken() AtomToken {
 		case symbol == "/" && next == '=':
 			t.advance()
 			symbol = "/="
+		case symbol == "%" && next == '=':
+			t.advance()
+			symbol = "%="
 		case symbol == ">" && next == '=':
 			t.advance()
 			symbol = ">="
@@ -372,9 +375,26 @@ func (t *AtomTokenizer) NextToken() AtomToken {
 		case symbol == ">" && next == '>':
 			t.advance()
 			symbol = ">>"
+			if t.pos < len(t.data) && t.current() == '=' {
+				t.advance()
+				symbol = ">>="
+			}
 		case symbol == "<" && next == '<':
 			t.advance()
 			symbol = "<<"
+			if t.pos < len(t.data) && t.current() == '=' {
+				t.advance()
+				symbol = "<<="
+			}
+		case symbol == "&" && next == '=':
+			t.advance()
+			symbol = "&="
+		case symbol == "|" && next == '=':
+			t.advance()
+			symbol = "|="
+		case symbol == "^" && next == '=':
+			t.advance()
+			symbol = "^="
 		}
 	}
 

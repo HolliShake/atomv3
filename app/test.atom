@@ -38,11 +38,17 @@ fact(n);
 
 var obj = {
     getName: "Hello",
-    add: add
+    add: add,
+    val: 0
 };
 
 obj;
 obj.getName;
+
+obj.val += 2;
+obj["val"] += 2;
+
+obj;
 
 var xh = 12;
 
@@ -55,16 +61,28 @@ const arr = [
 
 arr[0];
 
-
-/*
-xh *= 2;
-xh /= 3;
-xh %= 4;
-xh += 3;
-xh -= 4;
+xh  *= 2;
+xh  /= 3;
+xh  %= 4;
+xh  += 3;
+xh  -= 4;
 xh >>= 5;
 xh <<= 6;
-xh &= 7;
-xh |= 8;
-xh ^= 9;
-*/
+xh  &= 7;
+xh  |= 8;
+xh  ^= 9;
+
+
+var r = 0;
+
+func mutate() {
+    r;
+    r = 200;
+    local a = 300 + r;
+    a;
+    return a;
+}
+
+const b = mutate();
+b;
+r;

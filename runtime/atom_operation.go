@@ -46,7 +46,7 @@ func DoIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 	}
 }
 
-func DoCall(intereter *AtomInterpreter, parent *AtomValue, funcValue *AtomValue, argc int) {
+func DoCall(intereter *AtomInterpreter, funcValue *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
 			intereter.pop()
@@ -65,7 +65,7 @@ func DoCall(intereter *AtomInterpreter, parent *AtomValue, funcValue *AtomValue,
 		intereter.pushVal(NewAtomValueError(message))
 		return
 	}
-	intereter.executeFrame(parent, funcValue, 0)
+	intereter.executeFrame(funcValue, 0)
 }
 
 func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -560,5 +560,43 @@ func DoXor(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		intereter.pushVal(NewAtomValueInt(int(result)))
 	} else {
 		intereter.pushVal(NewAtomValueNum(float64(result)))
+	}
+}
+
+func DoSetIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
+	cleanupStack := func() {
+		intereter.pop()
+	}
+	if CheckType(obj, AtomTypeArray) {
+		if !IsNumberType(index) {
+			cleanupStack()
+			message := fmt.Sprintf("cannot set index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+		array := obj.Value.(*AtomArray)
+		indexValue := CoerceToLong(index)
+
+		if !array.ValidIndex(int(indexValue)) {
+			cleanupStack()
+			message := fmt.Sprintf("index out of bounds: %d", indexValue)
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		array.Set(int(indexValue), intereter.pop())
+		return
+
+	} else if CheckType(obj, AtomTypeObj) {
+		objValue := obj.Value.(*AtomObject)
+		indexValue := index.String()
+		objValue.Set(indexValue, intereter.pop())
+		return
+
+	} else {
+		cleanupStack()
+		message := fmt.Sprintf("cannot set index type: %s", GetTypeString(obj))
+		intereter.pushVal(NewAtomValueError(message))
+		return
 	}
 }

@@ -58,6 +58,13 @@ func (s *AtomScope) AddSymbol(symbol *AtomSymbol) {
 	s.Symbols[symbol.Name] = symbol
 }
 
+func (s *AtomScope) AddCapture(symbol *AtomSymbol) {
+	if s.HasCapture(symbol.Name) {
+		return
+	}
+	s.Symbols[symbol.Name] = symbol
+}
+
 func (s *AtomScope) GetSymbol(name string) *AtomSymbol {
 	current := s
 	for current != nil {
