@@ -141,13 +141,6 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			i.pushRef(value.Get())
 			forward(4)
 
-		case OpLoadCapture:
-			index := ReadInt(code.Code, offsetStart)
-			i.pushRef(
-				NewAtomValueInt(index),
-			)
-			forward(4)
-
 		case OpMul:
 			rhs := i.pop()
 			lhs := i.pop()
@@ -232,14 +225,6 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
 			code.Env0[index].Set(value)
-			forward(4)
-
-		case OpStoreCapture:
-			index := ReadInt(code.Code, offsetStart)
-			value := i.pop()
-			parentCell := code.Env0[value.Value.(int32)]
-			function := i.peek().Value.(*AtomCode)
-			function.Env0[index] = parentCell
 			forward(4)
 
 		case OpStoreLocal:

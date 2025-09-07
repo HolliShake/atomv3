@@ -700,7 +700,6 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 
 	//============================
 	fnOffset := c.state.SaveFunction(atomFunc)
-
 	if parentScope.HasLocal(ast.Ast0.Str0) {
 		Error(
 			c.parser.tokenizer.file,
@@ -716,7 +715,10 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		offset,
 		parentScope.InSide(AtomScopeTypeGlobal, false),
 	))
+	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
+	c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
 	//============================
+
 	for _, param := range params {
 		if param.AstType != AstTypeIdn {
 			Error(
@@ -751,11 +753,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	}
 	c.emit(atomFunc, runtime.OpLoadNull)
 	c.emit(atomFunc, runtime.OpReturn)
-	atomFunc.Value.(*runtime.AtomCode).AllocateLocals()
-	//============================
-	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
-	c.emit(parentFunc, runtime.OpDupTop)
-	c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
+
 	// Write captures
 	for _, capture := range funcScope.Captures() {
 		offset := 0
@@ -765,12 +763,9 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			// Possible, not handled properly
 			panic(fmt.Sprintf("Capture %s not found", capture.Name))
 		}
-		c.emitInt(parentFunc, runtime.OpLoadCapture, offset)
-		c.emitInt(parentFunc, runtime.OpStoreCapture, capture.Offset)
+		atomFunc.Value.(*runtime.AtomCode).Env0[capture.Offset] = parentFunc.Value.(*runtime.AtomCode).Env0[offset]
 	}
-	// Pop the function from the stack
-	c.emit(parentFunc, runtime.OpPopTop)
-	//============================
+
 	return atomFunc
 }
 
@@ -964,7 +959,6 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	}
 	c.emit(programFunc, runtime.OpLoadNull)
 	c.emit(programFunc, runtime.OpReturn)
-	programFunc.Value.(*runtime.AtomCode).AllocateLocals()
 	return programFunc
 }
 
