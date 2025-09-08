@@ -1,4 +1,4 @@
-
+import [ print, println ] from "atom:std";
 
 var x = 1;
 
@@ -75,7 +75,6 @@ xh  &= 7;
 xh  |= 8;
 xh  ^= 9;
 
-
 var r = 0;
 
 func mutate() {
@@ -92,4 +91,11 @@ b;
 r;
 b;
 r;
+
 fact(40);
+
+println("Hello, World!", 1, 2, 3);
+
+print("Wheels on the bus!", std);
+
+const mod = [];

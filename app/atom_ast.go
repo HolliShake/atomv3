@@ -70,13 +70,14 @@ const (
 	AstTypeVarStatement
 	AstTypeConstStatement
 	AstTypeLocalStatement
+	AstTypeImportStatement
 	AstTypeIfStatement
 	AstTypeProgram
 	AstInvalid
 )
 
 func NewAtomAst(astType AtomAstType, position AtomPosition) *AtomAst {
-	ast := new(AtomAst)
+	ast := &AtomAst{}
 	ast.AstType = astType
 	ast.Str0 = ""
 	ast.Ast0 = nil
@@ -205,6 +206,13 @@ func NewBinary(ast0 *AtomAst, op AtomToken, ast1 *AtomAst, position AtomPosition
 	ast := NewAtomAst(getBinaryAstType(op), position)
 	ast.Ast0 = ast0
 	ast.Ast1 = ast1
+	return ast
+}
+
+func NewImportStatement(path *AtomAst, names []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeImportStatement, position)
+	ast.Ast0 = path
+	ast.Arr0 = names
 	return ast
 }
 

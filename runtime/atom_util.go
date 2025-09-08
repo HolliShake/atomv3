@@ -15,8 +15,8 @@ func ReadNum(data []OpCode, offset int) float64 {
 }
 
 func ReadStr(data []OpCode, offset int) string {
-	bytes := make([]byte, 0)
-	for i := offset; data[i] != 0; i++ {
+	bytes := []byte{}
+	for i := offset; i < len(data) && data[i] != 0; i++ {
 		bytes = append(bytes, byte(data[i]))
 	}
 	return string(bytes)

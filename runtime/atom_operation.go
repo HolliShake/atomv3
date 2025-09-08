@@ -5,9 +5,18 @@ import (
 	"math"
 )
 
+func DoLoadModule0(intereter *AtomInterpreter, name string) {
+	module := intereter.ModuleTable[name]
+	if module == nil {
+		message := fmt.Sprintf("module %s not found", name)
+		intereter.pushVal(NewAtomValueError(message))
+		return
+	}
+	intereter.pushRef(module)
+}
+
 func DoIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 	if CheckType(obj, AtomTypeArray) {
-
 		if !IsNumberType(index) {
 			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
 			intereter.pushVal(NewAtomValueError(message))
@@ -32,7 +41,7 @@ func DoIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 
 		value := objValue.Get(indexValue)
 		if value == nil {
-			intereter.pushRef(intereter.state.NullValue)
+			intereter.pushRef(intereter.State.NullValue)
 			return
 		}
 
@@ -46,26 +55,53 @@ func DoIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 	}
 }
 
+func DoPluckAttribute(intereter *AtomInterpreter, obj *AtomValue, attribute string) {
+	if !CheckType(obj, AtomTypeObj) {
+		message := fmt.Sprintf("cannot pluck attribute type: %s", GetTypeString(obj))
+		intereter.pushVal(NewAtomValueError(message))
+		return
+	}
+
+	objValue := obj.Value.(*AtomObject)
+
+	if value := objValue.Get(attribute); value != nil {
+		intereter.pushVal(value)
+		return
+	}
+	intereter.pushRef(intereter.State.NullValue)
+}
+
 func DoCall(intereter *AtomInterpreter, funcValue *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
 			intereter.pop()
 		}
 	}
-	if !CheckType(funcValue, AtomTypeFunc) {
+	if CheckType(funcValue, AtomTypeFunc) {
+		code := funcValue.Value.(*AtomCode)
+		if argc != code.Argc {
+			cleanupStack()
+			message := "argument count mismatch"
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+		intereter.executeFrame(funcValue, 0)
+
+	} else if CheckType(funcValue, AtomTypeNativeFunc) {
+		nativeFunc := funcValue.Value.(NativeFunc)
+		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
+			cleanupStack()
+			message := "argument count mismatch"
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+		nativeFunc.Callable(intereter, argc)
+
+	} else {
 		cleanupStack()
-		message := "not a function"
+		message := "not a function " + GetTypeString(funcValue)
 		intereter.pushVal(NewAtomValueError(message))
-		return
 	}
-	code := funcValue.Value.(*AtomCode)
-	if argc != code.Argc {
-		cleanupStack()
-		message := "argument count mismatch"
-		intereter.pushVal(NewAtomValueError(message))
-		return
-	}
-	intereter.executeFrame(funcValue, 0)
 }
 
 func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -340,10 +376,10 @@ func DoCmpLt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue < rhsValue {
-		intereter.pushRef(intereter.state.TrueValue)
+		intereter.pushRef(intereter.State.TrueValue)
 		return
 	}
-	intereter.pushRef(intereter.state.FalseValue)
+	intereter.pushRef(intereter.State.FalseValue)
 }
 
 func DoCmpLte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -359,10 +395,10 @@ func DoCmpLte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue <= rhsValue {
-		intereter.pushRef(intereter.state.TrueValue)
+		intereter.pushRef(intereter.State.TrueValue)
 		return
 	}
-	intereter.pushRef(intereter.state.FalseValue)
+	intereter.pushRef(intereter.State.FalseValue)
 }
 
 func DoCmpGt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -378,10 +414,10 @@ func DoCmpGt(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue > rhsValue {
-		intereter.pushRef(intereter.state.TrueValue)
+		intereter.pushRef(intereter.State.TrueValue)
 		return
 	}
-	intereter.pushRef(intereter.state.FalseValue)
+	intereter.pushRef(intereter.State.FalseValue)
 }
 
 func DoCmpGte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -397,10 +433,10 @@ func DoCmpGte(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue >= rhsValue {
-		intereter.pushRef(intereter.state.TrueValue)
+		intereter.pushRef(intereter.State.TrueValue)
 		return
 	}
-	intereter.pushRef(intereter.state.FalseValue)
+	intereter.pushRef(intereter.State.FalseValue)
 }
 
 func DoCmpEq(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -408,10 +444,10 @@ func DoCmpEq(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhsValue := CoerceToLong(val0)
 		rhsValue := CoerceToLong(val1)
 		if lhsValue == rhsValue {
-			intereter.pushRef(intereter.state.TrueValue)
+			intereter.pushRef(intereter.State.TrueValue)
 			return
 		}
-		intereter.pushRef(intereter.state.FalseValue)
+		intereter.pushRef(intereter.State.FalseValue)
 		return
 	}
 
@@ -419,25 +455,25 @@ func DoCmpEq(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhsStr := val0.Value.(string)
 		rhsStr := val1.Value.(string)
 		if lhsStr == rhsStr {
-			intereter.pushRef(intereter.state.TrueValue)
+			intereter.pushRef(intereter.State.TrueValue)
 			return
 		}
-		intereter.pushRef(intereter.state.FalseValue)
+		intereter.pushRef(intereter.State.FalseValue)
 		return
 	}
 
 	if CheckType(val0, AtomTypeNull) && CheckType(val1, AtomTypeNull) {
-		intereter.pushRef(intereter.state.TrueValue)
+		intereter.pushRef(intereter.State.TrueValue)
 		return
 	}
 
 	// For other types, use simple reference equality for now
 	if val0 == val1 {
-		intereter.pushRef(intereter.state.TrueValue)
+		intereter.pushRef(intereter.State.TrueValue)
 		return
 	}
 
-	intereter.pushRef(intereter.state.FalseValue)
+	intereter.pushRef(intereter.State.FalseValue)
 }
 
 func DoCmpNe(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -445,10 +481,10 @@ func DoCmpNe(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhsValue := CoerceToLong(val0)
 		rhsValue := CoerceToLong(val1)
 		if lhsValue != rhsValue {
-			intereter.pushRef(intereter.state.TrueValue)
+			intereter.pushRef(intereter.State.TrueValue)
 			return
 		}
-		intereter.pushRef(intereter.state.FalseValue)
+		intereter.pushRef(intereter.State.FalseValue)
 		return
 	}
 
@@ -456,25 +492,25 @@ func DoCmpNe(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhsStr := val0.Value.(string)
 		rhsStr := val1.Value.(string)
 		if lhsStr != rhsStr {
-			intereter.pushRef(intereter.state.TrueValue)
+			intereter.pushRef(intereter.State.TrueValue)
 			return
 		}
-		intereter.pushRef(intereter.state.FalseValue)
+		intereter.pushRef(intereter.State.FalseValue)
 		return
 	}
 
 	if CheckType(val0, AtomTypeNull) || CheckType(val1, AtomTypeNull) {
-		intereter.pushRef(intereter.state.FalseValue)
+		intereter.pushRef(intereter.State.FalseValue)
 		return
 	}
 
 	// For other types, use simple reference equality for now
 	if val0 != val1 {
-		intereter.pushRef(intereter.state.TrueValue)
+		intereter.pushRef(intereter.State.TrueValue)
 		return
 	}
 
-	intereter.pushRef(intereter.state.FalseValue)
+	intereter.pushRef(intereter.State.FalseValue)
 }
 
 // Bitwise operations

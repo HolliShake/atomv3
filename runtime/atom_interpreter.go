@@ -1,25 +1,29 @@
 package runtime
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	TRESHOLD = 1000
 )
 
 type AtomInterpreter struct {
-	state           *AtomState
+	State           *AtomState
 	Frame           *AtomStack
 	EvaluationStack *AtomStack
+	ModuleTable     map[string]*AtomValue
 	GcRoot          *AtomValue
 	Allocation      int
 }
 
 func NewInterpreter(state *AtomState) *AtomInterpreter {
 	return &AtomInterpreter{
-		state:           state,
+		State:           state,
 		Frame:           NewAtomStack(),
 		EvaluationStack: NewAtomStack(),
 		GcRoot:          NewAtomValue(AtomTypeObj),
+		ModuleTable:     map[string]*AtomValue{},
 	}
 }
 
@@ -44,7 +48,6 @@ func (i *AtomInterpreter) peek() *AtomValue {
 
 func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 	// Frame here is a function
-
 	offsetStart := offset
 
 	code := frame.Value.(*AtomCode)
@@ -90,12 +93,12 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		case OpLoadNull:
 			i.pushRef(
-				i.state.NullValue,
+				i.State.NullValue,
 			)
 
 		case OpLoadArray:
 			length := ReadInt(code.Code, offsetStart)
-			elements := make([]*AtomValue, 0)
+			elements := []*AtomValue{}
 			for range length {
 				elements = append(elements, i.pop())
 			}
@@ -106,11 +109,10 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		case OpLoadObject:
 			length := ReadInt(code.Code, offsetStart)
-			elements := make(map[string]*AtomValue, 0)
+			elements := map[string]*AtomValue{}
 			for range length {
 				k := i.pop()
 				v := i.pop()
-
 				elements[k.Value.(string)] = v
 			}
 			i.pushVal(
@@ -120,14 +122,25 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, offsetStart)
-			fn := i.state.FunctionTable.Get(offset)
+			fn := i.State.FunctionTable.Get(offset)
 			i.pushRef(fn)
 			forward(4)
+
+		case OpLoadModule0:
+			name := ReadStr(code.Code, offsetStart)
+			DoLoadModule0(i, name)
+			forward(len(name) + 1)
 
 		case OpIndex:
 			index := i.pop()
 			obj := i.pop()
 			DoIndex(i, obj, index)
+
+		case OpPluckAttribute:
+			attribute := ReadStr(code.Code, offsetStart)
+			obj := i.peek()
+			DoPluckAttribute(i, obj, attribute)
+			forward(len(attribute) + 1)
 
 		case OpCall:
 			argc := ReadInt(code.Code, offsetStart)
@@ -286,8 +299,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			forward(0)
 
 		case OpPopTop:
-			t := i.pop()
-			fmt.Println("PopTop", t.String())
+			i.pop()
 
 		case OpReturn:
 			return
@@ -299,9 +311,12 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 }
 
 func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
+	DefineModule(i, "std", EXPORT_STD)
+
 	// Run while the frame is not empty
 	i.executeFrame(atomFunc, 0)
 
-	// Dump stack
-	i.EvaluationStack.Dump()
+	if i.EvaluationStack.Len() != 1 {
+		panic("Evaluation stack is not empty")
+	}
 }

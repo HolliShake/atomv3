@@ -11,9 +11,12 @@ const (
 	OpLoadArray    // with 4 bytes argument
 	OpLoadObject   // with 4 bytes argument
 	OpLoadLocal    // with 4 bytes argument
+	OpLoadModule0  // With N bytes argument // name -> builtin
+	OpLoadModule1  // With N bytes argument // path
 	OpLoadFunction // with 4 bytes argument
 	OpCall         // with 4 bytes argument
 	OpIndex
+	OpPluckAttribute
 	OpMul
 	OpDiv
 	OpMod

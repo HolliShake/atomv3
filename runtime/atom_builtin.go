@@ -1,0 +1,27 @@
+package runtime
+
+type NativeFunc struct {
+	Name     string
+	Paramc   int
+	Callable func(interpreter *AtomInterpreter, argc int)
+}
+
+type NativeClass struct {
+	Name       string
+	Properties map[string]*AtomValue
+}
+
+const Variadict = -1
+
+func NewNativeFunc(name string, paramc int, callable func(interpreter *AtomInterpreter, argc int)) NativeFunc {
+	return NativeFunc{
+		Name:     name,
+		Paramc:   paramc,
+		Callable: callable,
+	}
+}
+
+func DefineModule(interpreter *AtomInterpreter, name string, values map[string]*AtomValue) {
+	values["__name__"] = NewAtomValueStr(name)
+	interpreter.ModuleTable[name] = NewAtomValueObject(values)
+}

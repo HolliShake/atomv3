@@ -9,13 +9,13 @@ type AtomCode struct {
 }
 
 func NewAtomCode(file, name string, argc int) *AtomCode {
-	code := new(AtomCode)
-	code.File = file
-	code.Name = name
-	code.Argc = argc
-	code.Env0 = make([]*AtomCell, 0)
-	code.Code = make([]OpCode, 0)
-	return code
+	return &AtomCode{
+		File: file,
+		Name: name,
+		Argc: argc,
+		Env0: []*AtomCell{},
+		Code: []OpCode{},
+	}
 }
 
 func (c *AtomCode) IncrementLocal() int {

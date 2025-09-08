@@ -15,6 +15,7 @@ const (
 	AtomTypeObj
 	AtomTypeArray
 	AtomTypeFunc
+	AtomTypeNativeFunc
 	AtomTypeErr
 )
 
@@ -28,7 +29,7 @@ type AtomValue struct {
 type NativeFunction func(intereter *AtomInterpreter, argc int)
 
 func NewAtomValue(atomType AtomType) *AtomValue {
-	obj := new(AtomValue)
+	obj := &AtomValue{}
 	obj.Type = atomType
 	obj.Marked = false
 	obj.Next = nil
@@ -84,9 +85,15 @@ func NewAtomValueObject(elements map[string]*AtomValue) *AtomValue {
 	return obj
 }
 
-func NewFunction(file, name string, argc int) *AtomValue {
+func NewAtomValueFunction(file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
 	obj.Value = NewAtomCode(file, name, argc)
+	return obj
+}
+
+func NewAtomValueNativeFunc(nativeFunc NativeFunc) *AtomValue {
+	obj := NewAtomValue(AtomTypeNativeFunc)
+	obj.Value = nativeFunc
 	return obj
 }
 
@@ -134,6 +141,16 @@ func (v *AtomValue) String() string {
 		}
 		str += "}"
 		return str
+	} else if CheckType(v, AtomTypeNativeFunc) {
+		variadict := v.Value.(NativeFunc).Paramc == Variadict
+		if variadict {
+			return fmt.Sprintf("%s(...){}", v.Value.(NativeFunc).Name)
+		}
+		params := ""
+		for i := 0; i < v.Value.(NativeFunc).Paramc; i++ {
+			params += fmt.Sprintf("$%d", i)
+		}
+		return fmt.Sprintf("%s(%s){}", v.Value.(NativeFunc).Name, params)
 	}
 	return fmt.Sprintf("%v", v.Value)
 }

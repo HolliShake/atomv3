@@ -112,7 +112,7 @@ func (p *AtomParser) group() *AtomAst {
 		return ast
 	} else if p.checkT(TokenTypeSym) && p.checkV("[") {
 		p.acceptV("[")
-		elements := make([]*AtomAst, 0)
+		elements := []*AtomAst{}
 		n := p.primary()
 		if n != nil {
 			elements = append(elements, n)
@@ -136,7 +136,7 @@ func (p *AtomParser) group() *AtomAst {
 		return NewArray(elements, start.Merge(ended))
 	} else if p.checkT(TokenTypeSym) && p.checkV("{") {
 		p.acceptV("{")
-		elements := make([]*AtomAst, 0)
+		elements := []*AtomAst{}
 		n := p.keyValue()
 		if n != nil {
 			elements = append(elements, n)
@@ -184,7 +184,7 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 				ast.Position.Merge(index.Position),
 			)
 		} else if p.checkV("(") {
-			args := make([]*AtomAst, 0)
+			args := []*AtomAst{}
 			p.acceptV("(")
 			// arguments
 			arg := p.primary()
@@ -547,6 +547,8 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.function()
 	} else if p.checkT(TokenTypeSym) && p.checkV("{") {
 		return p.block()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyImport) {
+		return p.importStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyVar) {
 		return p.varStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyConst) {
@@ -568,7 +570,7 @@ func (p *AtomParser) function() *AtomAst {
 	name := p.terminal()
 	p.acceptV("(")
 	// Parameters
-	params := make([]*AtomAst, 0)
+	params := []*AtomAst{}
 	param := p.terminal()
 	if param != nil {
 		params = append(params, param)
@@ -581,7 +583,7 @@ func (p *AtomParser) function() *AtomAst {
 	p.acceptV(")")
 	p.acceptV("{")
 	// Body
-	body := make([]*AtomAst, 0)
+	body := []*AtomAst{}
 	stmt := p.statement()
 	if stmt != nil {
 		for stmt != nil {
@@ -603,7 +605,7 @@ func (p *AtomParser) block() *AtomAst {
 	start := p.lookahead.Position
 	ended := start
 	p.acceptV("{")
-	body := make([]*AtomAst, 0)
+	body := []*AtomAst{}
 	stmt := p.statement()
 	for stmt != nil {
 		body = append(body, stmt)
@@ -614,13 +616,68 @@ func (p *AtomParser) block() *AtomAst {
 	return NewBlock(body, start.Merge(ended))
 }
 
+func (p *AtomParser) importStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+
+	p.acceptV(KeyImport)
+
+	names := []*AtomAst{}
+
+	if p.checkT(TokenTypeSym) && p.checkV("[") {
+		p.acceptV("[")
+		nameN := p.terminal()
+		if nameN == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected identifier",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		names = append(names, nameN)
+		for p.checkT(TokenTypeSym) && p.checkV(",") {
+			p.acceptV(",")
+			nameN = p.terminal()
+			if nameN == nil {
+				Error(
+					p.tokenizer.file,
+					p.tokenizer.data,
+					"Expected identifier",
+					p.lookahead.Position,
+				)
+				return nil
+			}
+			names = append(names, nameN)
+		}
+		p.acceptV("]")
+	} else {
+		// all ?
+		p.acceptV("*")
+	}
+
+	p.acceptV(KeyFrom)
+
+	path := p.terminal()
+
+	ended = p.lookahead.Position
+	p.acceptV(";")
+
+	return NewImportStatement(
+		path,
+		names,
+		start.Merge(ended),
+	)
+}
+
 func (p *AtomParser) varStatement() *AtomAst {
 	start := p.lookahead.Position
 	ended := start
 	p.acceptV(KeyVar)
 
-	keys := make([]*AtomAst, 0)
-	vals := make([]*AtomAst, 0)
+	keys := []*AtomAst{}
+	vals := []*AtomAst{}
 
 	var key *AtomAst = p.terminal()
 	var val *AtomAst = nil
@@ -674,8 +731,8 @@ func (p *AtomParser) constStatement() *AtomAst {
 	ended := start
 	p.acceptV(KeyConst)
 
-	keys := make([]*AtomAst, 0)
-	vals := make([]*AtomAst, 0)
+	keys := []*AtomAst{}
+	vals := []*AtomAst{}
 
 	var key *AtomAst = p.terminal()
 	var val *AtomAst = nil
@@ -729,8 +786,8 @@ func (p *AtomParser) localStatement() *AtomAst {
 	ended := start
 	p.acceptV(KeyLocal)
 
-	keys := make([]*AtomAst, 0)
-	vals := make([]*AtomAst, 0)
+	keys := []*AtomAst{}
+	vals := []*AtomAst{}
 
 	var key *AtomAst = p.terminal()
 	var val *AtomAst = nil
@@ -870,7 +927,7 @@ func (p *AtomParser) expressionStatement() *AtomAst {
 func (p *AtomParser) program() *AtomAst {
 	start := p.lookahead.Position
 	ended := start
-	body := make([]*AtomAst, 0)
+	body := []*AtomAst{}
 	ast := p.statement()
 	for ast != nil {
 		body = append(body, ast)

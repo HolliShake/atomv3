@@ -18,12 +18,12 @@ type AtomScope struct {
 }
 
 func NewAtomScope(parent *AtomScope, scopeType AtomScopeType) *AtomScope {
-	symbols := make(map[string]*AtomSymbol)
+	symbols := map[string]*AtomSymbol{}
 	return &AtomScope{Parent: parent, Type: scopeType, Symbols: symbols}
 }
 
 func (s *AtomScope) Captures() []*AtomSymbol {
-	captures := make([]*AtomSymbol, 0)
+	captures := []*AtomSymbol{}
 	for _, symbol := range s.Symbols {
 		if symbol.Capture {
 			captures = append(captures, symbol)

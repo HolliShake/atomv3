@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 
 	runtime "dev.runtime"
@@ -28,7 +29,7 @@ func (c *AtomCompile) emit(atomFunc *runtime.AtomValue, opcode runtime.OpCode) {
 
 func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode, intValue int) {
 	// Convert int32 to 4 bytes using little-endian encoding
-	bytes := make([]byte, 4)
+	bytes := []byte{0, 0, 0, 0}
 	binary.LittleEndian.PutUint32(bytes, uint32(intValue))
 
 	atomFunc.Value.(*runtime.AtomCode).Code =
@@ -42,7 +43,7 @@ func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 }
 
 func (c *AtomCompile) emitNum(atomFunc *runtime.AtomValue, opcode runtime.OpCode, numValue float64) {
-	bytes := make([]byte, 8)
+	bytes := []byte{0, 0, 0, 0, 0, 0, 0, 0}
 	binary.LittleEndian.PutUint64(bytes, uint64(math.Float64bits(numValue)))
 
 	atomFunc.Value.(*runtime.AtomCode).Code =
@@ -60,24 +61,18 @@ func (c *AtomCompile) emitNum(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 }
 
 func (c *AtomCompile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode, strValue string) {
-	bytes := make([]byte, len(strValue))
-	copy(bytes, []byte(strValue))
+	bytes := []byte(strValue)
 
-	opcodes := make([]runtime.OpCode, len(bytes))
+	opcodes := make([]runtime.OpCode, len(bytes)+1)
 	for i, b := range bytes {
 		opcodes[i] = runtime.OpCode(b)
 	}
+	opcodes[len(bytes)] = '\x00' // Null byte
 
 	atomFunc.Value.(*runtime.AtomCode).Code =
 		append(
 			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
 			opcodes...,
-		)
-
-	atomFunc.Value.(*runtime.AtomCode).Code =
-		append(
-			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
-			0, // Null byte
 		)
 }
 
@@ -642,6 +637,13 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeImportStatement:
+		c.importStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	case AstTypeIfStatement:
 		c.ifStatement(
 			parentScope,
@@ -683,6 +685,7 @@ func (c *AtomCompile) expressionStatement(parentScope *AtomScope, parentFunc *ru
 }
 
 func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) *runtime.AtomValue {
+	parentCode := parentFunc.Value.(*runtime.AtomCode)
 	// Guard
 	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
 		Error(
@@ -693,11 +696,11 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		)
 		return nil
 	}
+	funScope := NewAtomScope(parentScope, AtomScopeTypeFunction)
+	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
+	atomCode := atomFunc.Value.(*runtime.AtomCode)
 
-	funcScope := NewAtomScope(parentScope, AtomScopeTypeFunction)
-	atomFunc := runtime.NewFunction(c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
 	params := ast.Arr0
-
 	//============================
 	fnOffset := c.state.SaveFunction(atomFunc)
 	if parentScope.HasLocal(ast.Ast0.Str0) {
@@ -709,7 +712,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		)
 	}
 	// Save to symbol table first to allow captures to reference it
-	offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+	offset := parentCode.IncrementLocal()
 	parentScope.AddSymbol(NewAtomSymbol(
 		ast.Ast0.Str0,
 		offset,
@@ -729,7 +732,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			)
 			return nil
 		}
-		if funcScope.HasLocal(param.Str0) {
+		if funScope.HasLocal(param.Str0) {
 			Error(
 				c.parser.tokenizer.file,
 				c.parser.tokenizer.data,
@@ -739,8 +742,8 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			return nil
 		}
 		// Save to symbol table
-		offset := atomFunc.Value.(*runtime.AtomCode).IncrementLocal()
-		funcScope.AddSymbol(NewAtomSymbol(
+		offset := atomCode.IncrementLocal()
+		funScope.AddSymbol(NewAtomSymbol(
 			param.Str0,
 			offset,
 			false,
@@ -749,13 +752,13 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	}
 	body := ast.Arr1
 	for _, stmt := range body {
-		c.statement(funcScope, atomFunc, stmt)
+		c.statement(funScope, atomFunc, stmt)
 	}
 	c.emit(atomFunc, runtime.OpLoadNull)
 	c.emit(atomFunc, runtime.OpReturn)
 
 	// Write captures
-	for _, capture := range funcScope.Captures() {
+	for _, capture := range funScope.Captures() {
 		offset := 0
 		if parentScope.HasLocal(capture.Name) {
 			offset = parentScope.GetSymbol(capture.Name).Offset
@@ -763,7 +766,8 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			// Possible, not handled properly
 			panic(fmt.Sprintf("Capture %s not found", capture.Name))
 		}
-		atomFunc.Value.(*runtime.AtomCode).Env0[capture.Offset] = parentFunc.Value.(*runtime.AtomCode).Env0[offset]
+		parentCell := parentCode.Env0[offset]
+		atomCode.Env0[capture.Offset] = parentCell
 	}
 
 	return atomFunc
@@ -904,6 +908,125 @@ func (c *AtomCompile) localStatement(parentScope *AtomScope, parentFunc *runtime
 	}
 }
 
+func (c *AtomCompile) importStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// Guard
+	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Import statement must be in global scope",
+			ast.Position,
+		)
+		return
+	}
+	path := ast.Ast0
+	names := ast.Arr0
+	if path.AstType != AstTypeStr {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Expected string",
+			path.Position,
+		)
+		return
+	}
+
+	isBuiltin := func(name string) bool {
+		// match if starts with 'atom:' and followed by module name using regex
+		re := regexp.MustCompile(`^atom:([a-zA-Z_][a-zA-Z0-9_]*)$`)
+		return re.MatchString(name)
+	}
+
+	validIdentifier := func(name string) bool {
+		re := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+		return re.MatchString(name)
+	}
+
+	cleanNameWithoutExtension := func(name string) string {
+		// Remove "atom:" prefix if it exists
+		if isBuiltin(name) {
+			re := regexp.MustCompile(`^atom:([a-zA-Z_][a-zA-Z0-9_]*)$`)
+			name = re.ReplaceAllString(name, "$1")
+		}
+
+		re := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\.atom$`)
+		matches := re.FindStringSubmatch(name)
+		if len(matches) > 1 {
+			return matches[1]
+		}
+		return name
+	}
+
+	if !validIdentifier(cleanNameWithoutExtension(path.Str0)) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Invalid identifier",
+			path.Position,
+		)
+		return
+	}
+
+	normalizedPath := cleanNameWithoutExtension(path.Str0)
+
+	if isBuiltin(path.Str0) {
+		c.emitStr(parentFunc, runtime.OpLoadModule0, normalizedPath)
+	} else {
+		c.emitStr(parentFunc, runtime.OpLoadModule1, path.Str0)
+	}
+
+	for _, name := range names {
+		if name.AstType != AstTypeIdn {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				name.Position,
+			)
+			return
+		}
+
+		if parentScope.HasLocal(name.Str0) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Symbol %s already defined", name.Str0),
+				name.Position,
+			)
+			return
+		}
+
+		// Save
+		offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+		parentScope.AddSymbol(NewAtomSymbol(
+			name.Str0,
+			offset,
+			parentScope.InSide(AtomScopeTypeGlobal, false),
+		))
+		c.emitStr(parentFunc, runtime.OpPluckAttribute, name.Str0)
+		c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
+	}
+
+	if parentScope.HasLocal(normalizedPath) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			fmt.Sprintf("Symbol %s already defined", normalizedPath),
+			path.Position,
+		)
+		return
+	}
+
+	// Save to table
+	offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+	parentScope.AddSymbol(NewAtomSymbol(
+		normalizedPath,
+		offset,
+		parentScope.InSide(AtomScopeTypeGlobal, false),
+	))
+	c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
+}
+
 func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
 	if !isLogical {
@@ -952,7 +1075,7 @@ func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.At
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
-	programFunc := runtime.NewFunction(c.parser.tokenizer.file, "main", 0)
+	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "main", 0)
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)

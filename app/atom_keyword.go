@@ -8,6 +8,7 @@ const (
 	KeyLocal    = "local"
 	KeyEnum     = "enum"
 	KeyImport   = "import"
+	KeyFrom     = "from"
 	KeyContinue = "continue"
 	KeyBreak    = "break"
 	KeyReturn   = "return"
