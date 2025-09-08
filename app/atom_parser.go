@@ -567,10 +567,54 @@ func (p *AtomParser) bitwiseAssign() *AtomAst {
 	return ast
 }
 
+func (p *AtomParser) ifExpression() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	if !(p.checkT(TokenTypeKey) && p.checkV(KeyIf)) {
+		return p.bitwiseAssign()
+	}
+	p.acceptV(KeyIf)
+	p.acceptV("(")
+	condition := p.ifExpression()
+	if condition == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected expression",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	p.acceptV(")")
+	thenValue := p.ifExpression()
+
+	p.acceptV(KeyElse)
+
+	ended = p.lookahead.Position
+	elseValue := p.ifExpression()
+
+	if elseValue == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected expression",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+
+	return NewIfExpression(
+		condition,
+		thenValue,
+		elseValue,
+		start.Merge(ended),
+	)
+}
+
 func (p *AtomParser) switchExpression() *AtomAst {
 	start := p.lookahead.Position
 	ended := start
-	ast := p.bitwiseAssign()
+	ast := p.ifExpression()
 	if !(p.checkT(TokenTypeKey) && p.checkV(KeySwitch)) {
 		return ast
 	}
@@ -614,7 +658,7 @@ func (p *AtomParser) switchExpression() *AtomAst {
 			patterns = append(patterns, pattern)
 		}
 		p.acceptV(")")
-		p.acceptV(":")
+		p.acceptV("=>")
 
 		value := p.switchExpression()
 
@@ -636,7 +680,7 @@ func (p *AtomParser) switchExpression() *AtomAst {
 	}
 
 	p.acceptV(KeyDefault)
-	p.acceptV(":")
+	p.acceptV("=>")
 	value := p.switchExpression()
 
 	if value == nil {
@@ -652,7 +696,7 @@ func (p *AtomParser) switchExpression() *AtomAst {
 	ended = p.lookahead.Position
 	p.acceptV("}")
 
-	return NewSwitch(
+	return NewSwitchExpression(
 		ast,
 		cases,
 		values,

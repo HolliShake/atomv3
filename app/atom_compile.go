@@ -536,7 +536,23 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			c.assign(parentScope, parentFunc, lhs)
 		}
 
-	case AstTypeSwitch:
+	case AstTypeIfExpression:
+		{
+			condition := ast.Ast0
+			thenValue := ast.Ast1
+			elseValue := ast.Ast2
+
+			c.expression(parentScope, parentFunc, condition)
+			toElse := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+			c.expression(parentScope, parentFunc, thenValue)
+			toEnd := c.emitJump(parentFunc, runtime.OpJump)
+			c.label(parentFunc, toElse)
+			c.expression(parentScope, parentFunc, elseValue)
+			c.label(parentFunc, toEnd)
+
+		}
+
+	case AstTypeSwitchExpression:
 		{
 			condition := ast.Ast0
 			defaultValue := ast.Ast1

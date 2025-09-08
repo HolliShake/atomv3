@@ -63,7 +63,8 @@ const (
 	AstTypeBitwiseAndAssign
 	AstTypeBitwiseOrAssign
 	AstTypeBitwiseXorAssign
-	AstTypeSwitch
+	AstTypeIfExpression
+	AstTypeSwitchExpression
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
@@ -222,8 +223,16 @@ func NewBinary(ast0 *AtomAst, op AtomToken, ast1 *AtomAst, position AtomPosition
 	return ast
 }
 
-func NewSwitch(condition *AtomAst, cases []*AtomAst, values []*AtomAst, value *AtomAst, position AtomPosition) *AtomAst {
-	ast := NewAtomAst(AstTypeSwitch, position)
+func NewIfExpression(condition *AtomAst, thenValue *AtomAst, elseValue *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeIfExpression, position)
+	ast.Ast0 = condition
+	ast.Ast1 = thenValue
+	ast.Ast2 = elseValue
+	return ast
+}
+
+func NewSwitchExpression(condition *AtomAst, cases []*AtomAst, values []*AtomAst, value *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeSwitchExpression, position)
 	ast.Ast0 = condition
 	ast.Ast1 = value
 	ast.Arr0 = cases

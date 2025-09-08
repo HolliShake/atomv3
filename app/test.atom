@@ -48,7 +48,7 @@ obj.getName;
 obj.val += 2;
 obj["val"] += 2;
 
-obj;
+println(obj);
 
 var xh = 12;
 
@@ -109,10 +109,22 @@ Log("Hello, World!");
 
 println(!1);
 
-const xx = (23 switch {
-    case(1, 2): 200
-    case(3, 4): 4
-    default: 100
-});
+const xx = (5) switch {
+    case(1, 2) => 200
+    case(3, 4) => 300
+    default    => 400
+};
 
 println(">>", xx);
+
+const cond = 
+    if (3 < 2)
+        2 + 2
+    else if (3 < 2)
+        3 + 3
+    else
+        4 + 4
+    ;
+
+println(cond);
+
