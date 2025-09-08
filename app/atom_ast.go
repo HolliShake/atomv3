@@ -65,6 +65,8 @@ const (
 	AstTypeBitwiseXorAssign
 	AstTypeIfExpression
 	AstTypeSwitchExpression
+	AstTypeBreakStatement
+	AstTypeContinueStatement
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
@@ -246,6 +248,16 @@ func NewImportStatement(path *AtomAst, names []*AtomAst, position AtomPosition) 
 	ast := NewAtomAst(AstTypeImportStatement, position)
 	ast.Ast0 = path
 	ast.Arr0 = names
+	return ast
+}
+
+func NewBreakStatement(position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeBreakStatement, position)
+	return ast
+}
+
+func NewContinueStatement(position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeContinueStatement, position)
 	return ast
 }
 

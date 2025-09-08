@@ -136,9 +136,15 @@ while (1 && ll < 10) {
 }
 
 do {
+    if (ll == 18) {
+        ll += 1;
+        continue;
+    } else if (ll == 19) {
+        break;
+    }
     println(ll);
     ll += 1;
-} while (ll < 20000);
+} while (ll < 20);
 
 println(ll);
 

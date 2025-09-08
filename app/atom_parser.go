@@ -742,6 +742,10 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.whileStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyDo) {
 		return p.doWhileStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyBreak) {
+		return p.breakStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyContinue) {
+		return p.continueStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyReturn) {
 		return p.returnStatement()
 	}
@@ -1141,6 +1145,26 @@ func (p *AtomParser) doWhileStatement() *AtomAst {
 	return NewDoWhileStatement(
 		body,
 		condition,
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) breakStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeyBreak)
+	p.acceptV(";")
+	return NewBreakStatement(
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) continueStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeyContinue)
+	p.acceptV(";")
+	return NewContinueStatement(
 		start.Merge(ended),
 	)
 }

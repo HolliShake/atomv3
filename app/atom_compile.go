@@ -98,6 +98,13 @@ func (c *AtomCompile) label(atomFunc *runtime.AtomValue, jumpAddress int) {
 	}
 }
 
+func (c *AtomCompile) labelContinue(atomFunc *runtime.AtomValue, continueStart int, to int) {
+	for i := range 4 {
+		atomFunc.Value.(*runtime.AtomCode).Code[i+continueStart] =
+			runtime.OpCode((to >> (8 * i)) & 0xFF)
+	}
+}
+
 func (c *AtomCompile) identifier(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst, opcode runtime.OpCode) {
 	if !parentScope.HasSymbol(ast.Str0) {
 		parentScope.Dump()
@@ -677,6 +684,18 @@ func (c *AtomCompile) assign0(parentScope *AtomScope, parentFunc *runtime.AtomVa
 
 func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	switch ast.AstType {
+	case AstTypeBreakStatement:
+		c.breakStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+	case AstTypeContinueStatement:
+		c.continueStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
 	case AstTypeReturnStatement:
 		c.returnStatement(
 			parentScope,
@@ -771,7 +790,42 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 	}
 }
 
+func (c *AtomCompile) breakStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// Guard
+	if !parentScope.InSide(AtomScopeTypeLoop, true) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Break statement must be inside a loop",
+			ast.Position,
+		)
+		return
+	}
+	currentLoop := parentScope.GetCurrentLoop()
+	currentLoop.AddBreak(
+		c.emitJump(parentFunc, runtime.OpJump),
+	)
+}
+
+func (c *AtomCompile) continueStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// Guard
+	if !parentScope.InSide(AtomScopeTypeLoop, true) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Continue statement must be inside a loop",
+			ast.Position,
+		)
+		return
+	}
+	currentLoop := parentScope.GetCurrentLoop()
+	currentLoop.AddContinue(
+		c.emitJump(parentFunc, runtime.OpAbsoluteJump),
+	)
+}
+
 func (c *AtomCompile) returnStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// Guard
 	if !parentScope.InSide(AtomScopeTypeFunction, true) {
 		Error(
 			c.parser.tokenizer.file,
@@ -1184,12 +1238,13 @@ func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.At
 }
 
 func (c *AtomCompile) whileStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	loopScope := NewAtomScope(parentScope, AtomScopeTypeLoop)
 	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
 	loopStart := c.here(parentFunc)
 	if !isLogical {
-		c.expression(parentScope, parentFunc, ast.Ast0)
+		c.expression(loopScope, parentFunc, ast.Ast0)
 		toEnd := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
-		c.statement(parentScope, parentFunc, ast.Ast1)
+		c.statement(loopScope, parentFunc, ast.Ast1)
 		c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
 		c.label(parentFunc, toEnd)
 	} else {
@@ -1197,35 +1252,43 @@ func (c *AtomCompile) whileStatement(parentScope *AtomScope, parentFunc *runtime
 		lhs := ast.Ast0.Ast0
 		rhs := ast.Ast0.Ast1
 		if isAnd {
-			c.expression(parentScope, parentFunc, lhs)
+			c.expression(loopScope, parentFunc, lhs)
 			toEnd0 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
-			c.expression(parentScope, parentFunc, rhs)
+			c.expression(loopScope, parentFunc, rhs)
 			toEnd1 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
-			c.statement(parentScope, parentFunc, ast.Ast1)
+			c.statement(loopScope, parentFunc, ast.Ast1)
 			c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
 			c.label(parentFunc, toEnd0)
 			c.label(parentFunc, toEnd1)
 		} else {
-			c.expression(parentScope, parentFunc, lhs)
+			c.expression(loopScope, parentFunc, lhs)
 			toThen := c.emitJump(parentFunc, runtime.OpPopJumpIfTrue)
-			c.expression(parentScope, parentFunc, rhs)
+			c.expression(loopScope, parentFunc, rhs)
 			toEnd1 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
 			// Then?
 			c.label(parentFunc, toThen)
-			c.statement(parentScope, parentFunc, ast.Ast1)
+			c.statement(loopScope, parentFunc, ast.Ast1)
 			c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
 			c.label(parentFunc, toEnd1)
 		}
 	}
+
+	for _, breakAddress := range loopScope.Breaks {
+		c.label(parentFunc, breakAddress)
+	}
+	for _, continueAddress := range loopScope.Continues {
+		c.labelContinue(parentFunc, continueAddress, loopStart)
+	}
 }
 
 func (c *AtomCompile) doWhileStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	loopScope := NewAtomScope(parentScope, AtomScopeTypeLoop)
 	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
 	loopStart := c.here(parentFunc)
 	if !isLogical {
-		c.expression(parentScope, parentFunc, ast.Ast0)
+		c.expression(loopScope, parentFunc, ast.Ast0)
 		toEnd := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
-		c.statement(parentScope, parentFunc, ast.Ast1)
+		c.statement(loopScope, parentFunc, ast.Ast1)
 		c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
 		c.label(parentFunc, toEnd)
 	} else {
@@ -1233,25 +1296,32 @@ func (c *AtomCompile) doWhileStatement(parentScope *AtomScope, parentFunc *runti
 		lhs := ast.Ast0.Ast0
 		rhs := ast.Ast0.Ast1
 		if isAnd {
-			c.expression(parentScope, parentFunc, lhs)
+			c.expression(loopScope, parentFunc, lhs)
 			toEnd0 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
-			c.expression(parentScope, parentFunc, rhs)
+			c.expression(loopScope, parentFunc, rhs)
 			toEnd1 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
-			c.statement(parentScope, parentFunc, ast.Ast1)
+			c.statement(loopScope, parentFunc, ast.Ast1)
 			c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
 			c.label(parentFunc, toEnd0)
 			c.label(parentFunc, toEnd1)
 		} else {
-			c.expression(parentScope, parentFunc, lhs)
+			c.expression(loopScope, parentFunc, lhs)
 			toThen := c.emitJump(parentFunc, runtime.OpPopJumpIfTrue)
-			c.expression(parentScope, parentFunc, rhs)
+			c.expression(loopScope, parentFunc, rhs)
 			toEnd1 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
 			// Then?
 			c.label(parentFunc, toThen)
-			c.statement(parentScope, parentFunc, ast.Ast1)
+			c.statement(loopScope, parentFunc, ast.Ast1)
 			c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
 			c.label(parentFunc, toEnd1)
 		}
+	}
+
+	for _, breakAddress := range loopScope.Breaks {
+		c.label(parentFunc, breakAddress)
+	}
+	for _, continueAddress := range loopScope.Continues {
+		c.labelContinue(parentFunc, continueAddress, loopStart)
 	}
 }
 
