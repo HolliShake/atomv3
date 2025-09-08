@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 /*
  * Hide everything.
@@ -565,8 +567,102 @@ func (p *AtomParser) bitwiseAssign() *AtomAst {
 	return ast
 }
 
+func (p *AtomParser) switchExpression() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	ast := p.bitwiseAssign()
+	if !(p.checkT(TokenTypeKey) && p.checkV(KeySwitch)) {
+		return ast
+	}
+	p.acceptV(KeySwitch)
+	p.acceptV("{")
+	cases := []*AtomAst{}
+	values := []*AtomAst{}
+
+	for p.checkT(TokenTypeKey) && p.checkV(KeyCase) {
+		p.acceptV(KeyCase)
+		p.acceptV("(")
+		patterns := []*AtomAst{}
+
+		start = p.lookahead.Position
+		ended = start
+
+		pattern := p.terminal()
+		if pattern == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected pattern",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		patterns = append(patterns, pattern)
+		for p.checkT(TokenTypeSym) && p.checkV(",") {
+			p.acceptV(",")
+			pattern = p.terminal()
+			if pattern == nil {
+				Error(
+					p.tokenizer.file,
+					p.tokenizer.data,
+					"Expected pattern",
+					p.lookahead.Position,
+				)
+				return nil
+			}
+			ended = p.lookahead.Position
+			patterns = append(patterns, pattern)
+		}
+		p.acceptV(")")
+		p.acceptV(":")
+
+		value := p.switchExpression()
+
+		if value == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected expression",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		cases = append(cases, NewArray(
+			patterns,
+			start.Merge(ended),
+		))
+
+		values = append(values, value)
+	}
+
+	p.acceptV(KeyDefault)
+	p.acceptV(":")
+	value := p.switchExpression()
+
+	if value == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected expression",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+
+	ended = p.lookahead.Position
+	p.acceptV("}")
+
+	return NewSwitch(
+		ast,
+		cases,
+		values,
+		value,
+		start.Merge(ended),
+	)
+}
+
 func (p *AtomParser) primary() *AtomAst {
-	return p.bitwiseAssign()
+	return p.switchExpression()
 }
 
 func (p *AtomParser) mandatory() *AtomAst {

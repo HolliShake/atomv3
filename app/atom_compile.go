@@ -536,6 +536,56 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			c.assign(parentScope, parentFunc, lhs)
 		}
 
+	case AstTypeSwitch:
+		{
+			condition := ast.Ast0
+			defaultValue := ast.Ast1
+			cases := ast.Arr0
+			values := ast.Arr1
+
+			c.expression(parentScope, parentFunc, condition)
+
+			toEndSwitch := []int{}
+
+			for index, caseArray := range cases {
+				cases := caseArray.Arr0
+				value := values[index]
+				storedJumps := []int{}
+				for _, caseItem := range cases {
+					c.expression(parentScope, parentFunc, caseItem)
+					jumpToValue := c.emitJump(parentFunc, runtime.OpPeekJumpIfEqual)
+					storedJumps = append(storedJumps, jumpToValue)
+				}
+				toNextCase := c.emitJump(parentFunc, runtime.OpJump)
+
+				// value
+				for _, jump := range storedJumps {
+					c.label(parentFunc, jump)
+				}
+				// Pop condition if match
+				c.emit(parentFunc, runtime.OpPopTop)
+
+				// value
+				c.expression(parentScope, parentFunc, value)
+				jumpToEnd := c.emitJump(parentFunc, runtime.OpJump)
+				toEndSwitch = append(toEndSwitch, jumpToEnd)
+
+				// Next?
+				c.label(parentFunc, toNextCase)
+			}
+
+			// Pop condition if default
+			c.emit(parentFunc, runtime.OpPopTop)
+
+			// Default value
+			c.expression(parentScope, parentFunc, defaultValue)
+
+			// End?
+			for _, jump := range toEndSwitch {
+				c.label(parentFunc, jump)
+			}
+		}
+
 	default:
 		Error(
 			c.parser.tokenizer.file,

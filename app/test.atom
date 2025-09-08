@@ -108,3 +108,11 @@ const Log = println;
 Log("Hello, World!");
 
 println(!1);
+
+const xx = (23 switch {
+    case(1, 2): 200
+    case(3, 4): 4
+    default: 100
+});
+
+println(">>", xx);

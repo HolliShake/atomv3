@@ -299,6 +299,15 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 				jump(offset)
 			}
 
+		case OpPeekJumpIfEqual:
+			offset := ReadInt(code.Code, offsetStart)
+			forward(4)
+			rhs := i.pop()
+			lhs := i.peek()
+			if rhs.Value == lhs.Value {
+				jump(offset)
+			}
+
 		case OpJump:
 			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
@@ -329,6 +338,7 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	i.executeFrame(atomFunc, 0)
 
 	if i.EvaluationStack.Len() != 1 {
-		panic("Evaluation stack is not empty")
+		i.EvaluationStack.Dump()
+		panic(fmt.Sprintf("Evaluation stack is not empty: %d", i.EvaluationStack.Len()))
 	}
 }

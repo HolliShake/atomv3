@@ -43,6 +43,7 @@ const (
 	OpJumpIfTrueOrPop
 	OpPopJumpIfFalse
 	OpPopJumpIfTrue
+	OpPeekJumpIfEqual
 	OpJump
 	OpDupTop
 	OpNoOp

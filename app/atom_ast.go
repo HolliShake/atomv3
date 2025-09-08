@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type AtomAstType int
 
 /*
@@ -65,6 +63,7 @@ const (
 	AstTypeBitwiseAndAssign
 	AstTypeBitwiseOrAssign
 	AstTypeBitwiseXorAssign
+	AstTypeSwitch
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
@@ -223,6 +222,15 @@ func NewBinary(ast0 *AtomAst, op AtomToken, ast1 *AtomAst, position AtomPosition
 	return ast
 }
 
+func NewSwitch(condition *AtomAst, cases []*AtomAst, values []*AtomAst, value *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeSwitch, position)
+	ast.Ast0 = condition
+	ast.Ast1 = value
+	ast.Arr0 = cases
+	ast.Arr1 = values
+	return ast
+}
+
 func NewImportStatement(path *AtomAst, names []*AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeImportStatement, position)
 	ast.Ast0 = path
@@ -294,82 +302,4 @@ func NewProgram(body []*AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeProgram, position)
 	ast.Arr1 = body
 	return ast
-}
-
-func (a *AtomAst) String() string {
-	switch a.AstType {
-	case AstTypeIdn,
-		AstTypeInt,
-		AstTypeNum,
-		AstTypeStr,
-		AstTypeBool,
-		AstTypeNull:
-		return a.Str0
-	case AstTypeArray:
-		return "[]"
-	case AstTypeObject:
-		return "{}"
-	case AstTypeBinaryMul:
-		return fmt.Sprintf("(%s * %s)", a.Ast0.String(), a.Ast1.String())
-	case AstTypeBinaryDiv:
-		return fmt.Sprintf("(%s / %s)", a.Ast0.String(), a.Ast1.String())
-	case AstTypeBinaryMod:
-		return fmt.Sprintf("(%s %% %s)", a.Ast0.String(), a.Ast1.String())
-	case AstTypeBinaryAdd:
-		return fmt.Sprintf("(%s + %s)", a.Ast0.String(), a.Ast1.String())
-	case AstTypeBinarySub:
-		return fmt.Sprintf("(%s - %s)", a.Ast0.String(), a.Ast1.String())
-	case AstTypeFunction:
-		{
-			params := ""
-			for idx, param := range a.Arr0 {
-				params += param.String()
-				if idx < len(a.Arr0)-1 {
-					params += ", "
-				}
-			}
-			body := ""
-			for idx, stmt := range a.Arr1 {
-				body += "\t" + stmt.String()
-				if idx < len(a.Arr1)-1 {
-					body += "\n"
-				}
-			}
-			return fmt.Sprintf("func %s(%s) {\n%s\n}", a.Ast0.String(), params, body)
-		}
-	case AstTypeVarStatement:
-		vals := ""
-		for idx, key := range a.Arr0 {
-			val := a.Arr1[idx]
-			vals += key.String() + " = " + val.String()
-			if idx < len(a.Arr0)-1 {
-				vals += ", "
-			}
-		}
-		return fmt.Sprintf("var %s;", vals)
-	case AstTypeConstStatement:
-		vals := ""
-		for idx, key := range a.Arr0 {
-			val := a.Arr1[idx]
-			vals += key.String() + " = " + val.String()
-			if idx < len(a.Arr0)-1 {
-				vals += ", "
-			}
-		}
-		return fmt.Sprintf("const %s;", vals)
-	case AstTypeLocalStatement:
-		vals := ""
-		for idx, key := range a.Arr0 {
-			val := a.Arr1[idx]
-			vals += key.String() + " = " + val.String()
-			if idx < len(a.Arr0)-1 {
-				vals += ", "
-			}
-		}
-		return fmt.Sprintf("local %s;", vals)
-	case AstTypeIfStatement:
-		return fmt.Sprintf("if (%s) {\n%s\n} else {\n%s\n}", a.Ast0.String(), a.Ast1.String(), a.Ast2.String())
-	default:
-		return a.String()
-	}
 }
