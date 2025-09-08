@@ -140,11 +140,12 @@ do {
         ll += 1;
         continue;
     } else if (ll == 19) {
+        ll += 1;
         break;
     }
     println(ll);
     ll += 1;
-} while (ll < 20);
+} while (ll < 20)
 
 println(ll);
 
