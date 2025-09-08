@@ -4,11 +4,14 @@ import "fmt"
 
 var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc int) {
 	obj := interpreter.pop()
-	if !CheckType(obj, AtomTypeObj) {
+	if CheckType(obj, AtomTypeObj) {
+		obj.Value.(*AtomObject).Freeze = true
+	} else if CheckType(obj, AtomTypeArray) {
+		obj.Value.(*AtomArray).Freeze = true
+	} else {
 		interpreter.pushVal(NewAtomValueError("cannot freeze non-object"))
 		return
 	}
-	obj.Value.(*AtomObject).Freeze = true
 	interpreter.pushRef(interpreter.State.NullValue)
 })
 

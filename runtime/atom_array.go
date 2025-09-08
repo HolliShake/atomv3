@@ -1,11 +1,12 @@
 package runtime
 
 type AtomArray struct {
+	Freeze   bool
 	Elements []*AtomValue
 }
 
 func NewAtomArray(elements []*AtomValue) *AtomArray {
-	return &AtomArray{Elements: elements}
+	return &AtomArray{Elements: elements, Freeze: false}
 }
 
 func (a *AtomArray) Get(index int) *AtomValue {

@@ -641,6 +641,13 @@ func DoSetIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 		array := obj.Value.(*AtomArray)
 		indexValue := CoerceToLong(index)
 
+		if array.Freeze {
+			cleanupStack(2)
+			message := "cannot set index on frozen array"
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+
 		if !array.ValidIndex(int(indexValue)) {
 			cleanupStack(2)
 			message := fmt.Sprintf("index out of bounds: %d", indexValue)
