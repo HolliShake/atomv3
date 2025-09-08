@@ -9,11 +9,11 @@ type AtomSymbol struct {
 }
 
 func NewAtomSymbol(name string, offset int, global bool) *AtomSymbol {
-	return &AtomSymbol{Name: name, Offset: offset, Global: global, Const: false}
+	return &AtomSymbol{Name: name, Offset: offset, Global: global, Const: false, Capture: false}
 }
 
 func NewConstAtomSymbol(name string, offset int, global bool) *AtomSymbol {
-	return &AtomSymbol{Name: name, Offset: offset, Global: global, Const: true}
+	return &AtomSymbol{Name: name, Offset: offset, Global: global, Const: true, Capture: false}
 }
 
 func NewCaptureAtomSymbol(name string, offset int, global bool, isConst bool, isConstCapture bool) *AtomSymbol {

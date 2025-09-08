@@ -86,6 +86,10 @@ func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCod
 	return start
 }
 
+func (c *AtomCompile) here(atomFunc *runtime.AtomValue) int {
+	return len(atomFunc.Value.(*runtime.AtomCode).Code)
+}
+
 func (c *AtomCompile) label(atomFunc *runtime.AtomValue, jumpAddress int) {
 	current := len(atomFunc.Value.(*runtime.AtomCode).Code)
 	for i := range 4 {
@@ -96,6 +100,7 @@ func (c *AtomCompile) label(atomFunc *runtime.AtomValue, jumpAddress int) {
 
 func (c *AtomCompile) identifier(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst, opcode runtime.OpCode) {
 	if !parentScope.HasSymbol(ast.Str0) {
+		parentScope.Dump()
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
@@ -116,6 +121,13 @@ func (c *AtomCompile) identifier(parentScope *AtomScope, parentFunc *runtime.Ato
 	}
 	// Non-local symbol, save as capture
 	functionScope := parentScope.GetCurrentFunction()
+
+	if functionScope == nil {
+		// Global?
+		c.emitInt(parentFunc, opcode, symbol.Offset)
+		return
+	}
+
 	captureOffset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
 	functionScope.AddCapture(NewCaptureAtomSymbol(
 		ast.Str0,
@@ -735,6 +747,13 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeWhileStatement:
+		c.whileStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	default:
 		Error(
 			c.parser.tokenizer.file,
@@ -1155,6 +1174,16 @@ func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.At
 			c.label(parentFunc, toEnd1)
 		}
 	}
+}
+
+func (c *AtomCompile) whileStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
+	loopStart := c.here(parentFunc)
+	c.expression(parentScope, parentFunc, ast.Ast0)
+	toEnd := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+	c.statement(parentScope, parentFunc, ast.Ast1)
+	c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
+	c.label(parentFunc, toEnd)
 }
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {

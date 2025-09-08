@@ -90,7 +90,7 @@ func (s *AtomScope) GetCapture(name string) *AtomSymbol {
 func (s *AtomScope) GetCurrentFunction() *AtomScope {
 	current := s
 	for current != nil {
-		if current.Type == AtomScopeTypeFunction || current.Type == AtomScopeTypeGlobal {
+		if current.Type == AtomScopeTypeFunction {
 			return current
 		}
 		current = current.Parent

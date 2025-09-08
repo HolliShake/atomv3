@@ -128,3 +128,10 @@ const cond =
 
 println(cond);
 
+var ll = 0;
+
+while (ll < 5) {
+    println(ll);
+    ll += 1;
+}
+

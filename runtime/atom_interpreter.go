@@ -247,6 +247,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			DoXor(i, lhs, rhs)
 
 		case OpStoreGlobal:
+			// Alias for OpStoreLocal
 			index := ReadInt(code.Code, offsetStart)
 			value := i.pop()
 			code.Env0[index].Set(value)
@@ -309,6 +310,12 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			}
 
 		case OpJump:
+			offset := ReadInt(code.Code, offsetStart)
+			forward(4)
+			jump(offset)
+
+		case OpAbsoluteJump:
+			// Alias for OpJump
 			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
 			jump(offset)
