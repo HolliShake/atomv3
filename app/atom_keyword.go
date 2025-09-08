@@ -19,7 +19,7 @@ const (
 	KeyDefault  = "default"
 	KeyFor      = "for"
 	KeyWhile    = "while"
-	KeyDoWhile  = "do"
+	KeyDo       = "do"
 	KetTrue     = "true"
 	KetFalse    = "false"
 	KetNull     = "null"

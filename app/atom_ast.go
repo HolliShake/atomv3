@@ -76,6 +76,7 @@ const (
 	AstTypeImportStatement
 	AstTypeIfStatement
 	AstTypeWhileStatement
+	AstTypeDoWhileStatement
 	AstTypeProgram
 	AstInvalid
 )
@@ -310,6 +311,13 @@ func NewIfStatement(condition *AtomAst, thenValue *AtomAst, elseValue *AtomAst, 
 
 func NewWhileStatement(condition *AtomAst, body *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeWhileStatement, position)
+	ast.Ast0 = condition
+	ast.Ast1 = body
+	return ast
+}
+
+func NewDoWhileStatement(body *AtomAst, condition *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeDoWhileStatement, position)
 	ast.Ast0 = condition
 	ast.Ast1 = body
 	return ast

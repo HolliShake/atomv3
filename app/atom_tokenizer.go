@@ -31,7 +31,7 @@ func (t *AtomTokenizer) isKeyword(word string) bool {
 		KeyClass, KeyFunc, KeyVar, KeyConst, KeyLocal, KeyEnum,
 		KeyImport, KeyContinue, KeyBreak, KeyReturn,
 		KeyIf, KeyElse, KeySwitch, KeyCase, KeyDefault, KeyFor,
-		KeyWhile, KeyDoWhile, KetTrue, KetFalse, KetNull, KeyNew,
+		KeyWhile, KeyDo, KetTrue, KetFalse, KetNull, KeyNew,
 	}
 
 	for _, keyword := range keywords {

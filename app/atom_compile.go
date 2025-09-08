@@ -754,6 +754,13 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeDoWhileStatement:
+		c.doWhileStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	default:
 		Error(
 			c.parser.tokenizer.file,
@@ -1177,6 +1184,42 @@ func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.At
 }
 
 func (c *AtomCompile) whileStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
+	loopStart := c.here(parentFunc)
+	if !isLogical {
+		c.expression(parentScope, parentFunc, ast.Ast0)
+		toEnd := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+		c.statement(parentScope, parentFunc, ast.Ast1)
+		c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
+		c.label(parentFunc, toEnd)
+	} else {
+		isAnd := ast.Ast0.AstType == AstTypeLogicalAnd
+		lhs := ast.Ast0.Ast0
+		rhs := ast.Ast0.Ast1
+		if isAnd {
+			c.expression(parentScope, parentFunc, lhs)
+			toEnd0 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+			c.expression(parentScope, parentFunc, rhs)
+			toEnd1 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+			c.statement(parentScope, parentFunc, ast.Ast1)
+			c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
+			c.label(parentFunc, toEnd0)
+			c.label(parentFunc, toEnd1)
+		} else {
+			c.expression(parentScope, parentFunc, lhs)
+			toThen := c.emitJump(parentFunc, runtime.OpPopJumpIfTrue)
+			c.expression(parentScope, parentFunc, rhs)
+			toEnd1 := c.emitJump(parentFunc, runtime.OpPopJumpIfFalse)
+			// Then?
+			c.label(parentFunc, toThen)
+			c.statement(parentScope, parentFunc, ast.Ast1)
+			c.emitInt(parentFunc, runtime.OpAbsoluteJump, loopStart)
+			c.label(parentFunc, toEnd1)
+		}
+	}
+}
+
+func (c *AtomCompile) doWhileStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
 	loopStart := c.here(parentFunc)
 	if !isLogical {

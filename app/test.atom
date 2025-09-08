@@ -135,6 +135,11 @@ while (1 && ll < 10) {
     ll += 1;
 }
 
+do {
+    println(ll);
+    ll += 1;
+} while (ll < 20000);
+
 println(ll);
 
 println("Done");
