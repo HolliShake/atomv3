@@ -101,7 +101,9 @@ println("Hello, World!", 1, 2, 3);
 
 print("Wheels on the bus!", std, "\n");
 
-const mod = [];
+const mod = [
+
+];
 
 const Log = println;
 
