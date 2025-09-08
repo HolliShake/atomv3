@@ -626,12 +626,14 @@ func DoXor(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 }
 
 func DoSetIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
-	cleanupStack := func() {
-		intereter.pop()
+	cleanupStack := func(size int) {
+		for range size {
+			intereter.pop()
+		}
 	}
 	if CheckType(obj, AtomTypeArray) {
 		if !IsNumberType(index) {
-			cleanupStack()
+			cleanupStack(1)
 			message := fmt.Sprintf("cannot set index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
 			intereter.pushVal(NewAtomValueError(message))
 			return
@@ -640,7 +642,7 @@ func DoSetIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 		indexValue := CoerceToLong(index)
 
 		if !array.ValidIndex(int(indexValue)) {
-			cleanupStack()
+			cleanupStack(2)
 			message := fmt.Sprintf("index out of bounds: %d", indexValue)
 			intereter.pushVal(NewAtomValueError(message))
 			return
@@ -650,13 +652,20 @@ func DoSetIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 		return
 
 	} else if CheckType(obj, AtomTypeObj) {
+		if obj.Value.(*AtomObject).Freeze {
+			cleanupStack(2) // includes duplicate obj
+			message := "cannot set index on frozen object"
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+
 		objValue := obj.Value.(*AtomObject)
 		indexValue := index.String()
 		objValue.Set(indexValue, intereter.pop())
 		return
 
 	} else {
-		cleanupStack()
+		cleanupStack(2)
 		message := fmt.Sprintf("cannot set index type: %s", GetTypeString(obj))
 		intereter.pushVal(NewAtomValueError(message))
 		return
