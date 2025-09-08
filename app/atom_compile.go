@@ -235,6 +235,24 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			c.emitInt(parentFunc, runtime.OpCall, len(args))
 		}
 
+	case AstTypeUnaryNot:
+		{
+			c.expression(parentScope, parentFunc, ast.Ast0)
+			c.emit(parentFunc, runtime.OpNot)
+		}
+
+	case AstTypeUnaryNeg:
+		{
+			c.expression(parentScope, parentFunc, ast.Ast0)
+			c.emit(parentFunc, runtime.OpNeg)
+		}
+
+	case AstTypeUnaryPos:
+		{
+			c.expression(parentScope, parentFunc, ast.Ast0)
+			c.emit(parentFunc, runtime.OpPos)
+		}
+
 	case AstTypeBinaryMul:
 		{
 			lhs := ast.Ast0

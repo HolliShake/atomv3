@@ -154,6 +154,18 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			i.pushRef(value.Get())
 			forward(4)
 
+		case OpNot:
+			val := i.pop()
+			DoNot(i, val)
+
+		case OpPos:
+			val := i.pop()
+			DoPos(i, val)
+
+		case OpNeg:
+			val := i.pop()
+			DoNeg(i, val)
+
 		case OpMul:
 			rhs := i.pop()
 			lhs := i.pop()

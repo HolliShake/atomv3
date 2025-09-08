@@ -34,7 +34,7 @@ const n = 3 + 2;
 
 fact(n);
 
-[1,2,3,4,5,6, fact(n), "Nah!!"];
+println([1, 2, 3, 4, 5, 6, fact(n), "Nah!!"]);
 
 var obj = {
     getName: "Hello",
@@ -54,6 +54,8 @@ var xh = 12;
 
 xh *= 2;
 xh = 100;
+
+'2';;
 
 obj.getName = "Hello World";
 obj;
@@ -75,11 +77,12 @@ xh  &= 7;
 xh  |= 8;
 xh  ^= 9;
 
-var r = 0;
+var r = 1;
 
 func mutate() {
     r;
-    r = 200;
+    println(r);
+    r += 200;
     local a = 300 + r;
     a;
     fact(3 + 2);
@@ -88,7 +91,7 @@ func mutate() {
 
 const b = mutate();
 b;
-r;
+println(r);
 b;
 r;
 
@@ -96,6 +99,12 @@ fact(40);
 
 println("Hello, World!", 1, 2, 3);
 
-print("Wheels on the bus!", std);
+print("Wheels on the bus!", std, "\n");
 
 const mod = [];
+
+const Log = println;
+
+Log("Hello, World!");
+
+println(!1);

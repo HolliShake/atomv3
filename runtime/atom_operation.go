@@ -104,6 +104,32 @@ func DoCall(intereter *AtomInterpreter, funcValue *AtomValue, argc int) {
 	}
 }
 
+func DoNot(intereter *AtomInterpreter, val *AtomValue) {
+	if !CoerceToBool(val) {
+		intereter.pushRef(intereter.State.TrueValue)
+		return
+	}
+	intereter.pushRef(intereter.State.FalseValue)
+}
+
+func DoPos(intereter *AtomInterpreter, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := fmt.Sprintf("cannot pos type: %s", GetTypeString(val))
+		intereter.pushVal(NewAtomValueError(message))
+		return
+	}
+	intereter.pushVal(NewAtomValueNum(CoerceToNum(val)))
+}
+
+func DoNeg(intereter *AtomInterpreter, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := fmt.Sprintf("cannot negate type: %s", GetTypeString(val))
+		intereter.pushVal(NewAtomValueError(message))
+		return
+	}
+	intereter.pushVal(NewAtomValueNum(-CoerceToNum(val)))
+}
+
 func DoMultiplication(intereter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {

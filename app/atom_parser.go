@@ -169,6 +169,15 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 		if p.checkV(".") {
 			p.acceptV(".")
 			key := p.terminal()
+			if key == nil {
+				Error(
+					p.tokenizer.file,
+					p.tokenizer.data,
+					"Expected identifier",
+					p.lookahead.Position,
+				)
+				return nil
+			}
 			ast = NewMember(
 				ast,
 				key,
@@ -177,6 +186,15 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 		} else if p.checkV("[") {
 			p.acceptV("[")
 			index := p.primary()
+			if index == nil {
+				Error(
+					p.tokenizer.file,
+					p.tokenizer.data,
+					"Expected expression",
+					p.lookahead.Position,
+				)
+				return nil
+			}
 			p.acceptV("]")
 			ast = NewIndex(
 				ast,
@@ -212,13 +230,36 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 	return ast
 }
 
+func (p *AtomParser) unary() *AtomAst {
+	if p.checkT(TokenTypeSym) && (p.checkV("!") || p.checkV("+") || p.checkV("-")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+		rhs := p.unary()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		return NewUnary(
+			opt,
+			rhs,
+			rhs.Position.Merge(p.lookahead.Position),
+		)
+	}
+	return p.memberOrCall()
+}
+
 func (p *AtomParser) multiplicative() *AtomAst {
-	ast := p.memberOrCall()
+	ast := p.unary()
 	for p.checkT(TokenTypeSym) && (p.checkV("*") || p.checkV("/") || p.checkV("%")) {
 		opt := p.lookahead
 		p.acceptV(opt.Value)
 
-		rhs := p.memberOrCall()
+		rhs := p.unary()
 		if rhs == nil {
 			Error(
 				p.tokenizer.file,

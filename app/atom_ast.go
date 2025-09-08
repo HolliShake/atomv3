@@ -33,6 +33,9 @@ const (
 	AstTypeCall
 	AstTypeIndex
 	AstTypeMember
+	AstTypeUnaryNot
+	AstTypeUnaryNeg
+	AstTypeUnaryPos
 	AstTypeBinaryMul
 	AstTypeBinaryDiv
 	AstTypeBinaryMod
@@ -77,18 +80,23 @@ const (
 )
 
 func NewAtomAst(astType AtomAstType, position AtomPosition) *AtomAst {
-	ast := &AtomAst{}
-	ast.AstType = astType
-	ast.Str0 = ""
-	ast.Ast0 = nil
-	ast.Ast1 = nil
-	ast.Ast2 = nil
-	ast.Ast3 = nil
-	ast.Arr0 = nil
-	ast.Arr1 = nil
-	ast.Arr2 = nil
-	ast.Position = position
-	return ast
+	return &AtomAst{
+		AstType:  astType,
+		Position: position,
+	}
+}
+
+func getUnaryAstType(op AtomToken) AtomAstType {
+	switch op.Value {
+	case "!":
+		return AstTypeUnaryNot
+	case "-":
+		return AstTypeUnaryNeg
+	case "+":
+		return AstTypeUnaryPos
+	default:
+		return AstInvalid
+	}
 }
 
 func getBinaryAstType(op AtomToken) AtomAstType {
@@ -199,6 +207,12 @@ func NewCall(ast0 *AtomAst, args []*AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeCall, position)
 	ast.Ast0 = ast0
 	ast.Arr0 = args
+	return ast
+}
+
+func NewUnary(op AtomToken, ast0 *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(getUnaryAstType(op), position)
+	ast.Ast0 = ast0
 	return ast
 }
 
