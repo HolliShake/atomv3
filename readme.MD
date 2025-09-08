@@ -7,11 +7,12 @@ Atom is a custom programming language implemented in Go, featuring a complete co
 - **Dynamic Typing**: Supports integers, floats, strings, booleans, arrays, objects, and functions
 - **Function Support**: First-class functions with parameters and return statements
 - **Variable Declarations**: `var`, `const`, and `local` variable declarations with proper scoping
-- **Control Flow**: `if-else` statements with proper scoping
+- **Control Flow**: `if-else`, `switch` expressions, `while`, and `do-while`
 - **Arithmetic Operations**: Full set of mathematical, bitwise, and logical operations
 - **Assignment Operators**: Compound assignment operators (`+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`)
 - **Array Support**: Array literals, indexing, and element access
 - **Object Support**: Object literals with key-value pairs, property access, and method calls
+- **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`)
 - **Stack-based VM**: Efficient bytecode execution with evaluation stack
 - **Error Handling**: Comprehensive error reporting with source location
 - **Memory Management**: Basic garbage collection with GC roots
@@ -190,6 +191,59 @@ factorial(5);
 // Complex expressions
 (2 + 3) * (4 - 1);
 add(multiply(2, 3), divide(10, 2));
+```
+
+### Imports and Standard Library I/O
+
+```atom
+// Import selected symbols from the standard library
+import [ print, println ] from "atom:std";
+
+println("Hello, World!", 1, 2, 3);
+print("Wheels on the bus!", std, "\n");
+
+const Log = println; // aliasing
+Log("Hello, World!");
+```
+
+### Switch and Conditional Expressions
+
+```atom
+// Switch as an expression
+const value = (5) switch {
+    case(1, 2) => 200
+    case(3, 4) => 300
+    default    => 400
+};
+
+println(">>", value);
+
+// If as an expression
+const cond = 
+    if (3 < 2)
+        2 + 2
+    else if (3 < 2)
+        3 + 3
+    else
+        4 + 4
+    ;
+
+println(cond);
+```
+
+### Loops: while and do-while
+
+```atom
+var i = 0;
+while (1 && i < 10) {
+    println(i);
+    i += 1;
+}
+
+do {
+    println(i);
+    i += 1;
+} while (i < 20);
 ```
 
 ## Example Programs
@@ -413,16 +467,13 @@ atom/
 
 ## Language Limitations
 
-- No loops (`for`, `while`) - only recursive functions
 - No object-oriented programming (no classes, inheritance, or `this` context)
-- No modules or imports
-- No exception handling
 - Limited array operations (no built-in methods like `push`, `pop`, `length`)
 - No string manipulation functions
-- No I/O operations (no file reading, console input/output)
-- No built-in standard library
+- Limited I/O (basic `print`/`println` only via `atom:std`)
+- No built-in standard library beyond `atom:std`
 - No closures (functions cannot capture variables from outer scope)
-- No type annotations or type checking
+- No type annotations or static type checking
 
 ## Future Enhancements
 
