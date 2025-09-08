@@ -130,8 +130,11 @@ println(cond);
 
 var ll = 0;
 
-while (ll < 5) {
+while (1 && ll < 10) {
     println(ll);
     ll += 1;
 }
 
+println(ll);
+
+println("Done");
