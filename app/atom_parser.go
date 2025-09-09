@@ -1192,7 +1192,7 @@ func (p *AtomParser) switchStatement() *AtomAst {
 		}
 		p.acceptV(")")
 
-		p.acceptV("=>")
+		p.acceptV(":")
 
 		value := p.statement()
 		if value == nil {
@@ -1211,7 +1211,7 @@ func (p *AtomParser) switchStatement() *AtomAst {
 		values = append(values, value)
 	}
 	p.acceptV(KeyDefault)
-	p.acceptV("=>")
+	p.acceptV(":")
 	value := p.statement()
 	if value == nil {
 		Error(
