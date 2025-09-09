@@ -818,6 +818,13 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeSwitchStatement:
+		c.switchStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	case AstTypeWhileStatement:
 		c.whileStatement(
 			parentScope,
@@ -1285,6 +1292,57 @@ func (c *AtomCompile) ifStatement(parentScope *AtomScope, parentFunc *runtime.At
 				c.statement(parentScope, parentFunc, ast.Ast2)
 			}
 			c.label(parentFunc, toEnd1)
+		}
+	}
+}
+
+func (c *AtomCompile) switchStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	{
+		condition := ast.Ast0
+		defaultValue := ast.Ast1
+		cases := ast.Arr0
+		values := ast.Arr1
+
+		c.expression(parentScope, parentFunc, condition)
+
+		toEndSwitch := []int{}
+
+		for index, caseArray := range cases {
+			cases := caseArray.Arr0
+			stmnt := values[index]
+			storedJumps := []int{}
+			for _, caseItem := range cases {
+				c.expression(parentScope, parentFunc, caseItem)
+				jumpToValue := c.emitJump(parentFunc, runtime.OpPeekJumpIfEqual)
+				storedJumps = append(storedJumps, jumpToValue)
+			}
+			toNextCase := c.emitJump(parentFunc, runtime.OpJump)
+
+			// value
+			for _, jump := range storedJumps {
+				c.label(parentFunc, jump)
+			}
+			// Pop condition if match
+			c.emit(parentFunc, runtime.OpPopTop)
+
+			// statement
+			c.statement(parentScope, parentFunc, stmnt)
+			jumpToEnd := c.emitJump(parentFunc, runtime.OpJump)
+			toEndSwitch = append(toEndSwitch, jumpToEnd)
+
+			// Next?
+			c.label(parentFunc, toNextCase)
+		}
+
+		// Pop condition if default
+		c.emit(parentFunc, runtime.OpPopTop)
+
+		// Default value
+		c.statement(parentScope, parentFunc, defaultValue)
+
+		// End?
+		for _, jump := range toEndSwitch {
+			c.label(parentFunc, jump)
 		}
 	}
 }

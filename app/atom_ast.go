@@ -78,6 +78,7 @@ const (
 	AstTypeLocalStatement
 	AstTypeImportStatement
 	AstTypeIfStatement
+	AstTypeSwitchStatement
 	AstTypeWhileStatement
 	AstTypeDoWhileStatement
 	AstTypeProgram
@@ -327,6 +328,15 @@ func NewIfStatement(condition *AtomAst, thenValue *AtomAst, elseValue *AtomAst, 
 	ast.Ast0 = condition
 	ast.Ast1 = thenValue
 	ast.Ast2 = elseValue
+	return ast
+}
+
+func NewSwitchStatement(condition *AtomAst, cases []*AtomAst, values []*AtomAst, value *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeSwitchStatement, position)
+	ast.Ast0 = condition
+	ast.Ast1 = value
+	ast.Arr0 = cases
+	ast.Arr1 = values
 	return ast
 }
 

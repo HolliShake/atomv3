@@ -783,6 +783,8 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.localStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyIf) {
 		return p.ifStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeySwitch) {
+		return p.switchStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyWhile) {
 		return p.whileStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyDo) {
@@ -1118,6 +1120,97 @@ func (p *AtomParser) ifStatement() *AtomAst {
 		condition,
 		thenValue,
 		elseValue,
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) switchStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeySwitch)
+	p.acceptV("(")
+	condition := p.primary()
+	if condition == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected expression",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	p.acceptV(")")
+	p.acceptV("{")
+	cases := []*AtomAst{}
+	values := []*AtomAst{}
+	for p.checkT(TokenTypeKey) && p.checkV(KeyCase) {
+		p.acceptV(KeyCase)
+		p.acceptV("(")
+		patterns := []*AtomAst{}
+		pattern := p.terminal()
+		if pattern == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected pattern",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		patterns = append(patterns, pattern)
+		for p.checkT(TokenTypeSym) && p.checkV(",") {
+			p.acceptV(",")
+			pattern = p.terminal()
+			if pattern == nil {
+				Error(
+					p.tokenizer.file,
+					p.tokenizer.data,
+					"Expected pattern",
+					p.lookahead.Position,
+				)
+				return nil
+			}
+			patterns = append(patterns, pattern)
+		}
+		p.acceptV(")")
+
+		p.acceptV("=>")
+
+		value := p.statement()
+		if value == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected statement",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		cases = append(cases, NewArray(
+			patterns,
+			start.Merge(ended),
+		))
+		values = append(values, value)
+	}
+	p.acceptV(KeyDefault)
+	p.acceptV("=>")
+	value := p.statement()
+	if value == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected statement",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	ended = p.lookahead.Position
+	p.acceptV("}")
+	return NewSwitchStatement(
+		condition,
+		cases,
+		values,
+		value,
 		start.Merge(ended),
 	)
 }

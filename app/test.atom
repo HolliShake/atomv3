@@ -173,3 +173,13 @@ const g = "He😊lo"[2] catch(e) {
 };
 
 println(g);
+
+
+switch (2 + 2 + 3) {
+    case(2,4) => {
+        println("Hola");
+    }
+    default => {
+        println("Mundo");
+    }
+}
