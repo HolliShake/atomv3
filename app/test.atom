@@ -167,7 +167,7 @@ func $test_getName() {
     return "Hello, World!";
 }
 
-const g = 2323[2] catch(e) {
+const g = "He😊lo"[2] catch(e) {
     println(">>", e);
     return "Hello!";
 };

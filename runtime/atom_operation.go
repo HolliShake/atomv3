@@ -16,7 +16,25 @@ func DoLoadModule0(intereter *AtomInterpreter, name string) {
 }
 
 func DoIndex(intereter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
-	if CheckType(obj, AtomTypeArray) {
+	if CheckType(obj, AtomTypeStr) {
+		if !IsNumberType(index) {
+			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		r := []rune(obj.Value.(string))
+		indexValue := CoerceToLong(index)
+		if indexValue < 0 || indexValue >= int64(len(r)) {
+			message := fmt.Sprintf("index out of bounds: %d", indexValue)
+			intereter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		intereter.pushVal(NewAtomValueStr(string(r[indexValue])))
+		return
+
+	} else if CheckType(obj, AtomTypeArray) {
 		if !IsNumberType(index) {
 			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
 			intereter.pushVal(NewAtomValueError(message))
