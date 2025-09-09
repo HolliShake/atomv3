@@ -29,8 +29,8 @@ func NewAtomTokenizer(file string, data string) *AtomTokenizer {
 func (t *AtomTokenizer) isKeyword(word string) bool {
 	keywords := []string{
 		KeyClass, KeyFunc, KeyVar, KeyConst, KeyLocal, KeyEnum,
-		KeyImport, KeyContinue, KeyBreak, KeyReturn,
-		KeyIf, KeyElse, KeySwitch, KeyCase, KeyDefault, KeyFor,
+		KeyImport, KeyFrom, KeyContinue, KeyBreak, KeyReturn,
+		KeyIf, KeyElse, KeySwitch, KeyCase, KeyDefault, KeyCatch, KeyFor,
 		KeyWhile, KeyDo, KetTrue, KetFalse, KetNull, KeyNew,
 	}
 

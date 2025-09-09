@@ -705,8 +705,53 @@ func (p *AtomParser) switchExpression() *AtomAst {
 	)
 }
 
+func (p *AtomParser) catchExpression() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+
+	ast := p.switchExpression()
+
+	if !(p.checkT(TokenTypeKey) && p.checkV(KeyCatch)) {
+		return ast
+	}
+
+	p.acceptV(KeyCatch)
+	p.acceptV("(")
+	variable := p.terminal()
+	if variable == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected identifier",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+	p.acceptV(")")
+
+	p.acceptV("{")
+
+	body := []*AtomAst{}
+
+	stmt := p.statement()
+	for stmt != nil {
+		body = append(body, stmt)
+		stmt = p.statement()
+	}
+
+	ended = p.lookahead.Position
+	p.acceptV("}")
+
+	return NewCatchExpression(
+		ast,
+		variable,
+		body,
+		start.Merge(ended),
+	)
+}
+
 func (p *AtomParser) primary() *AtomAst {
-	return p.switchExpression()
+	return p.catchExpression()
 }
 
 func (p *AtomParser) mandatory() *AtomAst {

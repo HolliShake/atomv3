@@ -65,6 +65,7 @@ const (
 	AstTypeBitwiseXorAssign
 	AstTypeIfExpression
 	AstTypeSwitchExpression
+	AstTypeCatchExpression
 	AstTypeBreakStatement
 	AstTypeContinueStatement
 	AstTypeReturnStatement
@@ -241,6 +242,14 @@ func NewSwitchExpression(condition *AtomAst, cases []*AtomAst, values []*AtomAst
 	ast.Ast1 = value
 	ast.Arr0 = cases
 	ast.Arr1 = values
+	return ast
+}
+
+func NewCatchExpression(condition *AtomAst, variable *AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeCatchExpression, position)
+	ast.Ast0 = condition
+	ast.Ast1 = variable
+	ast.Arr0 = body
 	return ast
 }
 

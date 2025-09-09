@@ -621,6 +621,58 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			}
 		}
 
+	case AstTypeCatchExpression:
+		{
+			condition := ast.Ast0
+			variable := ast.Ast1
+			body := ast.Arr0
+
+			//==========================
+			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "catch", 1)
+			atomCode := atomFunc.Value.(*runtime.AtomCode)
+			funScope := NewAtomScope(parentScope, AtomScopeTypeFunction)
+			fnOffset := c.state.SaveFunction(atomFunc)
+
+			c.expression(parentScope, parentFunc, condition)
+			toEndCatch := c.emitJump(parentFunc, runtime.OpPopJumpIfNotError)
+
+			// Variable as parameter
+			offset := atomCode.IncrementLocal()
+			funScope.AddSymbol(NewAtomSymbol(
+				variable.Str0,
+				offset,
+				false,
+			))
+			c.emitInt(atomFunc, runtime.OpStoreLocal, offset)
+
+			// Body
+			for _, stmt := range body {
+				c.statement(funScope, atomFunc, stmt)
+			}
+			c.emit(atomFunc, runtime.OpLoadNull)
+			c.emit(atomFunc, runtime.OpReturn)
+
+			// Write captures
+			for _, capture := range funScope.Captures() {
+				offset := 0
+				if parentScope.HasLocal(capture.Name) {
+					offset = parentScope.GetSymbol(capture.Name).Offset
+				} else {
+					// Possible, not handled properly
+					panic(fmt.Sprintf("Capture %s not found", capture.Name))
+				}
+				parentCell := parentFunc.Value.(*runtime.AtomCode).Env0[offset]
+				atomCode.Env0[capture.Offset] = parentCell
+			}
+
+			// Load and call
+			c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
+			c.emitInt(parentFunc, runtime.OpCall, 1)
+
+			// End Catch
+			c.label(parentFunc, toEndCatch)
+		}
+
 	default:
 		Error(
 			c.parser.tokenizer.file,

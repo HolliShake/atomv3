@@ -17,6 +17,7 @@ const (
 	KeySwitch   = "switch"
 	KeyCase     = "case"
 	KeyDefault  = "default"
+	KeyCatch    = "catch"
 	KeyFor      = "for"
 	KeyWhile    = "while"
 	KeyDo       = "do"

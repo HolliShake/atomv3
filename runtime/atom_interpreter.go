@@ -320,6 +320,14 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			forward(4)
 			jump(offset)
 
+		case OpPopJumpIfNotError:
+			offset := ReadInt(code.Code, offsetStart)
+			forward(4)
+			value := i.peek()
+			if !CheckType(value, AtomTypeErr) {
+				jump(offset)
+			}
+
 		case OpDupTop:
 			i.pushVal(i.peek())
 
