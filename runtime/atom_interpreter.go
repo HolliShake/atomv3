@@ -91,6 +91,15 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			)
 			forward(len(value) + 1)
 
+		case OpLoadBool:
+			value := ReadInt(code.Code, offsetStart)
+			if value != 0 {
+				i.pushRef(i.State.TrueValue)
+			} else {
+				i.pushRef(i.State.FalseValue)
+			}
+			forward(4)
+
 		case OpLoadNull:
 			i.pushRef(
 				i.State.NullValue,

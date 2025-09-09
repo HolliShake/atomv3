@@ -184,6 +184,18 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 	case AstTypeStr:
 		c.emitStr(parentFunc, runtime.OpLoadStr, ast.Str0)
 
+	case AstTypeBool:
+		var boolValue byte
+		if ast.Str0 == "true" {
+			boolValue = 1
+		} else {
+			boolValue = 0
+		}
+		c.emitInt(parentFunc, runtime.OpLoadBool, int(boolValue))
+
+	case AstTypeNull:
+		c.emit(parentFunc, runtime.OpLoadNull)
+
 	case AstTypeArray:
 		{
 			for i := len(ast.Arr0) - 1; i >= 0; i-- {

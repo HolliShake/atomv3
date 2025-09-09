@@ -91,6 +91,24 @@ func (p *AtomParser) terminal() *AtomAst {
 		p.acceptT(TokenTypeStr)
 		return ast
 	}
+	if p.checkT(TokenTypeKey) && (p.checkV(KetTrue) || p.checkV(KetFalse)) {
+		ast := NewTerminal(
+			AstTypeBool,
+			p.lookahead.Value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TokenTypeKey)
+		return ast
+	}
+	if p.checkT(TokenTypeKey) && p.checkV(KetNull) {
+		ast := NewTerminal(
+			AstTypeNull,
+			p.lookahead.Value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TokenTypeKey)
+		return ast
+	}
 	return nil
 }
 

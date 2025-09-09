@@ -183,3 +183,5 @@ switch (2 + 2 + 3) {
         println("Mundo");
     }
 }
+
+println(true && false, null);
