@@ -23,3 +23,7 @@ func (c *AtomCode) IncrementLocal() int {
 	c.Env0 = append(c.Env0, NewAtomCell(nil))
 	return count
 }
+
+func (c *AtomCode) CopyCellFrom(other *AtomCode, from, to int) {
+	c.Env0[to] = other.Env0[from]
+}

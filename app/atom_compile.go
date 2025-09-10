@@ -639,6 +639,7 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 			variable := ast.Ast1
 			body := ast.Arr0
 
+			parentCode := parentFunc.Value.(*runtime.AtomCode)
 			//==========================
 			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "catch", 1)
 			atomCode := atomFunc.Value.(*runtime.AtomCode)
@@ -673,8 +674,7 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 					// Possible, not handled properly
 					panic(fmt.Sprintf("Capture %s not found", capture.Name))
 				}
-				parentCell := parentFunc.Value.(*runtime.AtomCode).Env0[offset]
-				atomCode.Env0[capture.Offset] = parentCell
+				atomCode.CopyCellFrom(parentCode, offset, capture.Offset)
 			}
 
 			// Load and call
@@ -1001,8 +1001,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			// Possible, not handled properly
 			panic(fmt.Sprintf("Capture %s not found", capture.Name))
 		}
-		parentCell := parentCode.Env0[offset]
-		atomCode.Env0[capture.Offset] = parentCell
+		atomCode.CopyCellFrom(parentCode, offset, capture.Offset)
 	}
 
 	return atomFunc
