@@ -14,7 +14,8 @@ const (
 	OpLoadModule0  // With N bytes argument // name -> builtin
 	OpLoadModule1  // With N bytes argument // path
 	OpLoadFunction // with 4 bytes argument
-	OpCall         // with 4 bytes argument
+	OpMakeEnum
+	OpCall // with 4 bytes argument
 	OpNot
 	OpNeg
 	OpPos

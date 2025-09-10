@@ -782,6 +782,13 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeEnum:
+		c.enumStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	case AstTypeFunction:
 		c.function(
 			parentScope,
@@ -920,6 +927,75 @@ func (c *AtomCompile) expressionStatement(parentScope *AtomScope, parentFunc *ru
 	c.emit(parentFunc, runtime.OpPopTop)
 }
 
+func (c *AtomCompile) enumStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// Guard
+	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Enum statement must be in global scope",
+			ast.Position,
+		)
+	}
+
+	name := ast.Ast0
+	names := ast.Arr0
+	values := ast.Arr1
+
+	if name.AstType != AstTypeIdn {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Expected identifier",
+			name.Position,
+		)
+		return
+	}
+
+	for index, name := range names {
+		value := values[index]
+
+		if name.AstType != AstTypeIdn {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				name.Position,
+			)
+			return
+		}
+
+		if value == nil {
+			c.emitInt(parentFunc, runtime.OpLoadInt, index)
+		} else {
+			c.expression(parentScope, parentFunc, value)
+		}
+
+		c.emitStr(parentFunc, runtime.OpLoadStr, name.Str0)
+	}
+
+	if parentScope.HasLocal(name.Str0) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			fmt.Sprintf("Symbol %s already defined", name.Str0),
+			name.Position,
+		)
+		return
+	}
+
+	c.emitInt(parentFunc, runtime.OpMakeEnum, len(names))
+
+	offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+	parentScope.AddSymbol(NewAtomSymbol(
+		name.Str0,
+		offset,
+		parentScope.InSide(AtomScopeTypeGlobal, false),
+	))
+	c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
+
+}
+
 func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) *runtime.AtomValue {
 	parentCode := parentFunc.Value.(*runtime.AtomCode)
 	// Guard
@@ -955,7 +1031,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		parentScope.InSide(AtomScopeTypeGlobal, false),
 	))
 	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
-	c.emitInt(parentFunc, runtime.OpStoreLocal, offset)
+	c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
 	//============================
 
 	for _, param := range params {

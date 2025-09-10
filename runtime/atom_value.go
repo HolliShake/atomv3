@@ -13,6 +13,7 @@ const (
 	AtomTypeStr
 	AtomTypeNull
 	AtomTypeObj
+	AtomTypeEnum
 	AtomTypeArray
 	AtomTypeFunc
 	AtomTypeNativeFunc
@@ -85,6 +86,12 @@ func NewAtomValueObject(elements map[string]*AtomValue) *AtomValue {
 	return obj
 }
 
+func NewAtomValueEnum(elements map[string]*AtomValue) *AtomValue {
+	obj := NewAtomValue(AtomTypeEnum)
+	obj.Value = NewAtomObject(elements)
+	return obj
+}
+
 func NewAtomValueFunction(file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
 	obj.Value = NewAtomCode(file, name, argc)
@@ -151,6 +158,18 @@ func (v *AtomValue) String() string {
 			params += fmt.Sprintf("$%d", i)
 		}
 		return fmt.Sprintf("%s(%s){}", v.Value.(NativeFunc).Name, params)
+	} else if CheckType(v, AtomTypeEnum) {
+		str := "enum {"
+		first := true
+		for key, value := range v.Value.(*AtomObject).Elements {
+			if !first {
+				str += ", "
+			}
+			str += key + ": " + value.String()
+			first = false
+		}
+		str += "}"
+		return str
 	}
 	return fmt.Sprintf("%v", v.Value)
 }

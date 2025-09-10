@@ -71,6 +71,7 @@ const (
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
+	AstTypeEnum
 	AstTypeFunction
 	AstTypeBlock
 	AstTypeVarStatement
@@ -285,6 +286,14 @@ func NewEmptyStatement(position AtomPosition) *AtomAst {
 func NewExpressionStatement(expr *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeExpressionStatement, position)
 	ast.Ast0 = expr
+	return ast
+}
+
+func NewEnumStatement(name *AtomAst, names []*AtomAst, values []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeEnum, position)
+	ast.Ast0 = name
+	ast.Arr0 = names
+	ast.Arr1 = values
 	return ast
 }
 

@@ -135,6 +135,19 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			i.pushRef(fn)
 			forward(4)
 
+		case OpMakeEnum:
+			length := ReadInt(code.Code, offsetStart)
+			element := map[string]*AtomValue{}
+			for range length {
+				k := i.pop()
+				v := i.pop()
+				element[k.Value.(string)] = v
+			}
+			i.pushVal(
+				NewAtomValueObject(element),
+			)
+			forward(4)
+
 		case OpLoadModule0:
 			name := ReadStr(code.Code, offsetStart)
 			DoLoadModule0(i, name)

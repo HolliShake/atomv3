@@ -787,7 +787,9 @@ func (p *AtomParser) mandatory() *AtomAst {
 }
 
 func (p *AtomParser) statement() *AtomAst {
-	if p.checkT(TokenTypeKey) && p.checkV(KeyFunc) {
+	if p.checkT(TokenTypeKey) && p.checkV(KeyEnum) {
+		return p.enumStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyFunc) {
 		return p.function()
 	} else if p.checkT(TokenTypeSym) && p.checkV("{") {
 		return p.block()
@@ -815,6 +817,83 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.returnStatement()
 	}
 	return p.expressionStatement()
+}
+
+func (p *AtomParser) enumStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+
+	p.acceptV(KeyEnum)
+
+	name := p.terminal()
+	if name == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected identifier",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+
+	p.acceptV("{")
+
+	names := []*AtomAst{}
+	values := []*AtomAst{}
+
+	var nameN *AtomAst = p.terminal()
+	var valueN *AtomAst = nil
+
+	if nameN == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected identifier",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+
+	if p.checkT(TokenTypeSym) && p.checkV("=") {
+		p.acceptV("=")
+		valueN = p.mandatory()
+	}
+
+	names = append(names, name)
+	values = append(values, valueN)
+
+	for p.checkT(TokenTypeSym) && p.checkV(",") {
+		p.acceptV(",")
+		nameN = p.terminal()
+		if name == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected identifier",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+
+		valueN = nil
+		if p.checkT(TokenTypeSym) && p.checkV("=") {
+			p.acceptV("=")
+			valueN = p.mandatory()
+		}
+
+		names = append(names, name)
+		values = append(values, valueN)
+	}
+
+	ended = p.lookahead.Position
+	p.acceptV("}")
+
+	return NewEnumStatement(
+		name,
+		names,
+		values,
+		start.Merge(ended),
+	)
 }
 
 func (p *AtomParser) function() *AtomAst {
