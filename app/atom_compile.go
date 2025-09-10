@@ -635,11 +635,12 @@ func (c *AtomCompile) expression(parentScope *AtomScope, parentFunc *runtime.Ato
 
 	case AstTypeCatchExpression:
 		{
+			parentCode := parentFunc.Value.(*runtime.AtomCode)
+
 			condition := ast.Ast0
 			variable := ast.Ast1
 			body := ast.Arr0
 
-			parentCode := parentFunc.Value.(*runtime.AtomCode)
 			//==========================
 			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "catch", 1)
 			atomCode := atomFunc.Value.(*runtime.AtomCode)
