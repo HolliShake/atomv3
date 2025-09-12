@@ -1,9 +1,4 @@
-import [ print, println ] from "atom:std";
-
-enum Dog {
-    Status = 2,
-    Meow
-}
+import [print, println, xxx] from "atom:std";
 
 var x = 1;
 
@@ -190,4 +185,9 @@ switch (2 + 2 + 3) {
 
 println(true && false, null);
 
-println(Dog.Status, Dog.Meow);
+enum Dog {
+    Status = 2,
+    Meow   = 3
+}
+
+println(">>", Dog, Dog.Status, Dog.Meow);

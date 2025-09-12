@@ -24,3 +24,11 @@ func (a *AtomArray) ValidIndex(index int) bool {
 func (a *AtomArray) Len() int {
 	return len(a.Elements)
 }
+
+func (a *AtomArray) HashValue() int {
+	hash := 0
+	for _, element := range a.Elements {
+		hash = hash*31 + element.HashValue()
+	}
+	return hash
+}

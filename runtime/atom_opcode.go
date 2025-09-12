@@ -20,7 +20,7 @@ const (
 	OpNeg
 	OpPos
 	OpIndex
-	OpPluckAttribute
+	OpPluckAttribute // with N bytes argument
 	OpMul
 	OpDiv
 	OpMod
@@ -40,14 +40,14 @@ const (
 	OpStoreGlobal // with 4 bytes argument | alias for OpStoreLocal
 	OpStoreLocal  // with 4 bytes argument
 	OpSetIndex
-	OpJumpIfFalseOrPop
-	OpJumpIfTrueOrPop
-	OpPopJumpIfFalse
-	OpPopJumpIfTrue
-	OpPeekJumpIfEqual
-	OpPopJumpIfNotError
-	OpJump
-	OpAbsoluteJump
+	OpJumpIfFalseOrPop  // with 4 bytes argument a.k.a jump offset
+	OpJumpIfTrueOrPop   // with 4 bytes argument a.k.a jump offset
+	OpPopJumpIfFalse    // with 4 bytes argument a.k.a jump offset
+	OpPopJumpIfTrue     // with 4 bytes argument a.k.a jump offset
+	OpPeekJumpIfEqual   // with 4 bytes argument a.k.a jump offset
+	OpPopJumpIfNotError // with 4 bytes argument a.k.a jump offset
+	OpJump              // with 4 bytes argument a.k.a jump offset
+	OpAbsoluteJump      // with 4 bytes argument a.k.a jump offset
 	OpDupTop
 	OpNoOp
 	OpPopTop

@@ -859,13 +859,13 @@ func (p *AtomParser) enumStatement() *AtomAst {
 		valueN = p.mandatory()
 	}
 
-	names = append(names, name)
+	names = append(names, nameN)
 	values = append(values, valueN)
 
 	for p.checkT(TokenTypeSym) && p.checkV(",") {
 		p.acceptV(",")
 		nameN = p.terminal()
-		if name == nil {
+		if nameN == nil {
 			Error(
 				p.tokenizer.file,
 				p.tokenizer.data,
@@ -881,7 +881,7 @@ func (p *AtomParser) enumStatement() *AtomAst {
 			valueN = p.mandatory()
 		}
 
-		names = append(names, name)
+		names = append(names, nameN)
 		values = append(values, valueN)
 	}
 

@@ -129,6 +129,17 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			)
 			forward(4)
 
+		case OpLoadLocal:
+			index := ReadInt(code.Code, offsetStart)
+			value := code.Env0[index]
+			i.pushRef(value.Get())
+			forward(4)
+
+		case OpLoadModule0:
+			name := ReadStr(code.Code, offsetStart)
+			DoLoadModule0(i, name)
+			forward(len(name) + 1)
+
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, offsetStart)
 			fn := i.State.FunctionTable.Get(offset)
@@ -137,21 +148,43 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		case OpMakeEnum:
 			length := ReadInt(code.Code, offsetStart)
-			element := map[string]*AtomValue{}
+			elements := make(map[string]*AtomValue, length)
+			valueHashes := make(map[int]bool, length)
+
 			for range length {
 				k := i.pop()
 				v := i.pop()
-				element[k.Value.(string)] = v
+				key := k.Value.(string)
+
+				valueHash := v.HashValue()
+				if valueHashes[valueHash] {
+					elements[key] = NewAtomValueError(fmt.Sprintf("duplicate value in enum (%s)", v.String()))
+				} else {
+					elements[key] = v
+					valueHashes[valueHash] = true
+				}
 			}
-			i.pushVal(
-				NewAtomValueObject(element),
-			)
+
+			i.pushVal(NewAtomValueEnum(elements))
 			forward(4)
 
-		case OpLoadModule0:
-			name := ReadStr(code.Code, offsetStart)
-			DoLoadModule0(i, name)
-			forward(len(name) + 1)
+		case OpCall:
+			argc := ReadInt(code.Code, offsetStart)
+			forward(4)
+			call := i.pop()
+			DoCall(i, call, argc)
+
+		case OpNot:
+			val := i.pop()
+			DoNot(i, val)
+
+		case OpNeg:
+			val := i.pop()
+			DoNeg(i, val)
+
+		case OpPos:
+			val := i.pop()
+			DoPos(i, val)
 
 		case OpIndex:
 			index := i.pop()
@@ -163,30 +196,6 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			obj := i.peek()
 			DoPluckAttribute(i, obj, attribute)
 			forward(len(attribute) + 1)
-
-		case OpCall:
-			argc := ReadInt(code.Code, offsetStart)
-			forward(4)
-			call := i.pop()
-			DoCall(i, call, argc)
-
-		case OpLoadLocal:
-			index := ReadInt(code.Code, offsetStart)
-			value := code.Env0[index]
-			i.pushRef(value.Get())
-			forward(4)
-
-		case OpNot:
-			val := i.pop()
-			DoNot(i, val)
-
-		case OpPos:
-			val := i.pop()
-			DoPos(i, val)
-
-		case OpNeg:
-			val := i.pop()
-			DoNeg(i, val)
 
 		case OpMul:
 			rhs := i.pop()
@@ -327,7 +336,15 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			forward(4)
 			rhs := i.pop()
 			lhs := i.peek()
-			if rhs.Value == lhs.Value {
+			if rhs.HashValue() == lhs.HashValue() {
+				jump(offset)
+			}
+
+		case OpPopJumpIfNotError:
+			offset := ReadInt(code.Code, offsetStart)
+			forward(4)
+			value := i.peek()
+			if !CheckType(value, AtomTypeErr) {
 				jump(offset)
 			}
 
@@ -341,14 +358,6 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			offset := ReadInt(code.Code, offsetStart)
 			forward(4)
 			jump(offset)
-
-		case OpPopJumpIfNotError:
-			offset := ReadInt(code.Code, offsetStart)
-			forward(4)
-			value := i.peek()
-			if !CheckType(value, AtomTypeErr) {
-				jump(offset)
-			}
 
 		case OpDupTop:
 			i.pushVal(i.peek())
