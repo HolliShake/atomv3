@@ -1,13 +1,15 @@
 package runtime
 
 type AtomClass struct {
+	Name  string
 	Base  *AtomValue // AtomClass
 	Proto *AtomValue // AtomObject
 }
 
-func NewAtomClass(base, proto *AtomValue) *AtomClass {
+func NewAtomClass(name string, base, proto *AtomValue) *AtomClass {
 	return &AtomClass{
-		Base:  nil,
-		Proto: nil,
+		Name:  name,
+		Base:  base,
+		Proto: proto,
 	}
 }

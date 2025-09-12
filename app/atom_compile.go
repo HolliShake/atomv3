@@ -76,6 +76,22 @@ func (c *AtomCompile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 		)
 }
 
+func (c *AtomCompile) emitWord(atomFunc *runtime.AtomValue, strValue string) {
+	bytes := []byte(strValue)
+
+	opcodes := make([]runtime.OpCode, len(bytes)+1)
+	for i, b := range bytes {
+		opcodes[i] = runtime.OpCode(b)
+	}
+	opcodes[len(bytes)] = '\x00' // Null byte
+
+	atomFunc.Value.(*runtime.AtomCode).Code =
+		append(
+			atomFunc.Value.(*runtime.AtomCode).Code,
+			opcodes...,
+		)
+}
+
 func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCode) int {
 	c.emit(atomFunc, opcode)
 	start := len(atomFunc.Value.(*runtime.AtomCode).Code)
@@ -1012,6 +1028,7 @@ func (c *AtomCompile) classStatement(parentScope *AtomScope, parentFunc *runtime
 
 	//============================
 	c.emitInt(parentFunc, runtime.OpMakeClass, items)
+	c.emitWord(parentFunc, name.Str0)
 
 	if base != nil {
 		c.expression(parentScope, parentFunc, base)

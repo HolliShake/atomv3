@@ -80,9 +80,9 @@ func NewAtomValueNull() *AtomValue {
 	return obj
 }
 
-func NewAtomValueClass(base, proto *AtomValue) *AtomValue {
+func NewAtomValueClass(name string, base, proto *AtomValue) *AtomValue {
 	obj := NewAtomValue(AtomTypeClass)
-	obj.Value = NewAtomClass(base, proto)
+	obj.Value = NewAtomClass(name, base, proto)
 	return obj
 }
 
@@ -181,6 +181,10 @@ func (v *AtomValue) String() string {
 			params[i] = fmt.Sprintf("$%d", i)
 		}
 		return fmt.Sprintf("%s(%s){}", nativeFunc.Name, strings.Join(params, ", "))
+
+	case AtomTypeClass:
+		atomClass := v.Value.(*AtomClass)
+		return fmt.Sprintf("<class.%s />", atomClass.Name)
 
 	case AtomTypeEnum:
 		enumElements := v.Value.(*AtomObject).Elements

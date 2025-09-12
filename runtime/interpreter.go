@@ -148,6 +148,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		case OpMakeClass:
 			length := ReadInt(code.Code, offsetStart)
+			name := ReadStr(code.Code, offsetStart+4)
 			elements := make(map[string]*AtomValue, length)
 
 			for range length {
@@ -157,10 +158,11 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			}
 
 			i.pushVal(NewAtomValueClass(
+				name,
 				nil,
 				NewAtomValueObject(elements),
 			))
-			forward(4)
+			forward(4 + len(name) + 1)
 
 		case OpExtendClass:
 			ext := i.pop()
