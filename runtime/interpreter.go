@@ -28,9 +28,9 @@ func NewInterpreter(state *AtomState) *AtomInterpreter {
 }
 
 func (i *AtomInterpreter) pushVal(value *AtomValue) {
+	i.EvaluationStack.Push(value)
 	// i.GcRoot.Next = value
 	// i.GcRoot = value
-	i.EvaluationStack.Push(value)
 	// i.Allocation++
 }
 
