@@ -2,6 +2,7 @@ package main
 
 const (
 	KeyClass    = "class"
+	KeyExtends  = "extends"
 	KeyFunc     = "func"
 	KeyVar      = "var"
 	KeyConst    = "const"

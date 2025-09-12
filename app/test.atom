@@ -1,4 +1,4 @@
-import [print, println, xxx] from "atom:std";
+import [print, println] from "atom:std";
 
 var x = 1;
 
@@ -190,6 +190,7 @@ enum Status {
     BAD = 3
 }
 
+
 var result = (Status.BAD) switch {
     case(Status.OK)  => "Yes"
     case(Status.BAD) => "No"
@@ -199,3 +200,17 @@ var result = (Status.BAD) switch {
 println(result);
 
 println(">>", Status, Status.OK, Status.BAD);
+
+class Animal {
+    func eat(self) {
+
+    }
+}
+
+class Dog extends Animal {
+    local x = 2;
+
+    func init(self) {
+
+    }
+}

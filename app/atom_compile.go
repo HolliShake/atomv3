@@ -782,6 +782,13 @@ func (c *AtomCompile) statement(parentScope *AtomScope, parentFunc *runtime.Atom
 			ast,
 		)
 
+	case AstTypeClass:
+		c.classStatement(
+			parentScope,
+			parentFunc,
+			ast,
+		)
+
 	case AstTypeEnum:
 		c.enumStatement(
 			parentScope,
@@ -927,6 +934,216 @@ func (c *AtomCompile) expressionStatement(parentScope *AtomScope, parentFunc *ru
 	c.emit(parentFunc, runtime.OpPopTop)
 }
 
+func (c *AtomCompile) classStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// Guard
+	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Class statement must be in global scope",
+			ast.Position,
+		)
+	}
+
+	name := ast.Ast0
+	base := ast.Ast1
+	body := ast.Arr1
+
+	if name.AstType != AstTypeIdn {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Expected identifier",
+			name.Position,
+		)
+	}
+
+	if base != nil && base.AstType != AstTypeIdn {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Expected identifier",
+			base.Position,
+		)
+	}
+
+	classScope := NewAtomScope(parentScope, AtomScopeTypeClass)
+
+	//============================
+	if parentScope.HasLocal(name.Str0) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			fmt.Sprintf("Symbol %s already defined", name.Str0),
+			name.Position,
+		)
+		return
+	}
+
+	offset := parentFunc.Value.(*runtime.AtomCode).IncrementLocal()
+	parentScope.AddSymbol(NewAtomSymbol(
+		name.Str0,
+		offset,
+		parentScope.InSide(AtomScopeTypeGlobal, false),
+	))
+
+	//============================
+
+	items := 0
+
+	// Body
+	for _, stmt := range body {
+		switch stmt.AstType {
+		case AstTypeLocalStatement:
+			items += len(stmt.Arr0)
+			c.classVariable(classScope, parentFunc, stmt)
+		case AstTypeFunction:
+			items += 1
+			c.classFunction(classScope, parentFunc, stmt)
+		default:
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected function or variable declaration",
+				stmt.Position,
+			)
+		}
+	}
+
+	//============================
+	c.emitInt(parentFunc, runtime.OpMakeClass, items)
+
+	if base != nil {
+		c.expression(parentScope, parentFunc, base)
+		c.emit(parentFunc, runtime.OpExtendClass)
+	}
+
+	c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
+}
+
+func (c *AtomCompile) classVariable(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	// Guard
+	if !parentScope.InSide(AtomScopeTypeClass, false) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Variable must be defined in class scope",
+			ast.Position,
+		)
+		return
+	}
+
+	for index, key := range ast.Arr0 {
+		val := ast.Arr1[index]
+
+		if key.AstType != AstTypeIdn {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				key.Position,
+			)
+		}
+
+		if val != nil {
+			c.expression(parentScope, parentFunc, val)
+		} else {
+			c.emit(parentFunc, runtime.OpLoadNull)
+		}
+
+		c.emitStr(parentFunc, runtime.OpLoadStr, key.Str0)
+	}
+}
+
+func (c *AtomCompile) classFunction(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
+	parentCode := parentFunc.Value.(*runtime.AtomCode)
+	// Guard
+	if !parentScope.InSide(AtomScopeTypeClass, false) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Function must be defined in class scope",
+			ast.Position,
+		)
+		return
+	}
+
+	funScope := NewAtomScope(parentScope, AtomScopeTypeFunction)
+	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
+	atomCode := atomFunc.Value.(*runtime.AtomCode)
+
+	params := ast.Arr0
+	//============================
+	fnOffset := c.state.SaveFunction(atomFunc)
+	if parentScope.HasLocal(ast.Ast0.Str0) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			fmt.Sprintf("Symbol %s already defined", ast.Ast0.Str0),
+			ast.Ast0.Position,
+		)
+	}
+	// Save to symbol table first to allow captures to reference it
+	offset := parentCode.IncrementLocal()
+	parentScope.AddSymbol(NewAtomSymbol(
+		ast.Ast0.Str0,
+		offset,
+		parentScope.InSide(AtomScopeTypeGlobal, false),
+	))
+
+	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
+	c.emitStr(parentFunc, runtime.OpLoadStr, ast.Ast0.Str0)
+	//============================
+
+	for _, param := range params {
+		if param.AstType != AstTypeIdn {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Expected identifier",
+				param.Position,
+			)
+			return
+		}
+		if funScope.HasLocal(param.Str0) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Symbol %s already defined", param.Str0),
+				param.Position,
+			)
+			return
+		}
+		// Save to symbol table
+		offset := atomCode.IncrementLocal()
+		funScope.AddSymbol(NewAtomSymbol(
+			param.Str0,
+			offset,
+			false,
+		))
+		c.emitInt(atomFunc, runtime.OpStoreLocal, offset)
+	}
+	body := ast.Arr1
+	for _, stmt := range body {
+		c.statement(funScope, atomFunc, stmt)
+	}
+
+	c.emit(atomFunc, runtime.OpLoadNull)
+	c.emit(atomFunc, runtime.OpReturn)
+
+	// Write captures
+	for _, capture := range funScope.Captures() {
+		offset := 0
+		if parentScope.HasLocal(capture.Name) {
+			offset = parentScope.GetSymbol(capture.Name).Offset
+		} else {
+			// Possible, not handled properly
+			panic(fmt.Sprintf("Capture %s not found", capture.Name))
+		}
+		atomCode.CopyCellFrom(parentCode, offset, capture.Offset)
+	}
+}
+
 func (c *AtomCompile) enumStatement(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	// Guard
 	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
@@ -996,7 +1213,7 @@ func (c *AtomCompile) enumStatement(parentScope *AtomScope, parentFunc *runtime.
 
 }
 
-func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) *runtime.AtomValue {
+func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {
 	parentCode := parentFunc.Value.(*runtime.AtomCode)
 	// Guard
 	if !parentScope.InSide(AtomScopeTypeGlobal, false) {
@@ -1006,8 +1223,9 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 			"Function must be defined in global scope",
 			ast.Position,
 		)
-		return nil
+		return
 	}
+
 	funScope := NewAtomScope(parentScope, AtomScopeTypeFunction)
 	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
 	atomCode := atomFunc.Value.(*runtime.AtomCode)
@@ -1030,6 +1248,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		offset,
 		parentScope.InSide(AtomScopeTypeGlobal, false),
 	))
+
 	c.emitInt(parentFunc, runtime.OpLoadFunction, fnOffset)
 	c.emitInt(parentFunc, runtime.OpStoreGlobal, offset)
 	//============================
@@ -1042,7 +1261,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 				"Expected identifier",
 				param.Position,
 			)
-			return nil
+			return
 		}
 		if funScope.HasLocal(param.Str0) {
 			Error(
@@ -1051,7 +1270,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 				fmt.Sprintf("Symbol %s already defined", param.Str0),
 				param.Position,
 			)
-			return nil
+			return
 		}
 		// Save to symbol table
 		offset := atomCode.IncrementLocal()
@@ -1066,6 +1285,7 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 	for _, stmt := range body {
 		c.statement(funScope, atomFunc, stmt)
 	}
+
 	c.emit(atomFunc, runtime.OpLoadNull)
 	c.emit(atomFunc, runtime.OpReturn)
 
@@ -1080,8 +1300,6 @@ func (c *AtomCompile) function(parentScope *AtomScope, parentFunc *runtime.AtomV
 		}
 		atomCode.CopyCellFrom(parentCode, offset, capture.Offset)
 	}
-
-	return atomFunc
 }
 
 func (c *AtomCompile) block(parentScope *AtomScope, parentFunc *runtime.AtomValue, ast *AtomAst) {

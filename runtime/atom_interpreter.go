@@ -146,6 +146,31 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			i.pushRef(fn)
 			forward(4)
 
+		case OpMakeClass:
+			length := ReadInt(code.Code, offsetStart)
+
+			elements := make(map[string]*AtomValue, length)
+
+			fmt.Println("len", length)
+
+			for range length {
+				k := i.pop()
+				v := i.pop()
+				elements[k.Value.(string)] = v
+			}
+
+			i.pushVal(NewAtomValueClass(
+				nil,
+				NewAtomValueObject(elements),
+			))
+			forward(4)
+
+		case OpExtendClass:
+			ext := i.pop()
+			cls := i.peek()
+			atomClass := cls.Value.(*AtomClass)
+			atomClass.Base = ext
+
 		case OpMakeEnum:
 			length := ReadInt(code.Code, offsetStart)
 			elements := make(map[string]*AtomValue, length)

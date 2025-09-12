@@ -787,7 +787,9 @@ func (p *AtomParser) mandatory() *AtomAst {
 }
 
 func (p *AtomParser) statement() *AtomAst {
-	if p.checkT(TokenTypeKey) && p.checkV(KeyEnum) {
+	if p.checkT(TokenTypeKey) && p.checkV(KeyClass) {
+		return p.classStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyEnum) {
 		return p.enumStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyFunc) {
 		return p.function()
@@ -817,6 +819,59 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.returnStatement()
 	}
 	return p.expressionStatement()
+}
+
+func (p *AtomParser) classStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+
+	p.acceptV(KeyClass)
+
+	name := p.terminal()
+	if name == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected identifier",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+
+	var base *AtomAst = nil
+
+	if p.checkT(TokenTypeKey) && p.checkV(KeyExtends) {
+		p.acceptV(KeyExtends)
+		base = p.primary()
+		if base == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				"Expected identifier",
+				p.lookahead.Position,
+			)
+			return nil
+		}
+	}
+
+	p.acceptV("{")
+
+	body := []*AtomAst{}
+	stmt := p.statement()
+	for stmt != nil {
+		body = append(body, stmt)
+		stmt = p.statement()
+	}
+
+	ended = p.lookahead.Position
+	p.acceptV("}")
+
+	return NewClassStatement(
+		name,
+		base,
+		body,
+		start.Merge(ended),
+	)
 }
 
 func (p *AtomParser) enumStatement() *AtomAst {

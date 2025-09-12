@@ -16,6 +16,8 @@ const (
 	AtomTypeBool
 	AtomTypeStr
 	AtomTypeNull
+	AtomTypeClass
+	AtomTypeClassInstance
 	AtomTypeEnum
 	AtomTypeObj
 	AtomTypeArray
@@ -75,6 +77,12 @@ func NewAtomValueStr(value string) *AtomValue {
 func NewAtomValueNull() *AtomValue {
 	obj := NewAtomValue(AtomTypeNull)
 	obj.Value = nil
+	return obj
+}
+
+func NewAtomValueClass(base, proto *AtomValue) *AtomValue {
+	obj := NewAtomValue(AtomTypeClass)
+	obj.Value = NewAtomClass(base, proto)
 	return obj
 }
 

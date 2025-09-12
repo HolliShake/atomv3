@@ -14,8 +14,10 @@ const (
 	OpLoadModule0  // With N bytes argument // name -> builtin
 	OpLoadModule1  // With N bytes argument // path
 	OpLoadFunction // with 4 bytes argument
-	OpMakeEnum
-	OpCall // with 4 bytes argument
+	OpMakeClass    // with 4 bytes argument
+	OpExtendClass
+	OpMakeEnum // with 4 bytes argument
+	OpCall     // with 4 bytes argument
 	OpNot
 	OpNeg
 	OpPos
@@ -50,6 +52,7 @@ const (
 	OpAbsoluteJump      // with 4 bytes argument a.k.a jump offset
 	OpDupTop
 	OpNoOp
+	OpRot2
 	OpPopTop
 	OpReturn
 )
