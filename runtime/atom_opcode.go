@@ -5,7 +5,7 @@ type OpCode byte
 const (
 	OpLoadInt OpCode = iota
 	OpLoadNum
-	OpLoadStr
+	OpLoadStr // With N bytes argument
 	OpLoadBool
 	OpLoadNull
 	OpLoadArray    // with 4 bytes argument

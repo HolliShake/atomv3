@@ -1,3 +1,3 @@
 #!/bin/bash
 
-go build -o atom .
+go build -o atom.exe .

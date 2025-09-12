@@ -649,7 +649,7 @@ func (p *AtomParser) switchExpression() *AtomAst {
 		start = p.lookahead.Position
 		ended = start
 
-		pattern := p.terminal()
+		pattern := p.primary()
 		if pattern == nil {
 			Error(
 				p.tokenizer.file,
@@ -662,7 +662,7 @@ func (p *AtomParser) switchExpression() *AtomAst {
 		patterns = append(patterns, pattern)
 		for p.checkT(TokenTypeSym) && p.checkV(",") {
 			p.acceptV(",")
-			pattern = p.terminal()
+			pattern = p.primary()
 			if pattern == nil {
 				Error(
 					p.tokenizer.file,
@@ -1244,7 +1244,7 @@ func (p *AtomParser) switchStatement() *AtomAst {
 		p.acceptV(KeyCase)
 		p.acceptV("(")
 		patterns := []*AtomAst{}
-		pattern := p.terminal()
+		pattern := p.primary()
 		if pattern == nil {
 			Error(
 				p.tokenizer.file,
@@ -1257,7 +1257,7 @@ func (p *AtomParser) switchStatement() *AtomAst {
 		patterns = append(patterns, pattern)
 		for p.checkT(TokenTypeSym) && p.checkV(",") {
 			p.acceptV(",")
-			pattern = p.terminal()
+			pattern = p.primary()
 			if pattern == nil {
 				Error(
 					p.tokenizer.file,

@@ -185,9 +185,17 @@ switch (2 + 2 + 3) {
 
 println(true && false, null);
 
-enum Dog {
-    Status = 2,
-    Meow   = 3
+enum Status {
+    OK  = 2,
+    BAD = 3
 }
 
-println(">>", Dog, Dog.Status, Dog.Meow);
+var result = (Status.BAD) switch {
+    case(Status.OK)  => "Yes"
+    case(Status.BAD) => "No"
+    default => "Unknown"
+};
+
+println(result);
+
+println(">>", Status, Status.OK, Status.BAD);
