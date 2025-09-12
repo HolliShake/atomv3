@@ -148,10 +148,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		case OpMakeClass:
 			length := ReadInt(code.Code, offsetStart)
-
 			elements := make(map[string]*AtomValue, length)
-
-			fmt.Println("len", length)
 
 			for range length {
 				k := i.pop()
