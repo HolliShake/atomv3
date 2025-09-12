@@ -149,7 +149,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 		case OpMakeClass:
 			length := ReadInt(code.Code, offsetStart)
 			name := ReadStr(code.Code, offsetStart+4)
-			elements := make(map[string]*AtomValue, length)
+			elements := map[string]*AtomValue{}
 
 			for range length {
 				k := i.pop()
@@ -172,8 +172,8 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 
 		case OpMakeEnum:
 			length := ReadInt(code.Code, offsetStart)
-			elements := make(map[string]*AtomValue, length)
-			valueHashes := make(map[int]bool, length)
+			elements := map[string]*AtomValue{}
+			valueHashes := map[int]bool{}
 
 			for range length {
 				k := i.pop()

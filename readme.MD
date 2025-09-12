@@ -4,7 +4,7 @@ Atom is a custom programming language implemented in Go, featuring a complete co
 
 ## Features
 
-- **Dynamic Typing**: Supports integers, floats, strings, booleans, arrays, objects, functions, classes, and enums
+- **Dynamic Typing**: Supports integers, floats, strings, booleans, arrays, objects, functions, classes, enums, and errors
 - **Function Support**: First-class functions with parameters and return statements
 - **Variable Declarations**: `var`, `const`, and `local` variable declarations with proper scoping
 - **Control Flow**: `if-else`, `switch` statements and expressions, `while`, `do-while`, `break`, `continue`
@@ -17,7 +17,8 @@ Atom is a custom programming language implemented in Go, featuring a complete co
 - **Error Handling**: Try-catch expressions with error propagation
 - **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`)
 - **Stack-based VM**: Efficient bytecode execution with evaluation stack
-- **Memory Management**: Basic garbage collection with GC roots
+- **Memory Management**: Basic garbage collection with GC roots and memory usage reporting
+- **Error Reporting**: Comprehensive error messages with source location and debugging information
 
 ## Language Syntax
 
@@ -34,6 +35,7 @@ Atom supports the following primitive types:
 - **Functions**: First-class function objects
 - **Classes**: User-defined types with methods and inheritance
 - **Enums**: Named constants with optional custom values
+- **Errors**: Runtime error values for exception handling
 
 ### Variable Declarations
 
@@ -286,6 +288,13 @@ func riskyOperation() {
 const result = riskyOperation() catch(err) {
     println("Error occurred:", err);
     return null;
+};
+
+// Error handling with array access
+const arr = [1, 2, 3];
+const value = arr[10] catch(e) {
+    println("Array index error:", e);
+    return -1;
 };
 ```
 
@@ -636,28 +645,32 @@ class Dog extends Animal {
 
 ### Compiler Pipeline
 
-1. **Tokenizer** (`atom_tokenizer.go`): Converts source code into tokens
+1. **Tokenizer** (`tokenizer.go`): Converts source code into tokens
    - Supports Unicode strings with escape sequences (`\n`, `\t`, `\r`, `\uXXXX`)
    - Handles single-line (`//`) and multi-line (`/* */`) comments
    - Recognizes hexadecimal numbers (`0x1A`, `0xFF`)
    - Supports scientific notation (`1.5e10`, `2E-3`)
    - Multi-character operators (`==`, `!=`, `&&`, `||`, `+=`, `-=`, etc.)
+   - Identifies keywords, identifiers, and symbols
 
-2. **Parser** (`atom_parser.go`): Builds Abstract Syntax Tree (AST) from tokens
+2. **Parser** (`parser.go`): Builds Abstract Syntax Tree (AST) from tokens
    - Recursive descent parser with operator precedence
    - Supports all binary operators with proper precedence
    - Handles function calls, array/object access, and member access
    - Parses control flow statements and variable declarations
+   - Supports classes, enums, switch statements, and catch expressions
 
-3. **Compiler** (`atom_compile.go`): Compiles AST to bytecode
+3. **Compiler** (`compile.go`): Compiles AST to bytecode
    - Generates stack-based bytecode instructions
    - Handles variable scoping and function compilation
    - Optimizes expression evaluation order
+   - Manages symbol tables and scope resolution
 
-4. **Interpreter** (`atom_interpreter.go`): Executes bytecode
+4. **Interpreter** (`interpreter.go`): Executes bytecode
    - Stack-based virtual machine execution
    - Frame management for function calls
    - Memory management with garbage collection roots
+   - Runtime error handling and reporting
 
 ### Runtime System
 
@@ -705,25 +718,60 @@ go run *.go <file.atom>
 go run *.go test.atom
 ```
 
+### Debugging and Error Reporting
+
+Atom provides comprehensive error reporting with:
+- **Source Location**: Shows exact file, line, and column where errors occur
+- **Context Display**: Shows surrounding code with error highlighting
+- **Memory Usage**: Reports memory allocation statistics after execution
+- **Call Stack**: Shows function call hierarchy in error messages
+
+Example error output:
+```
+DEBUG(parseExpression)::Error in [test.atom:15:8] unexpected token
+  12 | var x = 1;
+  13 | var y = 2;
+  14 | var z = 3;
+  15 | var w = ;  // Missing value
+     |        ^
+  16 | println(x);
+```
+
 ## Project Structure
 
 ```
 atom/
 ├── app/                    # Main application and compiler
 │   ├── main.go            # Entry point
-│   ├── atom_tokenizer.go  # Lexical analysis
-│   ├── atom_parser.go     # Syntax analysis
-│   ├── atom_compile.go    # Code generation
-│   ├── atom_ast.go        # AST definitions
-│   ├── atom_error.go      # Error handling
-│   └── test.atom          # Example program
+│   ├── tokenizer.go       # Lexical analysis
+│   ├── parser.go          # Syntax analysis
+│   ├── compile.go         # Code generation
+│   ├── ast.go             # AST definitions
+│   ├── error.go           # Error handling
+│   ├── keyword.go         # Language keywords
+│   ├── token.go           # Token definitions
+│   ├── position.go        # Source position tracking
+│   ├── scope.go           # Variable scoping
+│   ├── symbol.go          # Symbol table
+│   ├── test.atom          # Example program
+│   └── build.sh           # Build script
 ├── runtime/               # Runtime system
-│   ├── atom_interpreter.go # VM implementation
-│   ├── atom_operation.go   # Operation implementations
-│   ├── atom_value.go      # Value system
-│   ├── atom_opcode.go     # Bytecode definitions
-│   └── atom_stack.go      # Stack implementation
-└── builtin/               # Built-in types and functions
+│   ├── interpreter.go     # VM implementation
+│   ├── operation.go       # Operation implementations
+│   ├── value.go           # Value system
+│   ├── opcode.go          # Bytecode definitions
+│   ├── stack.go           # Stack implementation
+│   ├── state.go           # Runtime state
+│   ├── code.go            # Code generation utilities
+│   ├── object.go          # Object system
+│   ├── array.go           # Array implementation
+│   ├── class.go           # Class definitions
+│   ├── class_instance.go  # Class instance handling
+│   ├── cell.go            # Memory cell management
+│   ├── checker.go         # Type checking
+│   ├── util.go            # Utility functions
+│   └── builtin_std.go     # Standard library functions
+└── go.work               # Go workspace configuration
 ```
 
 ## Language Limitations
