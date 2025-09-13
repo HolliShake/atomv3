@@ -5,6 +5,43 @@ import (
 	"math"
 )
 
+// Object operations
+
+func DoLoadArray(interpreter *AtomInterpreter, size int) {
+	elements := []*AtomValue{}
+	for range size {
+		elements = append(elements, interpreter.popp())
+	}
+	interpreter.pushVal(
+		NewAtomValueArray(elements),
+	)
+}
+
+func DoLoadObject(interpreter *AtomInterpreter, size int) {
+	elements := map[string]*AtomValue{}
+	for range size {
+		k := interpreter.popp()
+		v := interpreter.popp()
+		elements[k.Value.(string)] = v
+	}
+	interpreter.pushVal(
+		NewAtomValueObject(elements),
+	)
+}
+
+// Name operations
+
+func DoLoadName(interpreter *AtomInterpreter, env *AtomEnv, name string) {
+	value, err := env.Lookup(name)
+	if err != nil {
+		interpreter.pushVal(
+			NewAtomValueError(err.Error()),
+		)
+	} else {
+		interpreter.pushRef(value)
+	}
+}
+
 // Module operations
 
 func DoLoadModule0(interpreter *AtomInterpreter, name string) {
@@ -115,7 +152,7 @@ func DoPluckAttribute(interpreter *AtomInterpreter, obj *AtomValue, attribute st
 func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 	cleanupStack := func(size int) {
 		for range size {
-			interpreter.pop()
+			interpreter.popp()
 		}
 	}
 	if CheckType(obj, AtomTypeArray) {
@@ -142,7 +179,7 @@ func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) 
 			return
 		}
 
-		array.Set(int(indexValue), interpreter.pop())
+		array.Set(int(indexValue), interpreter.popp())
 		return
 
 	} else if CheckType(obj, AtomTypeObj) {
@@ -155,7 +192,7 @@ func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) 
 
 		objValue := obj.Value.(*AtomObject)
 		indexValue := index.String()
-		objValue.Set(indexValue, interpreter.pop())
+		objValue.Set(indexValue, interpreter.popp())
 		return
 
 	} else {
@@ -166,12 +203,59 @@ func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) 
 	}
 }
 
+func DoLoadFunction(interpreter *AtomInterpreter, offset int) {
+	fn := interpreter.State.FunctionTable.Get(offset)
+	interpreter.pushRef(fn)
+}
+
+func DoMakeClass(interpreter *AtomInterpreter, name string, size int) {
+	elements := map[string]*AtomValue{}
+
+	for range size {
+		k := interpreter.popp()
+		v := interpreter.popp()
+		elements[k.Value.(string)] = v
+	}
+
+	interpreter.pushVal(NewAtomValueClass(
+		name,
+		nil,
+		NewAtomValueObject(elements),
+	))
+}
+
+func DoExtendClass(interpreter *AtomInterpreter, cls *AtomValue, ext *AtomValue) {
+	clsValue := cls.Value.(*AtomClass)
+	clsValue.Base = ext
+}
+
+func DoMakeEnum(interpreter *AtomInterpreter, env *AtomEnv, size int) {
+	elements := map[string]*AtomValue{}
+	valueHashes := map[int]bool{}
+
+	for range size {
+		k := interpreter.popp()
+		v := interpreter.popp()
+		key := k.Value.(string)
+
+		valueHash := v.HashValue()
+		if valueHashes[valueHash] {
+			elements[key] = NewAtomValueError(fmt.Sprintf("duplicate value in enum (%s)", v.String()))
+		} else {
+			elements[key] = v
+			valueHashes[valueHash] = true
+		}
+	}
+
+	interpreter.pushVal(NewAtomValueEnum(elements))
+}
+
 // Function call operations
 
 func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
-			interpreter.pop()
+			interpreter.popp()
 		}
 	}
 	if CheckType(fn, AtomTypeFunc) {

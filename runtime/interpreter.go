@@ -38,7 +38,7 @@ func (i *AtomInterpreter) pushRef(value *AtomValue) {
 	i.EvaluationStack.Push(value)
 }
 
-func (i *AtomInterpreter) pop() *AtomValue {
+func (i *AtomInterpreter) popp() *AtomValue {
 	return i.EvaluationStack.Pop()
 }
 
@@ -65,35 +65,24 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 		opCode := code.Code[strt]
 		strt++
 
-		if (i.Allocation % TRESHOLD) == 0 {
-			// TODO: Garbage collection
-		}
-
 		switch opCode {
 		case OpLoadInt:
 			value := ReadInt(code.Code, strt)
-			i.pushVal(
-				NewAtomValueInt(value),
-			)
+			i.pushVal(NewAtomValueInt(value))
 			forward(4)
 
 		case OpLoadNum:
 			value := ReadNum(code.Code, strt)
-			i.pushVal(
-				NewAtomValueNum(value),
-			)
+			i.pushVal(NewAtomValueNum(value))
 			forward(8)
 
 		case OpLoadStr:
 			value := ReadStr(code.Code, strt)
-			i.pushVal(
-				NewAtomValueStr(value),
-			)
+			i.pushVal(NewAtomValueStr(value))
 			forward(len(value) + 1)
 
 		case OpLoadBool:
-			value := ReadInt(code.Code, strt)
-			if value != 0 {
+			if ReadInt(code.Code, strt) != 0 {
 				i.pushRef(i.State.TrueValue)
 			} else {
 				i.pushRef(i.State.FalseValue)
@@ -101,44 +90,21 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			forward(4)
 
 		case OpLoadNull:
-			i.pushRef(
-				i.State.NullValue,
-			)
+			i.pushRef(i.State.NullValue)
 
 		case OpLoadArray:
-			length := ReadInt(code.Code, strt)
-			elements := []*AtomValue{}
-			for range length {
-				elements = append(elements, i.pop())
-			}
-			i.pushVal(
-				NewAtomValueArray(elements),
-			)
+			size := ReadInt(code.Code, strt)
+			DoLoadArray(i, size)
 			forward(4)
 
 		case OpLoadObject:
-			length := ReadInt(code.Code, strt)
-			elements := map[string]*AtomValue{}
-			for range length {
-				k := i.pop()
-				v := i.pop()
-				elements[k.Value.(string)] = v
-			}
-			i.pushVal(
-				NewAtomValueObject(elements),
-			)
+			size := ReadInt(code.Code, strt)
+			DoLoadObject(i, size)
 			forward(4)
 
 		case OpLoadName:
 			variable := ReadStr(code.Code, strt)
-			value, err := env0.Lookup(variable)
-			if err != nil {
-				i.pushVal(
-					NewAtomValueError(err.Error()),
-				)
-			} else {
-				i.pushRef(value)
-			}
+			DoLoadName(i, env0, variable)
 			forward(len(variable) + 1)
 
 		case OpLoadModule0:
@@ -148,77 +114,46 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, strt)
-			fn := i.State.FunctionTable.Get(offset)
-			i.pushRef(fn)
+			DoLoadFunction(i, offset)
 			forward(4)
 
 		case OpMakeClass:
-			length := ReadInt(code.Code, strt)
+			size := ReadInt(code.Code, strt)
 			name := ReadStr(code.Code, strt+4)
-			elements := map[string]*AtomValue{}
-
-			for range length {
-				k := i.pop()
-				v := i.pop()
-				elements[k.Value.(string)] = v
-			}
-
-			i.pushVal(NewAtomValueClass(
-				name,
-				nil,
-				NewAtomValueObject(elements),
-			))
+			DoMakeClass(i, name, size)
 			forward(4 + len(name) + 1)
 
 		case OpExtendClass:
-			ext := i.pop()
+			ext := i.popp()
 			cls := i.peek()
-			atomClass := cls.Value.(*AtomClass)
-			atomClass.Base = ext
+			DoExtendClass(i, cls, ext)
 
 		case OpMakeEnum:
-			length := ReadInt(code.Code, strt)
-			elements := map[string]*AtomValue{}
-			valueHashes := map[int]bool{}
-
-			for range length {
-				k := i.pop()
-				v := i.pop()
-				key := k.Value.(string)
-
-				valueHash := v.HashValue()
-				if valueHashes[valueHash] {
-					elements[key] = NewAtomValueError(fmt.Sprintf("duplicate value in enum (%s)", v.String()))
-				} else {
-					elements[key] = v
-					valueHashes[valueHash] = true
-				}
-			}
-
-			i.pushVal(NewAtomValueEnum(elements))
+			size := ReadInt(code.Code, strt)
+			DoMakeEnum(i, env0, size)
 			forward(4)
 
 		case OpCall:
 			argc := ReadInt(code.Code, strt)
-			forward(4)
-			call := i.pop()
+			call := i.popp()
 			DoCall(i, env0, call, argc)
+			forward(4)
 
 		case OpNot:
-			val := i.pop()
+			val := i.popp()
 			DoNot(i, val)
 
 		case OpNeg:
-			val := i.pop()
+			val := i.popp()
 			DoNeg(i, val)
 
 		case OpPos:
-			val := i.pop()
+			val := i.popp()
 			DoPos(i, val)
 
 		case OpIndex:
-			index := i.pop()
-			obj := i.pop()
+			index := i.popp()
+			obj := i.popp()
 			DoIndex(i, obj, index)
 
 		case OpPluckAttribute:
@@ -228,90 +163,90 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			forward(len(attribute) + 1)
 
 		case OpMul:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoMultiplication(i, lhs, rhs)
 
 		case OpDiv:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoDivision(i, lhs, rhs)
 
 		case OpMod:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoModulus(i, lhs, rhs)
 
 		case OpAdd:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoAddition(i, lhs, rhs)
 
 		case OpSub:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoSubtraction(i, lhs, rhs)
 
 		case OpShl:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoShiftLeft(i, lhs, rhs)
 
 		case OpShr:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoShiftRight(i, lhs, rhs)
 
 		case OpCmpLt:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoCmpLt(i, lhs, rhs)
 
 		case OpCmpLte:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoCmpLte(i, lhs, rhs)
 
 		case OpCmpGt:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoCmpGt(i, lhs, rhs)
 
 		case OpCmpGte:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoCmpGte(i, lhs, rhs)
 
 		case OpCmpEq:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoCmpEq(i, lhs, rhs)
 
 		case OpCmpNe:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoCmpNe(i, lhs, rhs)
 
 		case OpAnd:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoAnd(i, lhs, rhs)
 
 		case OpOr:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoOr(i, lhs, rhs)
 
 		case OpXor:
-			rhs := i.pop()
-			lhs := i.pop()
+			rhs := i.popp()
+			lhs := i.popp()
 			DoXor(i, lhs, rhs)
 
 		case OpInitVar:
 			v := ReadStr(code.Code, strt)
 			g := code.Code[strt+len(v)+1] == 1
 			c := code.Code[strt+len(v)+2] == 1
-			value := i.pop()
+			value := i.popp()
 			err := env0.New(v, g, c, value)
 			if err != nil {
 				panic(err)
@@ -320,19 +255,19 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 
 		case OpStoreFast:
 			param := ReadStr(code.Code, strt)
-			value := i.pop()
+			value := i.popp()
 			env0.New(param, false, false, value)
 			forward(len(param) + 1)
 
 		case OpStoreLocal:
 			index := ReadStr(code.Code, strt)
-			value := i.pop()
+			value := i.popp()
 			env0.Store(index, value)
 			forward(len(index) + 1)
 
 		case OpSetIndex:
-			index := i.pop()
-			obj := i.pop()
+			index := i.popp()
+			obj := i.popp()
 			DoSetIndex(i, obj, index)
 
 		case OpJumpIfFalseOrPop:
@@ -342,7 +277,7 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			if !CoerceToBool(value) {
 				jump(offset)
 			} else {
-				i.pop()
+				i.popp()
 			}
 
 		case OpJumpIfTrueOrPop:
@@ -352,13 +287,13 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			if CoerceToBool(value) {
 				jump(offset)
 			} else {
-				i.pop()
+				i.popp()
 			}
 
 		case OpPopJumpIfFalse:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			value := i.pop()
+			value := i.popp()
 			if !CoerceToBool(value) {
 				jump(offset)
 			}
@@ -366,7 +301,7 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 		case OpPopJumpIfTrue:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			value := i.pop()
+			value := i.popp()
 			if CoerceToBool(value) {
 				jump(offset)
 			}
@@ -374,7 +309,7 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 		case OpPeekJumpIfEqual:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			rhs := i.pop()
+			rhs := i.popp()
 			lhs := i.peek()
 			if rhs.HashValue() == lhs.HashValue() {
 				jump(offset)
@@ -412,7 +347,7 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			forward(0)
 
 		case OpPopTop:
-			i.pop()
+			i.popp()
 
 		case OpReturn:
 			return

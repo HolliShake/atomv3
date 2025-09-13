@@ -27,10 +27,8 @@ const (
 )
 
 type AtomValue struct {
-	Type   AtomType
-	Value  any
-	Next   *AtomValue
-	Marked bool
+	Type  AtomType
+	Value any
 }
 
 type NativeFunction func(intereter *AtomInterpreter, argc int)
@@ -38,8 +36,6 @@ type NativeFunction func(intereter *AtomInterpreter, argc int)
 func NewAtomValue(atomType AtomType) *AtomValue {
 	obj := &AtomValue{}
 	obj.Type = atomType
-	obj.Marked = false
-	obj.Next = nil
 	obj.Value = nil
 	return obj
 }

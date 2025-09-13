@@ -3,7 +3,7 @@ package runtime
 import "fmt"
 
 var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc int) {
-	obj := interpreter.pop()
+	obj := interpreter.popp()
 	if CheckType(obj, AtomTypeObj) {
 		obj.Value.(*AtomObject).Freeze = true
 	} else if CheckType(obj, AtomTypeArray) {
@@ -17,7 +17,7 @@ var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc 
 
 var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpreter, argc int) {
 	for i := range argc {
-		fmt.Print(interpreter.pop().String())
+		fmt.Print(interpreter.popp().String())
 		if i < argc-1 {
 			fmt.Print(" ")
 		}
@@ -28,7 +28,7 @@ var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpre
 
 var print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpreter, argc int) {
 	for i := range argc {
-		fmt.Print(interpreter.pop().String())
+		fmt.Print(interpreter.popp().String())
 		if i < argc-1 {
 			fmt.Print(" ")
 		}
