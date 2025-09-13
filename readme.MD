@@ -15,7 +15,7 @@ Atom is a custom programming language implemented in Go, featuring a complete co
 - **Array Support**: Array literals, indexing, element access, and freezing
 - **Object Support**: Object literals with key-value pairs, property access, method calls, and freezing
 - **Error Handling**: Try-catch expressions with error propagation
-- **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`)
+- **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`) with colored output
 - **Stack-based VM**: Efficient bytecode execution with evaluation stack
 - **Memory Management**: Basic garbage collection with GC roots and memory usage reporting
 - **Error Reporting**: Comprehensive error messages with source location and debugging information
@@ -209,8 +209,10 @@ class Animal {
 class Dog extends Animal {
     local name = "Buddy";
     
-    func init(self) {
-        println("Dog created");
+    func init(self, _name, _age) {
+        self.name = _name;
+        self.age = _age;
+        println("Dog created: " + self.name);
     }
     
     func bark(self) {
@@ -218,8 +220,8 @@ class Dog extends Animal {
     }
 }
 
-// Creating instances
-var myDog = new Dog();
+// Creating instances with constructor parameters
+var myDog = new Dog("Buddy", 3);
 myDog.eat();    // Inherited method
 myDog.bark();   // Own method
 ```
@@ -337,8 +339,8 @@ add(multiply(2, 3), divide(10, 2));
 // Import selected symbols from the standard library
 import [ print, println, freeze ] from "atom:std";
 
-println("Hello, World!", 1, 2, 3);
-print("Wheels on the bus!", std, "\n");
+println("Hello, World!", 1, 2, 3);  // Output in yellow
+print("Wheels on the bus!", std, "\n");  // Output in green
 
 // Freezing objects and arrays
 var obj = {name: "test", value: 42};
@@ -697,12 +699,19 @@ The VM supports the following opcodes:
 ## Building and Running
 
 ### Prerequisites
-- Go 1.19 or later
+- Go 1.24.5 or later
 
 ### Build
 ```bash
 # Build the compiler/interpreter
 cd app
+
+# Using the build script (recommended)
+./build.sh        # Linux/macOS
+# or
+build.bat         # Windows
+
+# Manual build
 go build -o atom .
 
 # Or run directly
@@ -752,9 +761,11 @@ atom/
 │   ├── token.go           # Token definitions
 │   ├── position.go        # Source position tracking
 │   ├── scope.go           # Variable scoping
-│   ├── symbol.go          # Symbol table
-│   ├── test.atom          # Example program
-│   └── build.sh           # Build script
+│   ├── test_shift_assign.atom # Test file for shift assignment
+│   ├── test.js            # JavaScript test file
+│   ├── atom.ico           # Application icon
+│   ├── build.sh           # Build script (Linux/macOS)
+│   └── build.bat          # Build script (Windows)
 ├── runtime/               # Runtime system
 │   ├── interpreter.go     # VM implementation
 │   ├── operation.go       # Operation implementations
@@ -767,10 +778,13 @@ atom/
 │   ├── array.go           # Array implementation
 │   ├── class.go           # Class definitions
 │   ├── class_instance.go  # Class instance handling
-│   ├── cell.go            # Memory cell management
 │   ├── checker.go         # Type checking
 │   ├── util.go            # Utility functions
-│   └── builtin_std.go     # Standard library functions
+│   ├── builtin.go         # Built-in functions
+│   ├── builtin_std.go     # Standard library functions
+│   ├── env.go             # Environment management
+│   ├── frame.go           # Call frame management
+│   └── variable.go        # Variable management
 └── go.work               # Go workspace configuration
 ```
 
