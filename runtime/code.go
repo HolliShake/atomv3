@@ -4,6 +4,7 @@ type AtomCode struct {
 	File string
 	Name string
 	Argc int
+	Line []int
 	Code []OpCode // Instructions
 }
 
@@ -12,6 +13,7 @@ func NewAtomCode(file, name string, argc int) *AtomCode {
 		File: file,
 		Name: name,
 		Argc: argc,
+		Line: []int{},
 		Code: []OpCode{},
 	}
 }

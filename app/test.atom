@@ -215,4 +215,6 @@ class Dog extends Animal {
     }
 }
 
+g = 2;
+
 println(Dog);

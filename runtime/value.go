@@ -124,28 +124,40 @@ func NewAtomValueError(message string) *AtomValue {
 
 func (v *AtomValue) String() string {
 	switch v.Type {
+	case AtomTypeInt:
+		return fmt.Sprintf("%v", v.Value)
+
+	case AtomTypeNum:
+		return fmt.Sprintf("%v", v.Value)
+
+	case AtomTypeBool:
+		return fmt.Sprintf("%v", v.Value)
+
+	case AtomTypeStr:
+		return fmt.Sprintf("%v", v.Value)
+
 	case AtomTypeNull:
 		return "null"
 
-	case AtomTypeFunc:
-		return fmt.Sprintf("function %s(...){}", v.Value.(*AtomCode).Name)
+	case AtomTypeClass:
+		atomClass := v.Value.(*AtomClass)
+		return fmt.Sprintf("<class.%s />", atomClass.Name)
 
-	case AtomTypeArray:
-		elements := v.Value.(*AtomArray).Elements
-		if len(elements) == 0 {
-			return "[]"
+	case AtomTypeClassInstance:
+		return fmt.Sprintf("%v", v.Value)
+
+	case AtomTypeEnum:
+		enumElements := v.Value.(*AtomObject).Elements
+		if len(enumElements) == 0 {
+			return "enum {}"
 		}
 
 		// Pre-allocate slice with estimated capacity
-		parts := make([]string, 0, len(elements))
-		for _, element := range elements {
-			if element.Type == AtomTypeStr {
-				parts = append(parts, "'"+element.Value.(string)+"'")
-			} else {
-				parts = append(parts, element.String())
-			}
+		parts := make([]string, 0, len(enumElements))
+		for key, value := range enumElements {
+			parts = append(parts, key+"="+value.String())
 		}
-		return "[" + strings.Join(parts, ", ") + "]"
+		return "enum {" + strings.Join(parts, ", ") + "}"
 
 	case AtomTypeObj:
 		objElements := v.Value.(*AtomObject).Elements
@@ -166,6 +178,26 @@ func (v *AtomValue) String() string {
 		}
 		return "{" + strings.Join(parts, ", ") + "}"
 
+	case AtomTypeArray:
+		elements := v.Value.(*AtomArray).Elements
+		if len(elements) == 0 {
+			return "[]"
+		}
+
+		// Pre-allocate slice with estimated capacity
+		parts := make([]string, 0, len(elements))
+		for _, element := range elements {
+			if element.Type == AtomTypeStr {
+				parts = append(parts, "'"+element.Value.(string)+"'")
+			} else {
+				parts = append(parts, element.String())
+			}
+		}
+		return "[" + strings.Join(parts, ", ") + "]"
+
+	case AtomTypeFunc:
+		return fmt.Sprintf("function %s(...){}", v.Value.(*AtomCode).Name)
+
 	case AtomTypeNativeFunc:
 		nativeFunc := v.Value.(NativeFunc)
 		if nativeFunc.Paramc == Variadict {
@@ -182,22 +214,8 @@ func (v *AtomValue) String() string {
 		}
 		return fmt.Sprintf("%s(%s){}", nativeFunc.Name, strings.Join(params, ", "))
 
-	case AtomTypeClass:
-		atomClass := v.Value.(*AtomClass)
-		return fmt.Sprintf("<class.%s />", atomClass.Name)
-
-	case AtomTypeEnum:
-		enumElements := v.Value.(*AtomObject).Elements
-		if len(enumElements) == 0 {
-			return "enum {}"
-		}
-
-		// Pre-allocate slice with estimated capacity
-		parts := make([]string, 0, len(enumElements))
-		for key, value := range enumElements {
-			parts = append(parts, key+"="+value.String())
-		}
-		return "enum {" + strings.Join(parts, ", ") + "}"
+	case AtomTypeErr:
+		return fmt.Sprintf("%v", v.Value)
 
 	default:
 		return fmt.Sprintf("%v", v.Value)
@@ -234,6 +252,20 @@ func (v *AtomValue) HashValue() int {
 	case AtomTypeNull:
 		return 0
 
+	case AtomTypeClass:
+		atomClass := v.Value.(*AtomClass)
+		return int(uintptr(unsafe.Pointer(atomClass)))
+
+	case AtomTypeClassInstance:
+		instance := v.Value.(*AtomClassInstance)
+		return int(uintptr(unsafe.Pointer(instance)))
+
+	case AtomTypeEnum:
+		return v.Value.(*AtomObject).HashValue()
+
+	case AtomTypeObj:
+		return v.Value.(*AtomObject).HashValue()
+
 	case AtomTypeArray:
 		elements := v.Value.(*AtomArray).Elements
 		if len(elements) == 0 {
@@ -244,9 +276,6 @@ func (v *AtomValue) HashValue() int {
 			hash = hash*31 + element.HashValue()
 		}
 		return hash
-
-	case AtomTypeObj, AtomTypeEnum:
-		return v.Value.(*AtomObject).HashValue()
 
 	case AtomTypeFunc:
 		return v.Value.(*AtomCode).HashValue()
@@ -285,6 +314,10 @@ func GetTypeString(value *AtomValue) string {
 		return "string"
 	case AtomTypeNull:
 		return "null"
+	case AtomTypeClass:
+		return "class"
+	case AtomTypeClassInstance:
+		return "class_instance"
 	case AtomTypeEnum:
 		return "enum"
 	case AtomTypeObj:

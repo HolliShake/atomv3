@@ -312,7 +312,10 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			g := code.Code[strt+len(v)+1] == 1
 			c := code.Code[strt+len(v)+2] == 1
 			value := i.pop()
-			env0.New(v, g, c, value)
+			err := env0.New(v, g, c, value)
+			if err != nil {
+				panic(err)
+			}
 			forward(len(v) + 1 + 1 + 1)
 
 		case OpStoreFast:
