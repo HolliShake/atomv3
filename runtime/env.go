@@ -15,12 +15,10 @@ func NewAtomEnv(parent *AtomEnv) *AtomEnv {
 }
 
 func (e *AtomEnv) Has(name string) bool {
-	current := e
-	for current != nil {
+	for current := e; current != nil; current = current.Parent {
 		if _, exists := current.Locals[name]; exists {
 			return true
 		}
-		current = current.Parent
 	}
 	return false
 }

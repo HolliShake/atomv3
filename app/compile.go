@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
 	"regexp"
 	"strconv"
@@ -1171,6 +1172,9 @@ func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 		)
 		return
 	}
+
+	seenNames := map[string]bool{}
+
 	for idx, key := range ast.Arr0 {
 		val := ast.Arr1[idx]
 
@@ -1183,6 +1187,17 @@ func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 			)
 			return
 		}
+
+		if seenNames[key.Str0] {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Duplicate identifier: %s", key.Str0),
+				key.Position,
+			)
+		}
+		seenNames[key.Str0] = true
+
 		if val == nil {
 			c.emitInt(fn, runtime.OpLoadNull, 0)
 		} else {
@@ -1197,6 +1212,9 @@ func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	isGlobal := scope.InSide(AtomScopeTypeGlobal, false)
+
+	seenNames := map[string]bool{}
+
 	for idx, key := range ast.Arr0 {
 		val := ast.Arr1[idx]
 
@@ -1209,6 +1227,17 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 			)
 			return
 		}
+
+		if seenNames[key.Str0] {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Duplicate identifier: %s", key.Str0),
+				key.Position,
+			)
+		}
+		seenNames[key.Str0] = true
+
 		if val == nil {
 			c.emitInt(fn, runtime.OpLoadNull, 0)
 		} else {
@@ -1235,6 +1264,9 @@ func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		)
 		return
 	}
+
+	seenNames := map[string]bool{}
+
 	for idx, key := range ast.Arr0 {
 		val := ast.Arr1[idx]
 
@@ -1246,6 +1278,17 @@ func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, as
 				key.Position,
 			)
 		}
+
+		if seenNames[key.Str0] {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Duplicate identifier: %s", key.Str0),
+				key.Position,
+			)
+		}
+		seenNames[key.Str0] = true
+
 		if val == nil {
 			c.emitInt(fn, runtime.OpLoadNull, 0)
 		} else {
@@ -1324,6 +1367,7 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 	} else {
 		c.emitStr(fn, runtime.OpLoadModule1, path.Str0)
 	}
+
 	seenNames := make(map[string]bool)
 
 	for _, name := range names {
@@ -1342,7 +1386,7 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 			Error(
 				c.parser.tokenizer.file,
 				c.parser.tokenizer.data,
-				"Duplicate identifier",
+				fmt.Sprintf("Duplicate identifier: %s", name.Str0),
 				name.Position,
 			)
 			return

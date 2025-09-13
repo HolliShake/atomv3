@@ -67,11 +67,11 @@ const arr = [
 ];
 
 std.freeze(arr);
-println("error arr freeze", arr[0] = 2);
+println("error arr freeze>>", arr[0] = 2);
 
 
-println("error", arr[232323] = 2);
-println("error", 2[23]);
+println("error>>", arr[232323] = 2);
+println("error>>", 2[23]);
 
 
 arr[0];
@@ -218,6 +218,10 @@ class Dog extends Animal {
     func bark(self) {
         println("Woof! I'm " + self.name);
     }
+
+    func incrementAge(self) {
+        self.age += 1;
+    }
 }
 
 g = 2;
@@ -235,4 +239,6 @@ const bound = myDog.bark;
 
 println(myDog.bark());
 
-println(bound(2), myDog + 2);
+println(bound(), myDog.incrementAge());
+
+println(myDog);
