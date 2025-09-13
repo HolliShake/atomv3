@@ -118,11 +118,11 @@ func (p *AtomParser) keyValue() *AtomAst {
 		return nil
 	}
 	p.acceptV(":")
-	val := p.primary()
+	val := p.expression()
 	return NewKeyValue(key, val, key.Position.Merge(val.Position))
 }
 
-func (p *AtomParser) group() *AtomAst {
+func (p *AtomParser) primary() *AtomAst {
 	start := p.lookahead.Position
 	ended := start
 	if p.checkT(TokenTypeSym) && p.checkV("(") {
@@ -133,12 +133,12 @@ func (p *AtomParser) group() *AtomAst {
 	} else if p.checkT(TokenTypeSym) && p.checkV("[") {
 		p.acceptV("[")
 		elements := []*AtomAst{}
-		n := p.primary()
+		n := p.expression()
 		if n != nil {
 			elements = append(elements, n)
 			for p.checkT(TokenTypeSym) && p.checkV(",") {
 				p.acceptV(",")
-				n = p.primary()
+				n = p.expression()
 				if n == nil {
 					Error(
 						p.tokenizer.file,
@@ -183,7 +183,7 @@ func (p *AtomParser) group() *AtomAst {
 }
 
 func (p *AtomParser) memberOrCall() *AtomAst {
-	ast := p.group()
+	ast := p.primary()
 	for p.checkT(TokenTypeSym) && (p.checkV(".") || p.checkV("[") || p.checkV("(")) {
 
 		if p.checkV(".") {
@@ -205,7 +205,7 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 			)
 		} else if p.checkV("[") {
 			p.acceptV("[")
-			index := p.primary()
+			index := p.expression()
 			if index == nil {
 				Error(
 					p.tokenizer.file,
@@ -225,12 +225,12 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 			args := []*AtomAst{}
 			p.acceptV("(")
 			// arguments
-			arg := p.primary()
+			arg := p.expression()
 			if arg != nil {
 				args = append(args, arg)
 				for p.checkT(TokenTypeSym) && p.checkV(",") {
 					p.acceptV(",")
-					arg = p.primary()
+					arg = p.expression()
 					if arg == nil {
 						Error(
 							p.tokenizer.file,
@@ -678,7 +678,7 @@ func (p *AtomParser) switchExpression() *AtomAst {
 		start = p.lookahead.Position
 		ended = start
 
-		pattern := p.primary()
+		pattern := p.expression()
 		if pattern == nil {
 			Error(
 				p.tokenizer.file,
@@ -691,7 +691,7 @@ func (p *AtomParser) switchExpression() *AtomAst {
 		patterns = append(patterns, pattern)
 		for p.checkT(TokenTypeSym) && p.checkV(",") {
 			p.acceptV(",")
-			pattern = p.primary()
+			pattern = p.expression()
 			if pattern == nil {
 				Error(
 					p.tokenizer.file,
@@ -797,12 +797,12 @@ func (p *AtomParser) catchExpression() *AtomAst {
 	)
 }
 
-func (p *AtomParser) primary() *AtomAst {
+func (p *AtomParser) expression() *AtomAst {
 	return p.catchExpression()
 }
 
 func (p *AtomParser) mandatory() *AtomAst {
-	ast := p.primary()
+	ast := p.expression()
 	if ast == nil {
 		Error(
 			p.tokenizer.file,
@@ -871,7 +871,7 @@ func (p *AtomParser) classStatement() *AtomAst {
 
 	if p.checkT(TokenTypeKey) && p.checkV(KeyExtends) {
 		p.acceptV(KeyExtends)
-		base = p.primary()
+		base = p.expression()
 		if base == nil {
 			Error(
 				p.tokenizer.file,
@@ -1258,7 +1258,7 @@ func (p *AtomParser) ifStatement() *AtomAst {
 	ended := start
 	p.acceptV(KeyIf)
 	p.acceptV("(")
-	condition := p.primary()
+	condition := p.expression()
 	if condition == nil {
 		Error(
 			p.tokenizer.file,
@@ -1310,7 +1310,7 @@ func (p *AtomParser) switchStatement() *AtomAst {
 	ended := start
 	p.acceptV(KeySwitch)
 	p.acceptV("(")
-	condition := p.primary()
+	condition := p.expression()
 	if condition == nil {
 		Error(
 			p.tokenizer.file,
@@ -1328,7 +1328,7 @@ func (p *AtomParser) switchStatement() *AtomAst {
 		p.acceptV(KeyCase)
 		p.acceptV("(")
 		patterns := []*AtomAst{}
-		pattern := p.primary()
+		pattern := p.expression()
 		if pattern == nil {
 			Error(
 				p.tokenizer.file,
@@ -1341,7 +1341,7 @@ func (p *AtomParser) switchStatement() *AtomAst {
 		patterns = append(patterns, pattern)
 		for p.checkT(TokenTypeSym) && p.checkV(",") {
 			p.acceptV(",")
-			pattern = p.primary()
+			pattern = p.expression()
 			if pattern == nil {
 				Error(
 					p.tokenizer.file,
@@ -1401,7 +1401,7 @@ func (p *AtomParser) whileStatement() *AtomAst {
 	ended := start
 	p.acceptV(KeyWhile)
 	p.acceptV("(")
-	condition := p.primary()
+	condition := p.expression()
 	if condition == nil {
 		Error(
 			p.tokenizer.file,
@@ -1449,7 +1449,7 @@ func (p *AtomParser) doWhileStatement() *AtomAst {
 	}
 	p.acceptV(KeyWhile)
 	p.acceptV("(")
-	condition := p.primary()
+	condition := p.expression()
 	if condition == nil {
 		Error(
 			p.tokenizer.file,
@@ -1492,7 +1492,7 @@ func (p *AtomParser) returnStatement() *AtomAst {
 	start := p.lookahead.Position
 	ended := start
 	p.acceptV(KeyReturn)
-	expr := p.primary()
+	expr := p.expression()
 	p.acceptV(";")
 	return NewReturnStatement(
 		expr,
@@ -1501,7 +1501,7 @@ func (p *AtomParser) returnStatement() *AtomAst {
 }
 
 func (p *AtomParser) expressionStatement() *AtomAst {
-	expr := p.primary()
+	expr := p.expression()
 	if expr == nil {
 		if p.checkV(";") {
 			start := p.lookahead.Position
