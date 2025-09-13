@@ -24,7 +24,6 @@ func main() {
 
 	gruntime.GC()
 	var mStart, mEnd gruntime.MemStats
-
 	code := readFile(os.Args[1])
 	s := runtime.NewAtomState()
 	t := NewAtomTokenizer(os.Args[1], code)

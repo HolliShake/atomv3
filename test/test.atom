@@ -190,7 +190,6 @@ enum Status {
     BAD = 3
 }
 
-
 var result = (Status.BAD) switch {
     case(Status.OK)  => "Yes"
     case(Status.BAD) => "No"
@@ -248,3 +247,19 @@ myDog.incrementAge();
 myDog.incrementAge();
 
 println(myDog, myDog.eat(), myDog.x, Status.OK);
+
+class Monkey {
+    func bark(self) {
+        println("Monkey", "Woohoo!");
+    }
+
+    func init(self) {
+        self.name = "John";
+    }
+}
+
+const monkey = new Monkey();
+
+monkey.eat();
+
+println(monkey);
