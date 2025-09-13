@@ -248,7 +248,7 @@ myDog.incrementAge();
 
 println(myDog, myDog.eat(), myDog.x, Status.OK);
 
-class Monkey {
+class Monkey extends Animal {
     func bark(self) {
         println("Monkey", "Woohoo!");
     }

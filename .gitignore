@@ -1,2 +1,4 @@
 *.exe
 *.js
+app/*.exe
+app/atom
