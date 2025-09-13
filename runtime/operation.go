@@ -250,6 +250,99 @@ func DoMakeEnum(interpreter *AtomInterpreter, env *AtomEnv, size int) {
 	interpreter.pushVal(NewAtomValueEnum(elements))
 }
 
+func DoCallConstructor(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
+	cleanupStack := func() {
+		for range argc {
+			interpreter.popp()
+		}
+	}
+	if !CheckType(fn, AtomTypeClass) {
+		cleanupStack()
+		message := GetTypeString(fn) + " is not a constructor"
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+	atomClass := fn.Value.(*AtomClass)
+	properties := atomClass.Proto.Value.(*AtomObject)
+
+	this := NewAtomValueObject(map[string]*AtomValue{})
+
+	// Check if has initializer
+	if initializer := properties.Get("init"); initializer == nil {
+		panic("ERROR!")
+		interpreter.pushVal(this)
+
+	} else {
+		// Init is not callable
+		if !CheckType(initializer, AtomTypeFunc) && !CheckType(initializer, AtomTypeNativeFunc) {
+			cleanupStack()
+			message := "Error: initializer is not a function"
+			interpreter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		// Push this
+		DoCallInit(interpreter, env, fn, initializer, this, 1+argc)
+	}
+}
+
+func DoCallInit(interpreter *AtomInterpreter, env *AtomEnv, cls *AtomValue, fn *AtomValue, this *AtomValue, argc int) {
+	cleanupStack := func() {
+		for range argc {
+			interpreter.popp()
+		}
+	}
+
+	// Push this
+	interpreter.pushVal(this)
+
+	if CheckType(fn, AtomTypeFunc) {
+		code := fn.Value.(*AtomCode)
+		if argc != code.Argc {
+			cleanupStack()
+			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
+			interpreter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		newEnv := NewAtomEnv(env)
+
+		interpreter.executeFrame(NewAtomCallFrame(
+			fn,
+			newEnv,
+			0,
+		))
+
+		// Pop return
+		interpreter.popp()
+		interpreter.pushVal(
+			NewAtomValueClassInstance(cls, this),
+		)
+
+	} else if CheckType(fn, AtomTypeNativeFunc) {
+		nativeFunc := fn.Value.(NativeFunc)
+		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
+			cleanupStack()
+			message := "Error: argument count mismatch"
+			interpreter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		nativeFunc.Callable(interpreter, argc)
+
+		// Pop return
+		interpreter.popp()
+		interpreter.pushVal(
+			NewAtomValueClassInstance(cls, this),
+		)
+
+	} else {
+		cleanupStack()
+		message := "not a function " + GetTypeString(fn)
+		interpreter.pushVal(NewAtomValueError(message))
+	}
+}
+
 // Function call operations
 
 func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
@@ -258,11 +351,12 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 			interpreter.popp()
 		}
 	}
+
 	if CheckType(fn, AtomTypeFunc) {
 		code := fn.Value.(*AtomCode)
 		if argc != code.Argc {
 			cleanupStack()
-			message := "argument count mismatch"
+			message := "Error: argument count mismatch"
 			interpreter.pushVal(NewAtomValueError(message))
 			return
 		}
@@ -279,7 +373,7 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 		nativeFunc := fn.Value.(NativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
 			cleanupStack()
-			message := "argument count mismatch"
+			message := "Error: argument count mismatch"
 			interpreter.pushVal(NewAtomValueError(message))
 			return
 		}
@@ -287,7 +381,7 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 
 	} else {
 		cleanupStack()
-		message := "not a function " + GetTypeString(fn)
+		message := "Error: not a function " + GetTypeString(fn)
 		interpreter.pushVal(NewAtomValueError(message))
 	}
 }
@@ -296,7 +390,7 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 
 func DoNeg(interpreter *AtomInterpreter, val *AtomValue) {
 	if !IsNumberType(val) {
-		message := fmt.Sprintf("cannot negate type: %s", GetTypeString(val))
+		message := fmt.Sprintf("Error: cannot negate type: %s", GetTypeString(val))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -313,7 +407,7 @@ func DoNot(interpreter *AtomInterpreter, val *AtomValue) {
 
 func DoPos(interpreter *AtomInterpreter, val *AtomValue) {
 	if !IsNumberType(val) {
-		message := fmt.Sprintf("cannot pos type: %s", GetTypeString(val))
+		message := fmt.Sprintf("Error: cannot pos type: %s", GetTypeString(val))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -349,7 +443,7 @@ func DoAddition(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -384,7 +478,7 @@ func DoDivision(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot divide types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot divide types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -413,7 +507,7 @@ func DoModulus(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		if b == 0 {
-			message := "division by zero"
+			message := "Error: division by zero"
 			interpreter.pushVal(NewAtomValueError(message))
 			return
 		}
@@ -424,7 +518,7 @@ func DoModulus(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot modulo types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot modulo types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -433,7 +527,7 @@ func DoModulus(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
-		message := "division by zero"
+		message := "Error: division by zero"
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -466,7 +560,7 @@ func DoMultiplication(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomV
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -501,7 +595,7 @@ func DoSubtraction(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValu
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -532,7 +626,7 @@ func DoAnd(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -560,7 +654,7 @@ func DoOr(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -589,7 +683,7 @@ func DoShiftLeft(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue)
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot shift left types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot shift left types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -619,7 +713,7 @@ func DoShiftRight(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot shift right types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot shift right types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -648,7 +742,7 @@ func DoXor(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -706,7 +800,7 @@ func DoCmpEq(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 func DoCmpGt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot compare greater than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot compare greater than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -725,7 +819,7 @@ func DoCmpGt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 func DoCmpGte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot compare greater than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot compare greater than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -744,7 +838,7 @@ func DoCmpGte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 func DoCmpLt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
@@ -763,7 +857,7 @@ func DoCmpLt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 func DoCmpLte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}

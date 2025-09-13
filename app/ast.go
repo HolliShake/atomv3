@@ -31,6 +31,7 @@ const (
 	AstTypeCall
 	AstTypeIndex
 	AstTypeMember
+	AstTypeAllocation
 	AstTypeUnaryNot
 	AstTypeUnaryNeg
 	AstTypeUnaryPos
@@ -215,6 +216,12 @@ func NewCall(ast0 *AtomAst, args []*AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeCall, position)
 	ast.Ast0 = ast0
 	ast.Arr0 = args
+	return ast
+}
+
+func NewAllocation(ast0 *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeAllocation, position)
+	ast.Ast0 = ast0
 	return ast
 }
 

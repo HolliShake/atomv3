@@ -244,6 +244,29 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.emitInt(fn, runtime.OpCall, len(args))
 		}
 
+	case AstTypeAllocation:
+		{
+			ast0 := ast.Ast0
+			if ast0.AstType != AstTypeCall {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					"Expected call expression after new",
+					ast0.Position,
+				)
+				return
+			}
+
+			constructorAst := ast0.Ast0
+			args := ast0.Arr0
+			for i := len(args) - 1; i >= 0; i-- {
+				c.expression(scope, fn, args[i])
+			}
+
+			c.expression(scope, fn, constructorAst)
+			c.emitInt(fn, runtime.OpCallConstructor, len(args))
+		}
+
 	case AstTypeUnaryNot:
 		{
 			c.expression(scope, fn, ast.Ast0)

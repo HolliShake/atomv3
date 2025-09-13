@@ -17,6 +17,7 @@ const (
 	OpMakeClass                // with 4 bytes argument
 	OpExtendClass              //
 	OpMakeEnum                 // with 4 bytes argument
+	OpCallConstructor          // with 4 bytes argument
 	OpCall                     // with 4 bytes argument
 	OpNot                      //
 	OpNeg                      //

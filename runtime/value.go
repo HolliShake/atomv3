@@ -82,6 +82,12 @@ func NewAtomValueClass(name string, base, proto *AtomValue) *AtomValue {
 	return obj
 }
 
+func NewAtomValueClassInstance(prototype, property *AtomValue) *AtomValue {
+	obj := NewAtomValue(AtomTypeClassInstance)
+	obj.Value = NewAtomClassInstance(prototype, property)
+	return obj
+}
+
 func NewAtomValueEnum(elements map[string]*AtomValue) *AtomValue {
 	obj := NewAtomValue(AtomTypeEnum)
 	obj.Value = NewAtomObject(elements)
@@ -140,7 +146,26 @@ func (v *AtomValue) String() string {
 		return fmt.Sprintf("<class.%s />", atomClass.Name)
 
 	case AtomTypeClassInstance:
-		return fmt.Sprintf("%v", v.Value)
+		classInstance := v.Value.(*AtomClassInstance)
+		prototype := classInstance.Prototype.Value.(*AtomClass)
+		properties := classInstance.Property.Value.(*AtomObject).Elements
+
+		if len(properties) == 0 {
+			return fmt.Sprintf("%s {\n}", prototype.Name)
+		}
+
+		// Pre-allocate slice with estimated capacity
+		parts := make([]string, 0, len(properties))
+		for key, value := range properties {
+			var valueStr string
+			if value.Type == AtomTypeStr {
+				valueStr = "'" + value.Value.(string) + "'"
+			} else {
+				valueStr = value.String()
+			}
+			parts = append(parts, "  "+key+": "+valueStr+",")
+		}
+		return fmt.Sprintf("%s {\n%s\n}", prototype.Name, strings.Join(parts, "\n"))
 
 	case AtomTypeEnum:
 		enumElements := v.Value.(*AtomObject).Elements

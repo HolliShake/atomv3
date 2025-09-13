@@ -250,11 +250,40 @@ func (p *AtomParser) memberOrCall() *AtomAst {
 	return ast
 }
 
+func (p *AtomParser) allocation() *AtomAst {
+	if !(p.checkT(TokenTypeKey) && p.checkV(KeyNew)) {
+		return p.memberOrCall()
+	}
+
+	start := p.lookahead.Position
+	ended := start
+
+	p.acceptV(KeyNew)
+
+	call := p.allocation()
+	if call == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected expression after new",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+
+	ended = call.Position
+
+	return NewAllocation(
+		call,
+		start.Merge(ended),
+	)
+}
+
 func (p *AtomParser) unary() *AtomAst {
 	if p.checkT(TokenTypeSym) && (p.checkV("!") || p.checkV("+") || p.checkV("-")) {
 		opt := p.lookahead
 		p.acceptV(opt.Value)
-		rhs := p.unary()
+		rhs := p.allocation()
 		if rhs == nil {
 			Error(
 				p.tokenizer.file,
@@ -270,7 +299,7 @@ func (p *AtomParser) unary() *AtomAst {
 			rhs.Position.Merge(p.lookahead.Position),
 		)
 	}
-	return p.memberOrCall()
+	return p.allocation()
 }
 
 func (p *AtomParser) multiplicative() *AtomAst {

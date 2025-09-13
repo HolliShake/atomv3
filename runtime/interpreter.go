@@ -133,6 +133,12 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			DoMakeEnum(i, env0, size)
 			forward(4)
 
+		case OpCallConstructor:
+			argc := ReadInt(code.Code, strt)
+			call := i.popp()
+			DoCallConstructor(i, env0, call, argc)
+			forward(4)
+
 		case OpCall:
 			argc := ReadInt(code.Code, strt)
 			call := i.popp()

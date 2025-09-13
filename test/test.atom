@@ -210,11 +210,17 @@ class Animal {
 class Dog extends Animal {
     local x = 2;
 
-    func init(self) {
-
+    func init(self, _name, _age) {
+        self.name = _name;
+        self.age  = _age; 
     }
 }
 
 g = 2;
 
-println(Dog);
+println(Dog, (3 / 0.00) catch(err) {
+    println("ERR:", err);
+});
+
+println(new Dog("Buddy", 100));
+
