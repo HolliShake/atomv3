@@ -1,6 +1,10 @@
 package runtime
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/fatih/color"
+)
 
 var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc int) {
 	obj := interpreter.popp()
@@ -17,7 +21,7 @@ var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc 
 
 var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpreter, argc int) {
 	for i := range argc {
-		fmt.Print(interpreter.popp().String())
+		fmt.Print(color.YellowString(interpreter.popp().String()))
 		if i < argc-1 {
 			fmt.Print(" ")
 		}
@@ -28,7 +32,7 @@ var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpre
 
 var print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpreter, argc int) {
 	for i := range argc {
-		fmt.Print(interpreter.popp().String())
+		fmt.Print(color.GreenString(interpreter.popp().String()))
 		if i < argc-1 {
 			fmt.Print(" ")
 		}

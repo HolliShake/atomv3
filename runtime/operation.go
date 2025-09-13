@@ -99,25 +99,6 @@ func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 		interpreter.pushVal(value)
 		return
 
-	} else if CheckType(obj, AtomTypeEnum) {
-		if !CheckType(index, AtomTypeStr) {
-			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
-			interpreter.pushVal(NewAtomValueError(message))
-			return
-		}
-
-		enumValue := obj.Value.(*AtomObject)
-		indexValue := index.String()
-		value := enumValue.Get(indexValue)
-
-		if value == nil {
-			interpreter.pushVal(interpreter.State.NullValue)
-			return
-		}
-
-		interpreter.pushVal(value)
-		return
-
 	} else if CheckType(obj, AtomTypeClassInstance) {
 		classInstance := obj.Value.(*AtomClassInstance)
 		property := classInstance.Property
@@ -143,6 +124,25 @@ func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 			current = current.Base.Value.(*AtomClass)
 		}
 		interpreter.pushVal(interpreter.State.NullValue)
+		return
+
+	} else if CheckType(obj, AtomTypeEnum) {
+		if !CheckType(index, AtomTypeStr) {
+			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			interpreter.pushVal(NewAtomValueError(message))
+			return
+		}
+
+		enumValue := obj.Value.(*AtomObject)
+		indexValue := index.String()
+		value := enumValue.Get(indexValue)
+
+		if value == nil {
+			interpreter.pushVal(interpreter.State.NullValue)
+			return
+		}
+
+		interpreter.pushVal(value)
 		return
 
 	} else {
@@ -269,37 +269,30 @@ func DoMakeEnum(interpreter *AtomInterpreter, env *AtomEnv, size int) {
 	interpreter.pushVal(NewAtomValueEnum(elements))
 }
 
-func DoCallConstructor(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
+func DoCallConstructor(interpreter *AtomInterpreter, env *AtomEnv, cls *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
 			interpreter.popp()
 		}
 	}
-	if !CheckType(fn, AtomTypeClass) {
+	if !CheckType(cls, AtomTypeClass) {
 		cleanupStack()
-		message := GetTypeString(fn) + " is not a constructor"
+		message := GetTypeString(cls) + " is not a constructor"
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
-	atomClass := fn.Value.(*AtomClass)
+	atomClass := cls.Value.(*AtomClass)
 	properties := atomClass.Proto.Value.(*AtomObject)
 
 	this := NewAtomValueObject(map[string]*AtomValue{})
 
-	// Copy methods to this
-	for key, value := range properties.Elements {
-		if CheckType(value, AtomTypeFunc) {
-			this.Value.(*AtomObject).Set(key, NewAtomValueMethod(this, value))
-		}
-	}
-
 	// Check if has initializer
 	if initializer := properties.Get("init"); initializer == nil {
 		interpreter.pushVal(
-			NewAtomValueClassInstance(fn, this),
+			NewAtomValueClassInstance(cls, this),
 		)
 	} else {
-		DoCallInit(interpreter, env, fn, initializer, this, 1+argc)
+		DoCallInit(interpreter, env, cls, initializer, this, 1+argc)
 	}
 }
 

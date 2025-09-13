@@ -243,4 +243,8 @@ println(myDog.bark());
 
 println(bound(), myDog.incrementAge());
 
+myDog.incrementAge();
+myDog.incrementAge();
+myDog.incrementAge();
+
 println(myDog, myDog.eat(), myDog.x);
