@@ -4,8 +4,7 @@ type AtomCode struct {
 	File string
 	Name string
 	Argc int
-	Env0 []*AtomCell // Local environment
-	Code []OpCode
+	Code []OpCode // Instructions
 }
 
 func NewAtomCode(file, name string, argc int) *AtomCode {
@@ -13,19 +12,8 @@ func NewAtomCode(file, name string, argc int) *AtomCode {
 		File: file,
 		Name: name,
 		Argc: argc,
-		Env0: []*AtomCell{},
 		Code: []OpCode{},
 	}
-}
-
-func (c *AtomCode) IncrementLocal() int {
-	count := len(c.Env0)
-	c.Env0 = append(c.Env0, NewAtomCell(nil))
-	return count
-}
-
-func (c *AtomCode) CopyCellFrom(other *AtomCode, from, to int) {
-	c.Env0[to] = other.Env0[from]
 }
 
 func (c *AtomCode) HashValue() int {

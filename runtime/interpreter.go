@@ -46,11 +46,11 @@ func (i *AtomInterpreter) peek() *AtomValue {
 	return i.EvaluationStack.Peek()
 }
 
-func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
+func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 	// Frame here is a function
-	offsetStart := offset
+	offsetStart := callFrame.Ip
 
-	code := frame.Value.(*AtomCode)
+	code := callFrame.Fn.Value.(*AtomCode)
 	size := len(code.Code)
 
 	forward := func(offset int) {
@@ -130,10 +130,16 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			forward(4)
 
 		case OpLoadLocal:
-			index := ReadInt(code.Code, offsetStart)
-			value := code.Env0[index]
-			i.pushRef(value.Get())
-			forward(4)
+			variable := ReadStr(code.Code, offsetStart)
+			value, err := callFrame.Env.Lookup(variable)
+			if err != nil {
+				i.pushVal(
+					NewAtomValueError(err.Error()),
+				)
+			} else {
+				i.pushRef(value)
+			}
+			forward(len(variable) + 1)
 
 		case OpLoadModule0:
 			name := ReadStr(code.Code, offsetStart)
@@ -196,7 +202,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			argc := ReadInt(code.Code, offsetStart)
 			forward(4)
 			call := i.pop()
-			DoCall(i, call, argc)
+			DoCall(i, callFrame.Env, call, argc)
 
 		case OpNot:
 			val := i.pop()
@@ -301,18 +307,25 @@ func (i *AtomInterpreter) executeFrame(frame *AtomValue, offset int) {
 			lhs := i.pop()
 			DoXor(i, lhs, rhs)
 
-		case OpStoreGlobal:
-			// Alias for OpStoreLocal
-			index := ReadInt(code.Code, offsetStart)
+		case OpInitVar:
+			v := ReadStr(code.Code, offsetStart)
+			g := code.Code[offsetStart+len(v)+1] == 1
+			c := code.Code[offsetStart+len(v)+2] == 1
 			value := i.pop()
-			code.Env0[index].Set(value)
-			forward(4)
+			callFrame.Env.New(v, g, c, value)
+			forward(len(v) + 1 + 1 + 1)
+
+		case OpStoreFast:
+			param := ReadStr(code.Code, offsetStart)
+			value := i.pop()
+			callFrame.Env.New(param, false, false, value)
+			forward(len(param) + 1)
 
 		case OpStoreLocal:
-			index := ReadInt(code.Code, offsetStart)
+			index := ReadStr(code.Code, offsetStart)
 			value := i.pop()
-			code.Env0[index].Set(value)
-			forward(4)
+			callFrame.Env.Store(index, value)
+			forward(len(index) + 1)
 
 		case OpSetIndex:
 			index := i.pop()
@@ -405,7 +418,11 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "std", EXPORT_STD)
 
 	// Run while the frame is not empty
-	i.executeFrame(atomFunc, 0)
+	i.executeFrame(NewAtomCallFrame(
+		atomFunc,
+		NewAtomEnv(nil),
+		0,
+	))
 
 	if i.EvaluationStack.Len() != 1 {
 		i.EvaluationStack.Dump()

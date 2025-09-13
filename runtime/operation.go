@@ -162,24 +162,31 @@ func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) 
 	}
 }
 
-func DoCall(interpreter *AtomInterpreter, funcValue *AtomValue, argc int) {
+func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
 			interpreter.pop()
 		}
 	}
-	if CheckType(funcValue, AtomTypeFunc) {
-		code := funcValue.Value.(*AtomCode)
+	if CheckType(fn, AtomTypeFunc) {
+		code := fn.Value.(*AtomCode)
 		if argc != code.Argc {
 			cleanupStack()
 			message := "argument count mismatch"
 			interpreter.pushVal(NewAtomValueError(message))
 			return
 		}
-		interpreter.executeFrame(funcValue, 0)
 
-	} else if CheckType(funcValue, AtomTypeNativeFunc) {
-		nativeFunc := funcValue.Value.(NativeFunc)
+		newEnv := NewAtomEnv(env)
+
+		interpreter.executeFrame(NewAtomCallFrame(
+			fn,
+			newEnv,
+			0,
+		))
+
+	} else if CheckType(fn, AtomTypeNativeFunc) {
+		nativeFunc := fn.Value.(NativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
 			cleanupStack()
 			message := "argument count mismatch"
@@ -190,7 +197,7 @@ func DoCall(interpreter *AtomInterpreter, funcValue *AtomValue, argc int) {
 
 	} else {
 		cleanupStack()
-		message := "not a function " + GetTypeString(funcValue)
+		message := "not a function " + GetTypeString(fn)
 		interpreter.pushVal(NewAtomValueError(message))
 	}
 }

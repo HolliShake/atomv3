@@ -1,0 +1,63 @@
+package runtime
+
+import "fmt"
+
+type AtomEnv struct {
+	Parent *AtomEnv
+	Locals map[string]*Variable
+}
+
+func NewAtomEnv(parent *AtomEnv) *AtomEnv {
+	return &AtomEnv{
+		Parent: parent,
+		Locals: map[string]*Variable{},
+	}
+}
+
+func (e *AtomEnv) Has(name string) bool {
+	current := e
+	for current != nil {
+		if _, exists := current.Locals[name]; exists {
+			return true
+		}
+		current = current.Parent
+	}
+	return false
+}
+
+func (e *AtomEnv) Local(name string) bool {
+	return e.Locals[name] != nil
+}
+
+func (e *AtomEnv) New(name string, global bool, constant bool, value *AtomValue) {
+	if entry, exists := e.Locals[name]; exists {
+		entry.Value = value
+	} else {
+		e.Locals[name] = &Variable{
+			Name:   name,
+			Global: global,
+			Const:  constant,
+			Value:  value,
+		}
+	}
+}
+
+func (e *AtomEnv) Lookup(index string) (*AtomValue, error) {
+	for current := e; current != nil; current = current.Parent {
+		if entry, exists := current.Locals[index]; exists {
+			return entry.Value, nil
+		}
+	}
+	fmt.Println("lookup", e.Locals)
+	return nil, fmt.Errorf("variable %s not found", index)
+}
+
+func (e *AtomEnv) Store(index string, value *AtomValue) (bool, error) {
+	for current := e; current != nil; current = current.Parent {
+		if entry, exists := current.Locals[index]; exists {
+			entry.Value = value
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("variable %s not found", index)
+}
