@@ -120,7 +120,7 @@ func (c *AtomCompile) labelContinue(atomFunc *runtime.AtomValue, continueStart i
 	}
 }
 
-func (c *AtomCompile) identifier(currentScope *AtomScope, fn *runtime.AtomValue, ast *AtomAst, opcode runtime.OpCode) {
+func (c *AtomCompile) identifier(fn *runtime.AtomValue, ast *AtomAst, opcode runtime.OpCode) {
 	c.emitStr(fn, opcode, ast.Str0)
 }
 
@@ -128,7 +128,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 	switch ast.AstType {
 	case AstTypeIdn:
 		{
-			c.identifier(scope, fn, ast, runtime.OpLoadLocal)
+			c.identifier(fn, ast, runtime.OpLoadLocal)
 		}
 
 	case AstTypeInt:
@@ -657,7 +657,7 @@ func (c *AtomCompile) assign(scope *AtomScope, fn *runtime.AtomValue, lhs *AtomA
 	switch lhs.AstType {
 	case AstTypeIdn:
 		{
-			c.identifier(scope, fn, lhs, runtime.OpStoreLocal)
+			c.identifier(fn, lhs, runtime.OpStoreLocal)
 		}
 
 	case AstTypeMember:
@@ -674,24 +674,6 @@ func (c *AtomCompile) assign(scope *AtomScope, fn *runtime.AtomValue, lhs *AtomA
 			c.emit(fn, runtime.OpSetIndex)
 		}
 
-	default:
-		{
-			Error(
-				c.parser.tokenizer.file,
-				c.parser.tokenizer.data,
-				"Expected identifier",
-				lhs.Position,
-			)
-		}
-	}
-}
-
-func (c *AtomCompile) assign0(scope *AtomScope, fn *runtime.AtomValue, lhs *AtomAst) {
-	switch lhs.AstType {
-	case AstTypeIdn:
-		{
-			c.expression(scope, fn, lhs)
-		}
 	default:
 		{
 			Error(

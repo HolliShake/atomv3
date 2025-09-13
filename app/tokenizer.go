@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"unicode"
 )
 
@@ -34,12 +35,7 @@ func (t *AtomTokenizer) isKeyword(word string) bool {
 		KeyWhile, KeyDo, KetTrue, KetFalse, KetNull, KeyNew,
 	}
 
-	for _, keyword := range keywords {
-		if word == keyword {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(keywords, word)
 }
 
 // isLetter checks if a rune is a letter (including Unicode letters)
