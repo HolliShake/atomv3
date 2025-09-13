@@ -204,7 +204,6 @@ println(">>", Status, Status.OK, Status.BAD);
 class Animal {
     func eat(self) {
         println(self.name + " is eating...");
-
         return 69420;
     }
 }
@@ -230,6 +229,7 @@ g = 2;
 
 println(Dog, (3 / 0.00) catch(err) {
     println("ERR:", err);
+    return;
 });
 
 const myDog = new Dog("Buddy", 100);
@@ -247,4 +247,4 @@ myDog.incrementAge();
 myDog.incrementAge();
 myDog.incrementAge();
 
-println(myDog, myDog.eat(), myDog.x);
+println(myDog, myDog.eat(), myDog.x, Status.OK);

@@ -884,7 +884,11 @@ func (c *AtomCompile) returnStatement(scope *AtomScope, fn *runtime.AtomValue, a
 		)
 		return
 	}
-	c.expression(scope, fn, ast.Ast0)
+	if ast.Ast0 != nil {
+		c.expression(scope, fn, ast.Ast0)
+	} else {
+		c.emit(fn, runtime.OpLoadNull)
+	}
 	c.emit(fn, runtime.OpReturn)
 }
 
