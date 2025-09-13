@@ -5,6 +5,8 @@ import (
 	"math"
 )
 
+// Module operations
+
 func DoLoadModule0(interpreter *AtomInterpreter, name string) {
 	module := interpreter.ModuleTable[name]
 	if module == nil {
@@ -14,6 +16,8 @@ func DoLoadModule0(interpreter *AtomInterpreter, name string) {
 	}
 	interpreter.pushRef(module)
 }
+
+// Indexing and attribute operations
 
 func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 	if CheckType(obj, AtomTypeStr) {
@@ -162,6 +166,8 @@ func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) 
 	}
 }
 
+// Function call operations
+
 func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
@@ -204,6 +210,15 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 
 // Unary operations
 
+func DoNeg(interpreter *AtomInterpreter, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := fmt.Sprintf("cannot negate type: %s", GetTypeString(val))
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+	interpreter.pushVal(NewAtomValueNum(-CoerceToNum(val)))
+}
+
 func DoNot(interpreter *AtomInterpreter, val *AtomValue) {
 	if !CoerceToBool(val) {
 		interpreter.pushRef(interpreter.State.TrueValue)
@@ -219,15 +234,6 @@ func DoPos(interpreter *AtomInterpreter, val *AtomValue) {
 		return
 	}
 	interpreter.pushVal(NewAtomValueNum(CoerceToNum(val)))
-}
-
-func DoNeg(interpreter *AtomInterpreter, val *AtomValue) {
-	if !IsNumberType(val) {
-		message := fmt.Sprintf("cannot negate type: %s", GetTypeString(val))
-		interpreter.pushVal(NewAtomValueError(message))
-		return
-	}
-	interpreter.pushVal(NewAtomValueNum(-CoerceToNum(val)))
 }
 
 // Arithmetic operations
@@ -268,78 +274,6 @@ func DoAddition(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
 	result := lhsValue + rhsValue
-
-	// Try to preserve integer types if possible
-	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		interpreter.pushVal(NewAtomValueInt(int(result)))
-		return
-	}
-	interpreter.pushVal(NewAtomValueNum(result))
-}
-
-func DoSubtraction(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
-	// Fast path for integers
-	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := CoerceToInt(val0)
-		b := CoerceToInt(val1)
-		diff := a - b
-		if ((a ^ b) & (a ^ diff)) < 0 {
-			// Overflow occurred, promote to double
-			interpreter.pushVal(NewAtomValueNum(float64(a) - float64(b)))
-			return
-		}
-		interpreter.pushVal(NewAtomValueInt(int(diff)))
-		return
-	}
-
-	// Check if both values are numbers (int or float)
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		interpreter.pushVal(NewAtomValueError(message))
-		return
-	}
-
-	// Fallback path using coercion
-	lhsValue := CoerceToNum(val0)
-	rhsValue := CoerceToNum(val1)
-	result := lhsValue - rhsValue
-
-	// Try to preserve integer types if possible
-	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
-		interpreter.pushVal(NewAtomValueInt(int(result)))
-		return
-	}
-	interpreter.pushVal(NewAtomValueNum(result))
-}
-
-func DoMultiplication(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
-	// Fast path for integers
-	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		lhs := CoerceToInt(val0)
-		rhs := CoerceToInt(val1)
-
-		// Check for overflow using int64 arithmetic
-		result := int64(lhs) * int64(rhs)
-		if result >= math.MinInt32 && result <= math.MaxInt32 {
-			interpreter.pushVal(NewAtomValueInt(int(result)))
-			return
-		}
-		// Overflow occurred, promote to float64
-		interpreter.pushVal(NewAtomValueNum(float64(result)))
-		return
-	}
-
-	// Check if both values are numbers (int or float)
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
-		interpreter.pushVal(NewAtomValueError(message))
-		return
-	}
-
-	// Fallback path using coercion
-	lhsValue := CoerceToNum(val0)
-	rhsValue := CoerceToNum(val1)
-	result := lhsValue * rhsValue
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
@@ -429,7 +363,135 @@ func DoModulus(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	interpreter.pushVal(NewAtomValueNum(result))
 }
 
+func DoMultiplication(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		lhs := CoerceToInt(val0)
+		rhs := CoerceToInt(val1)
+
+		// Check for overflow using int64 arithmetic
+		result := int64(lhs) * int64(rhs)
+		if result >= math.MinInt32 && result <= math.MaxInt32 {
+			interpreter.pushVal(NewAtomValueInt(int(result)))
+			return
+		}
+		// Overflow occurred, promote to float64
+		interpreter.pushVal(NewAtomValueNum(float64(result)))
+		return
+	}
+
+	// Check if both values are numbers (int or float)
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+
+	// Fallback path using coercion
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
+	result := lhsValue * rhsValue
+
+	// Try to preserve integer types if possible
+	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
+		interpreter.pushVal(NewAtomValueInt(int(result)))
+		return
+	}
+	interpreter.pushVal(NewAtomValueNum(result))
+}
+
+func DoSubtraction(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
+		diff := a - b
+		if ((a ^ b) & (a ^ diff)) < 0 {
+			// Overflow occurred, promote to double
+			interpreter.pushVal(NewAtomValueNum(float64(a) - float64(b)))
+			return
+		}
+		interpreter.pushVal(NewAtomValueInt(int(diff)))
+		return
+	}
+
+	// Check if both values are numbers (int or float)
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+
+	// Fallback path using coercion
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
+	result := lhsValue - rhsValue
+
+	// Try to preserve integer types if possible
+	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
+		interpreter.pushVal(NewAtomValueInt(int(result)))
+		return
+	}
+	interpreter.pushVal(NewAtomValueNum(result))
+}
+
 // Bitwise operations
+
+func DoAnd(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a & b
+		interpreter.pushVal(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue & rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		interpreter.pushVal(NewAtomValueInt(int(result)))
+	} else {
+		interpreter.pushVal(NewAtomValueNum(float64(result)))
+	}
+}
+
+func DoOr(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a | b
+		interpreter.pushVal(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue | rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		interpreter.pushVal(NewAtomValueInt(int(result)))
+	} else {
+		interpreter.pushVal(NewAtomValueNum(float64(result)))
+	}
+}
 
 func DoShiftLeft(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
@@ -491,62 +553,6 @@ func DoShiftRight(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue
 	interpreter.pushVal(NewAtomValueNum(float64(result)))
 }
 
-func DoAnd(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
-	// Fast path for integers
-	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
-		result := a & b
-		interpreter.pushVal(NewAtomValueInt(int(result)))
-		return
-	}
-
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		interpreter.pushVal(NewAtomValueError(message))
-		return
-	}
-
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
-	result := lhsValue & rhsValue
-
-	// Check if result can be represented as an int
-	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		interpreter.pushVal(NewAtomValueInt(int(result)))
-	} else {
-		interpreter.pushVal(NewAtomValueNum(float64(result)))
-	}
-}
-
-func DoOr(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
-	// Fast path for integers
-	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
-		result := a | b
-		interpreter.pushVal(NewAtomValueInt(int(result)))
-		return
-	}
-
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		interpreter.pushVal(NewAtomValueError(message))
-		return
-	}
-
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
-	result := lhsValue | rhsValue
-
-	// Check if result can be represented as an int
-	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		interpreter.pushVal(NewAtomValueInt(int(result)))
-	} else {
-		interpreter.pushVal(NewAtomValueNum(float64(result)))
-	}
-}
-
 func DoXor(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
@@ -577,41 +583,40 @@ func DoXor(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 // Comparison operations
 
-func DoCmpLt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		interpreter.pushVal(NewAtomValueError(message))
+func DoCmpEq(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if IsNumberType(val0) && IsNumberType(val1) {
+		lhsValue := CoerceToLong(val0)
+		rhsValue := CoerceToLong(val1)
+		if lhsValue == rhsValue {
+			interpreter.pushRef(interpreter.State.TrueValue)
+			return
+		}
+		interpreter.pushRef(interpreter.State.FalseValue)
 		return
 	}
 
-	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
+	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
+		lhsStr := val0.Value.(string)
+		rhsStr := val1.Value.(string)
+		if lhsStr == rhsStr {
+			interpreter.pushRef(interpreter.State.TrueValue)
+			return
+		}
+		interpreter.pushRef(interpreter.State.FalseValue)
+		return
+	}
 
-	// Compare the long values
-	if lhsValue < rhsValue {
+	if CheckType(val0, AtomTypeNull) && CheckType(val1, AtomTypeNull) {
 		interpreter.pushRef(interpreter.State.TrueValue)
 		return
 	}
-	interpreter.pushRef(interpreter.State.FalseValue)
-}
 
-func DoCmpLte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		interpreter.pushVal(NewAtomValueError(message))
-		return
-	}
-
-	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
-
-	// Compare the long values
-	if lhsValue <= rhsValue {
+	// For other types, use simple reference equality for now
+	if val0.HashValue() == val1.HashValue() {
 		interpreter.pushRef(interpreter.State.TrueValue)
 		return
 	}
+
 	interpreter.pushRef(interpreter.State.FalseValue)
 }
 
@@ -653,40 +658,41 @@ func DoCmpGte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	interpreter.pushRef(interpreter.State.FalseValue)
 }
 
-func DoCmpEq(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
-	if IsNumberType(val0) && IsNumberType(val1) {
-		lhsValue := CoerceToLong(val0)
-		rhsValue := CoerceToLong(val1)
-		if lhsValue == rhsValue {
-			interpreter.pushRef(interpreter.State.TrueValue)
-			return
-		}
-		interpreter.pushRef(interpreter.State.FalseValue)
+func DoCmpLt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
 
-	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
-		lhsStr := val0.Value.(string)
-		rhsStr := val1.Value.(string)
-		if lhsStr == rhsStr {
-			interpreter.pushRef(interpreter.State.TrueValue)
-			return
-		}
-		interpreter.pushRef(interpreter.State.FalseValue)
-		return
-	}
+	// Coerce to long to avoid floating point comparisons
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
 
-	if CheckType(val0, AtomTypeNull) && CheckType(val1, AtomTypeNull) {
+	// Compare the long values
+	if lhsValue < rhsValue {
 		interpreter.pushRef(interpreter.State.TrueValue)
 		return
 	}
+	interpreter.pushRef(interpreter.State.FalseValue)
+}
 
-	// For other types, use simple reference equality for now
-	if val0.HashValue() == val1.HashValue() {
-		interpreter.pushRef(interpreter.State.TrueValue)
+func DoCmpLte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
 
+	// Coerce to long to avoid floating point comparisons
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+
+	// Compare the long values
+	if lhsValue <= rhsValue {
+		interpreter.pushRef(interpreter.State.TrueValue)
+		return
+	}
 	interpreter.pushRef(interpreter.State.FalseValue)
 }
 

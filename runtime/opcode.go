@@ -55,7 +55,6 @@ const (
 	OpExitBlock         //
 	OpDupTop
 	OpNoOp
-	OpRot2
 	OpPopTop
 	OpReturn
 )
