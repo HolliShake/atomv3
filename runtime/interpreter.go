@@ -129,7 +129,7 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			)
 			forward(4)
 
-		case OpLoadLocal:
+		case OpLoadName:
 			variable := ReadStr(code.Code, offsetStart)
 			value, err := callFrame.Env.Lookup(variable)
 			if err != nil {

@@ -128,7 +128,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 	switch ast.AstType {
 	case AstTypeIdn:
 		{
-			c.identifier(fn, ast, runtime.OpLoadLocal)
+			c.identifier(fn, ast, runtime.OpLoadName)
 		}
 
 	case AstTypeInt:

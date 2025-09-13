@@ -216,14 +216,3 @@ class Dog extends Animal {
 }
 
 println(Dog);
-
-func fibonacci(n) {
-    if (n <= 1) 
-        return n;
-    println(n);
-    return fibonacci(n - 1) + fibonacci(n - 2);
-}
-
-const g = fibonacci(10);
-
-println(g);

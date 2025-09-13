@@ -10,7 +10,7 @@ const (
 	OpLoadNull     //
 	OpLoadArray    // with 4 bytes argument
 	OpLoadObject   // with 4 bytes argument
-	OpLoadLocal    // with 4 bytes argument
+	OpLoadName     // with 4 bytes argument
 	OpLoadModule0  // With N bytes argument // name -> builtin
 	OpLoadModule1  // With N bytes argument // path
 	OpLoadFunction // with 4 bytes argument
@@ -43,14 +43,14 @@ const (
 	OpStoreFast         // with N bytes argument
 	OpStoreLocal        // with N bytes argument
 	OpSetIndex          //
-	OpJumpIfFalseOrPop  // with N bytes argument a.k.a jump offset
-	OpJumpIfTrueOrPop   // with N bytes argument a.k.a jump offset
-	OpPopJumpIfFalse    // with N bytes argument a.k.a jump offset
-	OpPopJumpIfTrue     // with N bytes argument a.k.a jump offset
-	OpPeekJumpIfEqual   // with N bytes argument a.k.a jump offset
-	OpPopJumpIfNotError // with N bytes argument a.k.a jump offset
-	OpJump              // with N bytes argument a.k.a jump offset
-	OpAbsoluteJump      // with N bytes argument a.k.a jump offset
+	OpJumpIfFalseOrPop  // with 4 bytes argument a.k.a jump offset
+	OpJumpIfTrueOrPop   // with 4 bytes argument a.k.a jump offset
+	OpPopJumpIfFalse    // with 4 bytes argument a.k.a jump offset
+	OpPopJumpIfTrue     // with 4 bytes argument a.k.a jump offset
+	OpPeekJumpIfEqual   // with 4 bytes argument a.k.a jump offset
+	OpPopJumpIfNotError // with 4 bytes argument a.k.a jump offset
+	OpJump              // with 4 bytes argument a.k.a jump offset
+	OpAbsoluteJump      // with 4 bytes argument a.k.a jump offset
 	OpEnterBlock        //
 	OpExitBlock         //
 	OpDupTop
