@@ -1149,9 +1149,11 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 
 func (c *AtomCompile) block(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	blockScope := NewAtomScope(scope, AtomScopeTypeBlock)
+	c.emit(fn, runtime.OpEnterBlock)
 	for _, stmt := range ast.Arr1 {
 		c.statement(blockScope, fn, stmt)
 	}
+	c.emit(fn, runtime.OpExitBlock)
 }
 
 func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {

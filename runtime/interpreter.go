@@ -396,6 +396,12 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			forward(4)
 			jump(offset)
 
+		case OpEnterBlock:
+			callFrame.Env = NewAtomEnv(callFrame.Env)
+
+		case OpExitBlock:
+			callFrame.Env = callFrame.Env.Parent
+
 		case OpDupTop:
 			i.pushVal(i.peek())
 

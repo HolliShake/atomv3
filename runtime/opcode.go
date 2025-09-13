@@ -51,6 +51,8 @@ const (
 	OpPopJumpIfNotError // with N bytes argument a.k.a jump offset
 	OpJump              // with N bytes argument a.k.a jump offset
 	OpAbsoluteJump      // with N bytes argument a.k.a jump offset
+	OpEnterBlock        //
+	OpExitBlock         //
 	OpDupTop
 	OpNoOp
 	OpRot2
