@@ -5,8 +5,6 @@ import (
 	"math"
 )
 
-// Object operations
-
 func DoLoadArray(interpreter *AtomInterpreter, size int) {
 	elements := []*AtomValue{}
 	for range size {
@@ -29,8 +27,6 @@ func DoLoadObject(interpreter *AtomInterpreter, size int) {
 	)
 }
 
-// Name operations
-
 func DoLoadName(interpreter *AtomInterpreter, env *AtomEnv, name string) {
 	value, err := env.Lookup(name)
 	if err != nil {
@@ -38,11 +34,9 @@ func DoLoadName(interpreter *AtomInterpreter, env *AtomEnv, name string) {
 			NewAtomValueError(err.Error()),
 		)
 	} else {
-		interpreter.pushRef(value)
+		interpreter.pushVal(value)
 	}
 }
-
-// Module operations
 
 func DoLoadModule0(interpreter *AtomInterpreter, name string) {
 	module := interpreter.ModuleTable[name]
@@ -51,10 +45,8 @@ func DoLoadModule0(interpreter *AtomInterpreter, name string) {
 		interpreter.pushVal(NewAtomValueError(message))
 		return
 	}
-	interpreter.pushRef(module)
+	interpreter.pushVal(module)
 }
-
-// Indexing and attribute operations
 
 func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 	if CheckType(obj, AtomTypeStr) {
@@ -100,7 +92,7 @@ func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 
 		value := objValue.Get(indexValue)
 		if value == nil {
-			interpreter.pushRef(interpreter.State.NullValue)
+			interpreter.pushVal(interpreter.State.NullValue)
 			return
 		}
 
@@ -119,13 +111,22 @@ func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 		value := enumValue.Get(indexValue)
 
 		if value == nil {
-			interpreter.pushRef(interpreter.State.NullValue)
+			interpreter.pushVal(interpreter.State.NullValue)
 			return
 		}
 
 		interpreter.pushVal(value)
 		return
 
+	} else if CheckType(obj, AtomTypeClassInstance) {
+		classInstance := obj.Value.(*AtomClassInstance)
+		property := classInstance.Property
+		if property.Value.(*AtomObject).Get(index.String()) != nil {
+			interpreter.pushVal(property.Value.(*AtomObject).Get(index.String()))
+			return
+		}
+		interpreter.pushVal(interpreter.State.NullValue)
+		return
 	} else {
 		message := fmt.Sprintf("cannot index type: %s", GetTypeString(obj))
 		interpreter.pushVal(NewAtomValueError(message))
@@ -146,7 +147,7 @@ func DoPluckAttribute(interpreter *AtomInterpreter, obj *AtomValue, attribute st
 		interpreter.pushVal(value)
 		return
 	}
-	interpreter.pushRef(interpreter.State.NullValue)
+	interpreter.pushVal(interpreter.State.NullValue)
 }
 
 func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
@@ -205,7 +206,7 @@ func DoSetIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) 
 
 func DoLoadFunction(interpreter *AtomInterpreter, offset int) {
 	fn := interpreter.State.FunctionTable.Get(offset)
-	interpreter.pushRef(fn)
+	interpreter.pushVal(fn)
 }
 
 func DoMakeClass(interpreter *AtomInterpreter, name string, size int) {
@@ -267,21 +268,19 @@ func DoCallConstructor(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue
 
 	this := NewAtomValueObject(map[string]*AtomValue{})
 
+	// Copy methods to this
+	for key, value := range properties.Elements {
+		if CheckType(value, AtomTypeFunc) {
+			this.Value.(*AtomObject).Set(key, NewAtomValueMethod(this, value))
+		}
+	}
+
 	// Check if has initializer
 	if initializer := properties.Get("init"); initializer == nil {
-		panic("ERROR!")
-		interpreter.pushVal(this)
-
+		interpreter.pushVal(
+			NewAtomValueClassInstance(fn, this),
+		)
 	} else {
-		// Init is not callable
-		if !CheckType(initializer, AtomTypeFunc) && !CheckType(initializer, AtomTypeNativeFunc) {
-			cleanupStack()
-			message := "Error: initializer is not a function"
-			interpreter.pushVal(NewAtomValueError(message))
-			return
-		}
-
-		// Push this
 		DoCallInit(interpreter, env, fn, initializer, this, 1+argc)
 	}
 }
@@ -338,12 +337,10 @@ func DoCallInit(interpreter *AtomInterpreter, env *AtomEnv, cls *AtomValue, fn *
 
 	} else {
 		cleanupStack()
-		message := "not a function " + GetTypeString(fn)
+		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
 		interpreter.pushVal(NewAtomValueError(message))
 	}
 }
-
-// Function call operations
 
 func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
 	cleanupStack := func() {
@@ -352,11 +349,21 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 		}
 	}
 
+	if CheckType(fn, AtomTypeMethod) {
+		method := fn.Value.(*AtomMethod)
+
+		// Push this
+		interpreter.pushVal(method.This)
+
+		fn = method.Fn
+		argc++
+	}
+
 	if CheckType(fn, AtomTypeFunc) {
 		code := fn.Value.(*AtomCode)
 		if argc != code.Argc {
 			cleanupStack()
-			message := "Error: argument count mismatch"
+			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
 			interpreter.pushVal(NewAtomValueError(message))
 			return
 		}
@@ -373,7 +380,7 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 		nativeFunc := fn.Value.(NativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
 			cleanupStack()
-			message := "Error: argument count mismatch"
+			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeFunc.Paramc, argc)
 			interpreter.pushVal(NewAtomValueError(message))
 			return
 		}
@@ -381,12 +388,10 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 
 	} else {
 		cleanupStack()
-		message := "Error: not a function " + GetTypeString(fn)
+		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
 		interpreter.pushVal(NewAtomValueError(message))
 	}
 }
-
-// Unary operations
 
 func DoNeg(interpreter *AtomInterpreter, val *AtomValue) {
 	if !IsNumberType(val) {
@@ -399,10 +404,10 @@ func DoNeg(interpreter *AtomInterpreter, val *AtomValue) {
 
 func DoNot(interpreter *AtomInterpreter, val *AtomValue) {
 	if !CoerceToBool(val) {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
-	interpreter.pushRef(interpreter.State.FalseValue)
+	interpreter.pushVal(interpreter.State.FalseValue)
 }
 
 func DoPos(interpreter *AtomInterpreter, val *AtomValue) {
@@ -413,8 +418,6 @@ func DoPos(interpreter *AtomInterpreter, val *AtomValue) {
 	}
 	interpreter.pushVal(NewAtomValueNum(CoerceToNum(val)))
 }
-
-// Arithmetic operations
 
 func DoAddition(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
@@ -467,7 +470,7 @@ func DoDivision(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) 
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		if b == 0 {
-			message := "division by zero"
+			message := "Error: division by zero"
 			interpreter.pushVal(NewAtomValueError(message))
 			return
 		}
@@ -613,8 +616,6 @@ func DoSubtraction(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValu
 	interpreter.pushVal(NewAtomValueNum(result))
 }
 
-// Bitwise operations
-
 func DoAnd(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
@@ -759,17 +760,15 @@ func DoXor(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	}
 }
 
-// Comparison operations
-
 func DoCmpEq(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	if IsNumberType(val0) && IsNumberType(val1) {
 		lhsValue := CoerceToLong(val0)
 		rhsValue := CoerceToLong(val1)
 		if lhsValue == rhsValue {
-			interpreter.pushRef(interpreter.State.TrueValue)
+			interpreter.pushVal(interpreter.State.TrueValue)
 			return
 		}
-		interpreter.pushRef(interpreter.State.FalseValue)
+		interpreter.pushVal(interpreter.State.FalseValue)
 		return
 	}
 
@@ -777,25 +776,25 @@ func DoCmpEq(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhsStr := val0.Value.(string)
 		rhsStr := val1.Value.(string)
 		if lhsStr == rhsStr {
-			interpreter.pushRef(interpreter.State.TrueValue)
+			interpreter.pushVal(interpreter.State.TrueValue)
 			return
 		}
-		interpreter.pushRef(interpreter.State.FalseValue)
+		interpreter.pushVal(interpreter.State.FalseValue)
 		return
 	}
 
 	if CheckType(val0, AtomTypeNull) && CheckType(val1, AtomTypeNull) {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
 
 	// For other types, use simple reference equality for now
 	if val0.HashValue() == val1.HashValue() {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
 
-	interpreter.pushRef(interpreter.State.FalseValue)
+	interpreter.pushVal(interpreter.State.FalseValue)
 }
 
 func DoCmpGt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -811,10 +810,10 @@ func DoCmpGt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue > rhsValue {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
-	interpreter.pushRef(interpreter.State.FalseValue)
+	interpreter.pushVal(interpreter.State.FalseValue)
 }
 
 func DoCmpGte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -830,10 +829,10 @@ func DoCmpGte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue >= rhsValue {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
-	interpreter.pushRef(interpreter.State.FalseValue)
+	interpreter.pushVal(interpreter.State.FalseValue)
 }
 
 func DoCmpLt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -849,10 +848,10 @@ func DoCmpLt(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue < rhsValue {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
-	interpreter.pushRef(interpreter.State.FalseValue)
+	interpreter.pushVal(interpreter.State.FalseValue)
 }
 
 func DoCmpLte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -868,10 +867,10 @@ func DoCmpLte(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 
 	// Compare the long values
 	if lhsValue <= rhsValue {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
-	interpreter.pushRef(interpreter.State.FalseValue)
+	interpreter.pushVal(interpreter.State.FalseValue)
 }
 
 func DoCmpNe(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
@@ -879,10 +878,10 @@ func DoCmpNe(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhsValue := CoerceToLong(val0)
 		rhsValue := CoerceToLong(val1)
 		if lhsValue != rhsValue {
-			interpreter.pushRef(interpreter.State.TrueValue)
+			interpreter.pushVal(interpreter.State.TrueValue)
 			return
 		}
-		interpreter.pushRef(interpreter.State.FalseValue)
+		interpreter.pushVal(interpreter.State.FalseValue)
 		return
 	}
 
@@ -890,23 +889,23 @@ func DoCmpNe(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 		lhsStr := val0.Value.(string)
 		rhsStr := val1.Value.(string)
 		if lhsStr != rhsStr {
-			interpreter.pushRef(interpreter.State.TrueValue)
+			interpreter.pushVal(interpreter.State.TrueValue)
 			return
 		}
-		interpreter.pushRef(interpreter.State.FalseValue)
+		interpreter.pushVal(interpreter.State.FalseValue)
 		return
 	}
 
 	if CheckType(val0, AtomTypeNull) || CheckType(val1, AtomTypeNull) {
-		interpreter.pushRef(interpreter.State.FalseValue)
+		interpreter.pushVal(interpreter.State.FalseValue)
 		return
 	}
 
 	// For other types, use simple reference equality for now
 	if val0.HashValue() != val1.HashValue() {
-		interpreter.pushRef(interpreter.State.TrueValue)
+		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}
 
-	interpreter.pushRef(interpreter.State.FalseValue)
+	interpreter.pushVal(interpreter.State.FalseValue)
 }

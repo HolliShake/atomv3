@@ -29,13 +29,6 @@ func NewInterpreter(state *AtomState) *AtomInterpreter {
 
 func (i *AtomInterpreter) pushVal(value *AtomValue) {
 	i.EvaluationStack.Push(value)
-	// i.GcRoot.Next = value
-	// i.GcRoot = value
-	// i.Allocation++
-}
-
-func (i *AtomInterpreter) pushRef(value *AtomValue) {
-	i.EvaluationStack.Push(value)
 }
 
 func (i *AtomInterpreter) popp() *AtomValue {
@@ -83,14 +76,14 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 
 		case OpLoadBool:
 			if ReadInt(code.Code, strt) != 0 {
-				i.pushRef(i.State.TrueValue)
+				i.pushVal(i.State.TrueValue)
 			} else {
-				i.pushRef(i.State.FalseValue)
+				i.pushVal(i.State.FalseValue)
 			}
 			forward(4)
 
 		case OpLoadNull:
-			i.pushRef(i.State.NullValue)
+			i.pushVal(i.State.NullValue)
 
 		case OpLoadArray:
 			size := ReadInt(code.Code, strt)

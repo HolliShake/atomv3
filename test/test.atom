@@ -214,6 +214,10 @@ class Dog extends Animal {
         self.name = _name;
         self.age  = _age; 
     }
+
+    func bark(self) {
+        println("Woof! I'm " + self.name);
+    }
 }
 
 g = 2;
@@ -222,5 +226,13 @@ println(Dog, (3 / 0.00) catch(err) {
     println("ERR:", err);
 });
 
-println(new Dog("Buddy", 100));
+const myDog = new Dog("Buddy", 100);
 
+println(myDog);
+
+
+const bound = myDog.bark;
+
+println(myDog.bark());
+
+println(bound(2), myDog + 2);

@@ -12,7 +12,7 @@ var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc 
 		interpreter.pushVal(NewAtomValueError("cannot freeze non-object"))
 		return
 	}
-	interpreter.pushRef(interpreter.State.NullValue)
+	interpreter.pushVal(interpreter.State.NullValue)
 })
 
 var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpreter, argc int) {
@@ -23,7 +23,7 @@ var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpre
 		}
 	}
 	fmt.Println()
-	interpreter.pushRef(interpreter.State.NullValue)
+	interpreter.pushVal(interpreter.State.NullValue)
 })
 
 var print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpreter, argc int) {
@@ -33,7 +33,7 @@ var print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpreter,
 			fmt.Print(" ")
 		}
 	}
-	interpreter.pushRef(interpreter.State.NullValue)
+	interpreter.pushVal(interpreter.State.NullValue)
 })
 
 var EXPORT_STD = map[string]*AtomValue{

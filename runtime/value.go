@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -21,9 +23,29 @@ const (
 	AtomTypeEnum
 	AtomTypeObj
 	AtomTypeArray
+	AtomTypeMethod
 	AtomTypeFunc
 	AtomTypeNativeFunc
 	AtomTypeErr
+)
+
+// String builder pool for memory efficiency
+var StringBuilderPool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
+	},
+}
+
+// Pre-allocated common strings to avoid allocations
+const (
+	NullStr               = "null"
+	EmptyObjStr           = "{}"
+	EmptyArrStr           = "[]"
+	EmptyEnumStr          = "enum {}"
+	EmptyClassInstanceStr = " {\n}"
+	TrueStr               = "true"
+	FalseStr              = "false"
+	SelfRefStr            = "[self]"
 )
 
 type AtomValue struct {
@@ -106,6 +128,13 @@ func NewAtomValueArray(elements []*AtomValue) *AtomValue {
 	return obj
 }
 
+// Bound method
+func NewAtomValueMethod(this *AtomValue, fn *AtomValue) *AtomValue {
+	obj := NewAtomValue(AtomTypeMethod)
+	obj.Value = NewAtomMethod(this, fn)
+	return obj
+}
+
 func NewAtomValueFunction(file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
 	obj.Value = NewAtomCode(file, name, argc)
@@ -125,120 +154,297 @@ func NewAtomValueError(message string) *AtomValue {
 }
 
 func (v *AtomValue) String() string {
+	return v.stringWithVisited(make(map[uintptr]bool))
+}
+
+func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 	switch v.Type {
 	case AtomTypeInt:
-		return fmt.Sprintf("%v", v.Value)
+		// Fast path: direct conversion without fmt.Sprintf
+		return strconv.FormatInt(int64(v.Value.(int32)), 10)
 
 	case AtomTypeNum:
-		return fmt.Sprintf("%v", v.Value)
+		// Fast path: direct conversion without fmt.Sprintf
+		return strconv.FormatFloat(v.Value.(float64), 'g', -1, 64)
 
 	case AtomTypeBool:
-		return fmt.Sprintf("%v", v.Value)
+		// Fast path: pre-allocated strings
+		if v.Value.(bool) {
+			return TrueStr
+		}
+		return FalseStr
 
 	case AtomTypeStr:
-		return fmt.Sprintf("%v", v.Value)
+		// Fast path: direct return
+		return v.Value.(string)
 
 	case AtomTypeNull:
-		return "null"
+		// Fast path: pre-allocated string
+		return NullStr
 
 	case AtomTypeClass:
+		// Optimized: avoid fmt.Sprintf, use helper function
 		atomClass := v.Value.(*AtomClass)
-		return fmt.Sprintf("<class.%s />", atomClass.Name)
+		return BuildString(func(b *strings.Builder) {
+			b.WriteString("<class.")
+			b.WriteString(atomClass.Name)
+			b.WriteString(" />")
+		})
 
 	case AtomTypeClassInstance:
+		// Check for self-reference
+		ptr := uintptr(unsafe.Pointer(v))
+		if visited[ptr] {
+			return SelfRefStr
+		}
+		visited[ptr] = true
+		defer delete(visited, ptr)
+
 		classInstance := v.Value.(*AtomClassInstance)
 		prototype := classInstance.Prototype.Value.(*AtomClass)
 		properties := classInstance.Property.Value.(*AtomObject).Elements
 
 		if len(properties) == 0 {
-			return fmt.Sprintf("%s {\n}", prototype.Name)
+			// Fast path for empty class instance
+			builder := StringBuilderPool.Get().(*strings.Builder)
+			builder.Reset()
+			builder.WriteString(prototype.Name)
+			builder.WriteString(EmptyClassInstanceStr)
+			result := builder.String()
+			StringBuilderPool.Put(builder)
+			return result
 		}
 
-		// Pre-allocate slice with estimated capacity
-		parts := make([]string, 0, len(properties))
+		// Use string builder for complex formatting
+		builder := StringBuilderPool.Get().(*strings.Builder)
+		builder.Reset()
+		builder.WriteString(prototype.Name)
+		builder.WriteString(" {\n")
+
+		// Process properties with optimized string building
+		first := true
 		for key, value := range properties {
-			var valueStr string
-			if value.Type == AtomTypeStr {
-				valueStr = "'" + value.Value.(string) + "'"
-			} else {
-				valueStr = value.String()
+			if !first {
+				builder.WriteByte('\n')
 			}
-			parts = append(parts, "  "+key+": "+valueStr+",")
+			first = false
+
+			builder.WriteString("  ")
+			builder.WriteString(key)
+			builder.WriteString(": ")
+			builder.WriteString(valueToStringWithVisited(value, visited))
+			builder.WriteByte(',')
 		}
-		return fmt.Sprintf("%s {\n%s\n}", prototype.Name, strings.Join(parts, "\n"))
+		builder.WriteString("\n}")
+		result := builder.String()
+		StringBuilderPool.Put(builder)
+		return result
 
 	case AtomTypeEnum:
+		// Check for self-reference
+		ptr := uintptr(unsafe.Pointer(v))
+		if visited[ptr] {
+			return SelfRefStr
+		}
+		visited[ptr] = true
+		defer delete(visited, ptr)
+
 		enumElements := v.Value.(*AtomObject).Elements
 		if len(enumElements) == 0 {
-			return "enum {}"
+			return EmptyEnumStr
 		}
 
-		// Pre-allocate slice with estimated capacity
-		parts := make([]string, 0, len(enumElements))
+		// Use string builder for enum formatting
+		builder := StringBuilderPool.Get().(*strings.Builder)
+		builder.Reset()
+		builder.WriteString("enum {")
+
+		first := true
 		for key, value := range enumElements {
-			parts = append(parts, key+"="+value.String())
+			if !first {
+				builder.WriteString(", ")
+			}
+			first = false
+			builder.WriteString(key)
+			builder.WriteByte('=')
+			builder.WriteString(valueToStringWithVisited(value, visited))
 		}
-		return "enum {" + strings.Join(parts, ", ") + "}"
+		builder.WriteByte('}')
+		result := builder.String()
+		StringBuilderPool.Put(builder)
+		return result
 
 	case AtomTypeObj:
+		// Check for self-reference
+		ptr := uintptr(unsafe.Pointer(v))
+		if visited[ptr] {
+			return SelfRefStr
+		}
+		visited[ptr] = true
+		defer delete(visited, ptr)
+
 		objElements := v.Value.(*AtomObject).Elements
 		if len(objElements) == 0 {
-			return "{}"
+			return EmptyObjStr
 		}
 
-		// Pre-allocate slice with estimated capacity
-		parts := make([]string, 0, len(objElements))
+		// Use string builder for object formatting
+		builder := StringBuilderPool.Get().(*strings.Builder)
+		builder.Reset()
+		builder.WriteByte('{')
+
+		first := true
 		for keyStr, value := range objElements {
-			var valueStr string
-			if value.Type == AtomTypeStr {
-				valueStr = "'" + value.Value.(string) + "'"
-			} else {
-				valueStr = value.String()
+			if !first {
+				builder.WriteString(", ")
 			}
-			parts = append(parts, keyStr+": "+valueStr)
+			first = false
+			builder.WriteString(keyStr)
+			builder.WriteString(": ")
+			builder.WriteString(valueToStringWithVisited(value, visited))
 		}
-		return "{" + strings.Join(parts, ", ") + "}"
+		builder.WriteByte('}')
+		result := builder.String()
+		StringBuilderPool.Put(builder)
+		return result
 
 	case AtomTypeArray:
+		// Check for self-reference
+		ptr := uintptr(unsafe.Pointer(v))
+		if visited[ptr] {
+			return SelfRefStr
+		}
+		visited[ptr] = true
+		defer delete(visited, ptr)
+
 		elements := v.Value.(*AtomArray).Elements
 		if len(elements) == 0 {
-			return "[]"
+			return EmptyArrStr
 		}
 
-		// Pre-allocate slice with estimated capacity
-		parts := make([]string, 0, len(elements))
+		// Use string builder for array formatting
+		builder := StringBuilderPool.Get().(*strings.Builder)
+		builder.Reset()
+		builder.WriteByte('[')
+
+		first := true
 		for _, element := range elements {
-			if element.Type == AtomTypeStr {
-				parts = append(parts, "'"+element.Value.(string)+"'")
-			} else {
-				parts = append(parts, element.String())
+			if !first {
+				builder.WriteString(", ")
 			}
+			first = false
+			builder.WriteString(valueToStringWithVisited(element, visited))
 		}
-		return "[" + strings.Join(parts, ", ") + "]"
+		builder.WriteByte(']')
+		result := builder.String()
+		StringBuilderPool.Put(builder)
+		return result
+
+	case AtomTypeMethod:
+		method := v.Value.(*AtomMethod)
+		fnValue := method.Fn
+		if CheckType(fnValue, AtomTypeFunc) {
+			atomCode := fnValue.Value.(*AtomCode)
+			return BuildString(func(b *strings.Builder) {
+				b.WriteString("bound method ")
+				b.WriteString(atomCode.Name)
+				b.WriteByte('(')
+
+				if atomCode.Argc == 0 {
+					// No parameters
+				} else {
+					// Build parameters efficiently
+					for i := 0; i < atomCode.Argc; i++ {
+						if i > 0 {
+							b.WriteString(", ")
+						}
+						b.WriteByte('$')
+						b.WriteString(strconv.Itoa(i))
+					}
+				}
+				b.WriteString("){}")
+			})
+		} else if CheckType(fnValue, AtomTypeNativeFunc) {
+			nativeFunc := fnValue.Value.(NativeFunc)
+			return BuildString(func(b *strings.Builder) {
+				b.WriteString("bound method ")
+				b.WriteString(nativeFunc.Name)
+				b.WriteByte('(')
+
+				switch nativeFunc.Paramc {
+				case Variadict:
+					b.WriteString("...")
+				case 0:
+					// No parameters
+				default:
+					// Build parameters efficiently
+					for i := 0; i < nativeFunc.Paramc; i++ {
+						if i > 0 {
+							b.WriteString(", ")
+						}
+						b.WriteByte('$')
+						b.WriteString(strconv.Itoa(i))
+					}
+				}
+				b.WriteString("){}")
+			})
+		}
+		return "bound method"
 
 	case AtomTypeFunc:
-		return fmt.Sprintf("function %s(...){}", v.Value.(*AtomCode).Name)
+		// Optimized: avoid fmt.Sprintf, use helper function
+		atomCode := v.Value.(*AtomCode)
+		return BuildString(func(b *strings.Builder) {
+			b.WriteString("function ")
+			b.WriteString(atomCode.Name)
+			b.WriteByte('(')
+
+			if atomCode.Argc == 0 {
+				// No parameters
+			} else {
+				// Build parameters efficiently
+				for i := 0; i < atomCode.Argc; i++ {
+					if i > 0 {
+						b.WriteString(", ")
+					}
+					b.WriteByte('$')
+					b.WriteString(strconv.Itoa(i))
+				}
+			}
+			b.WriteString("){}")
+		})
 
 	case AtomTypeNativeFunc:
+		// Optimized: use helper function
 		nativeFunc := v.Value.(NativeFunc)
-		if nativeFunc.Paramc == Variadict {
-			return fmt.Sprintf("%s(...){}", nativeFunc.Name)
-		}
-		if nativeFunc.Paramc == 0 {
-			return fmt.Sprintf("%s(){}", nativeFunc.Name)
-		}
+		return BuildString(func(b *strings.Builder) {
+			b.WriteString(nativeFunc.Name)
+			b.WriteByte('(')
 
-		// Pre-allocate slice for parameters
-		params := make([]string, nativeFunc.Paramc)
-		for i := 0; i < nativeFunc.Paramc; i++ {
-			params[i] = fmt.Sprintf("$%d", i)
-		}
-		return fmt.Sprintf("%s(%s){}", nativeFunc.Name, strings.Join(params, ", "))
+			switch nativeFunc.Paramc {
+			case Variadict:
+				b.WriteString("...")
+			case 0:
+				// No parameters
+			default:
+				// Build parameters efficiently
+				for i := 0; i < nativeFunc.Paramc; i++ {
+					if i > 0 {
+						b.WriteString(", ")
+					}
+					b.WriteByte('$')
+					b.WriteString(strconv.Itoa(i))
+				}
+			}
+			b.WriteString("){}")
+		})
 
 	case AtomTypeErr:
-		return fmt.Sprintf("%v", v.Value)
+		// Fast path: direct string conversion
+		return v.Value.(string)
 
 	default:
+		// Fallback to fmt.Sprintf only when necessary
 		return fmt.Sprintf("%v", v.Value)
 	}
 }
@@ -338,20 +544,51 @@ func GetTypeString(value *AtomValue) string {
 	case AtomTypeClass:
 		return "class"
 	case AtomTypeClassInstance:
-		return "class_instance"
+		instance := value.Value.(*AtomClassInstance)
+		return instance.Prototype.Value.(*AtomClass).Name
 	case AtomTypeEnum:
 		return "enum"
 	case AtomTypeObj:
 		return "object"
 	case AtomTypeArray:
 		return "array"
+	case AtomTypeMethod:
+		return "method"
 	case AtomTypeFunc:
 		return "function"
 	case AtomTypeNativeFunc:
-		return "native_function"
+		return "native function"
 	case AtomTypeErr:
 		return "error"
 	default:
-		return "unknown"
+		return fmt.Sprintf("unknown type: %d", value.Type)
 	}
+}
+
+// Helper function for optimized string building with pooling
+func BuildString(fn func(*strings.Builder)) string {
+	builder := StringBuilderPool.Get().(*strings.Builder)
+	builder.Reset()
+	fn(builder)
+	result := builder.String()
+	StringBuilderPool.Put(builder)
+	return result
+}
+
+// Helper function to get string representation of a value, optimized for string types
+func ValueToString(v *AtomValue) string {
+	if v.Type == AtomTypeStr {
+		// Fast path: add quotes directly
+		return "'" + v.Value.(string) + "'"
+	}
+	return v.String()
+}
+
+// Helper function to get string representation with visited tracking for circular reference detection
+func valueToStringWithVisited(v *AtomValue, visited map[uintptr]bool) string {
+	if v.Type == AtomTypeStr {
+		// Fast path: add quotes directly
+		return "'" + v.Value.(string) + "'"
+	}
+	return v.stringWithVisited(visited)
 }
