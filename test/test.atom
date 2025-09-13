@@ -203,7 +203,9 @@ println(">>", Status, Status.OK, Status.BAD);
 
 class Animal {
     func eat(self) {
+        println(self.name + " is eating...");
 
+        return 69420;
     }
 }
 
@@ -241,4 +243,4 @@ println(myDog.bark());
 
 println(bound(), myDog.incrementAge());
 
-println(myDog);
+println(myDog, myDog.eat(), myDog.x);

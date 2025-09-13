@@ -121,12 +121,30 @@ func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 	} else if CheckType(obj, AtomTypeClassInstance) {
 		classInstance := obj.Value.(*AtomClassInstance)
 		property := classInstance.Property
+
 		if property.Value.(*AtomObject).Get(index.String()) != nil {
 			interpreter.pushVal(property.Value.(*AtomObject).Get(index.String()))
 			return
 		}
+		// Is proto
+		current := classInstance.Prototype.Value.(*AtomClass)
+		for current != nil {
+			if attribute := current.Proto.Value.(*AtomObject).Get(index.String()); attribute != nil {
+				if CheckType(attribute, AtomTypeFunc) || CheckType(attribute, AtomTypeNativeFunc) {
+					interpreter.pushVal(NewAtomValueMethod(property, attribute))
+					return
+				}
+				interpreter.pushVal(attribute)
+				return
+			}
+			if current.Base == nil {
+				break
+			}
+			current = current.Base.Value.(*AtomClass)
+		}
 		interpreter.pushVal(interpreter.State.NullValue)
 		return
+
 	} else {
 		message := fmt.Sprintf("cannot index type: %s", GetTypeString(obj))
 		interpreter.pushVal(NewAtomValueError(message))
