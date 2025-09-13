@@ -256,6 +256,10 @@ class Monkey extends Animal {
     func init(self) {
         self.name = "John";
     }
+
+    func printName(self) {
+        println(self.name);
+    }
 }
 
 const monkey = new Monkey();
@@ -263,3 +267,5 @@ const monkey = new Monkey();
 monkey.eat();
 
 println(monkey);
+
+Monkey.printName(monkey);

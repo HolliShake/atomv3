@@ -99,6 +99,15 @@ func DoIndex(interpreter *AtomInterpreter, obj *AtomValue, index *AtomValue) {
 		interpreter.pushVal(value)
 		return
 
+	} else if CheckType(obj, AtomTypeClass) {
+		class := obj.Value.(*AtomClass)
+		if class.Proto.Value.(*AtomObject).Get(index.String()) != nil {
+			interpreter.pushVal(class.Proto.Value.(*AtomObject).Get(index.String()))
+			return
+		}
+		interpreter.pushVal(interpreter.State.NullValue)
+		return
+
 	} else if CheckType(obj, AtomTypeClassInstance) {
 		classInstance := obj.Value.(*AtomClassInstance)
 		property := classInstance.Property
