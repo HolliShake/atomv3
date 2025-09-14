@@ -1,16 +1,21 @@
-import [println] from "atom:std";
+import * from "atom:std";
 
-async func call() {
-    return "from call";
+async func wast() {
+    std.println("wait->start");
+    return "Hola!";
 }
 
-async func delay() {
-    const c = await call();
-    const t = typeof(c);
-    println("awaited>>", c, t);
-    println("from delay");
-    return 1;
+async func callee() {
+    std.println("callee->start");
+    return await wast();
 }
 
-const x = delay();
-println(">>", x);
+async func caller() {
+    std.println("Starting...");
+    const data = await callee();
+    std.println("caller->callee() =", data);
+    return data;
+}
+
+caller();
+

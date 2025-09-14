@@ -17,13 +17,14 @@ type AtomInterpreter struct {
 }
 
 func NewInterpreter(state *AtomState) *AtomInterpreter {
-	return &AtomInterpreter{
+	interpreter := &AtomInterpreter{
 		State:           state,
 		Frame:           NewAtomStack(),
 		EvaluationStack: NewAtomStack(),
 		MicroTask:       NewQueue[*AtomCallFrame](),
 		ModuleTable:     map[string]*AtomValue{},
 	}
+	return interpreter
 }
 
 func (i *AtomInterpreter) pushVal(value *AtomValue) {
@@ -38,31 +39,28 @@ func (i *AtomInterpreter) peek() *AtomValue {
 	return i.EvaluationStack.Peek()
 }
 
-func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
+func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 	// Frame here is a function
-	var strt = callFrame.Ip
-	var code = callFrame.Fn.Value.(*AtomCode)
+	var strt = frame.Ip
+	var code = frame.Fn.Value.(*AtomCode)
 	var size = len(code.Code)
-	var env0 = callFrame.Env
+	var env0 = frame.Env
 
 	var forward = func(offset int) {
 		strt += offset
+		frame.Ip += offset
 	}
 
 	var jump = func(offset int) {
 		strt = offset
+		frame.Ip = offset
 	}
 
-	var saveAsTask = func(promise *AtomValue, stack int) {
-		callFrame.Ip = strt
-		callFrame.Stack = stack
-		callFrame.Promise = promise
-		i.MicroTask.Enqueue(callFrame)
-	}
+	ExecuteTransition(i, frame)
 
 	for strt < size {
 		opCode := code.Code[strt]
-		strt++
+		forward(1)
 
 		switch opCode {
 		case OpLoadInt:
@@ -147,28 +145,8 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 		case OpAwaitCall:
 			argc := ReadInt(code.Code, strt)
 			call := i.popp()
-			DoCall(i, env0, call, argc)
-
-			if !CheckType(i.peek(), AtomTypePromise) {
-				forward(4)
-				continue
-			}
-
-			// Is fullfilled?
-			if i.peek().Value.(*AtomPromise).IsFulfilled() {
-				// unwrap
-				i.pushVal(i.popp().Value.(*AtomPromise).Value)
-			}
-
-			stack := i.EvaluationStack.Index
-
-			// Push a promise
-			prom := NewAtomValuePromise(PromiseStatePending, nil)
-			i.pushVal(prom)
-
+			DoAwaitCall(i, frame, call, argc)
 			forward(4)
-			saveAsTask(prom, stack)
-			// Do immediate return
 			return
 
 		case OpNot:
@@ -386,16 +364,13 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			i.popp()
 
 		case OpReturn:
-			if callFrame.Fn.Value.(*AtomCode).Async {
-				// Wrap
-				i.pushVal(
-					NewAtomValuePromise(PromiseStateFulfilled, i.popp()),
-				)
-			}
+			// For async functions, the return value will be handled in ExecuteTransition
+			ExecuteTransition(i, frame)
 			return
 
 		default:
-			panic(fmt.Sprintf("Unknown opcode: %d", opCode))
+			fmt.Println(Decompile(code))
+			panic(fmt.Sprintf("%s:: Unknown opcode: %d at %d", frame.Fn.Value.(*AtomCode).Name, opCode, strt))
 		}
 	}
 }
@@ -404,18 +379,15 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "std", EXPORT_STD)
 
 	// Run while the frame is not empty
-	i.executeFrame(NewAtomCallFrame(
-		atomFunc,
-		NewAtomEnv(nil),
-		0,
-	))
+	DoCall(i, nil, atomFunc, 0)
 
-	for !i.MicroTask.IsEmpty() {
-		top, _ := i.MicroTask.Dequeue()
-		i.EvaluationStack.SetIndex(top.Stack)
-		i.executeFrame(top)
+	ExecuteMicroTask(i)
+
+	// Clean up the stack - we should only have one value left
+	// Remove any extra values that were left on the stack
+	for i.EvaluationStack.Len() > 1 {
+		i.popp()
 	}
-
 	if i.EvaluationStack.Len() != 1 {
 		i.EvaluationStack.Dump()
 		panic(fmt.Sprintf("Evaluation stack is not empty: %d", i.EvaluationStack.Len()))

@@ -1626,7 +1626,7 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
-	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "main", false, 0)
+	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "script", false, 0)
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)

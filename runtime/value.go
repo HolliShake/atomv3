@@ -588,6 +588,8 @@ func GetTypeString(value *AtomValue) string {
 		return "native function"
 	case AtomTypeErr:
 		return "error"
+	case AtomTypePromise:
+		return "promise"
 	default:
 		return fmt.Sprintf("unknown type: %d", value.Type)
 	}

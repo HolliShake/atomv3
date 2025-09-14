@@ -380,6 +380,58 @@ func DoCallInit(interpreter *AtomInterpreter, env *AtomEnv, cls *AtomValue, fn *
 	}
 }
 
+func DoAwaitCall(interpreter *AtomInterpreter, caller *AtomCallFrame, fn *AtomValue, argc int) {
+	cleanupStack := func() {
+		for range argc {
+			interpreter.popp()
+		}
+	}
+
+	if CheckType(fn, AtomTypeMethod) {
+		method := fn.Value.(*AtomMethod)
+		interpreter.pushVal(method.This)
+		fn = method.Fn
+		argc++
+	}
+
+	if !CheckType(fn, AtomTypeFunc) {
+		cleanupStack()
+		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+
+	code := fn.Value.(*AtomCode)
+	if argc != code.Argc {
+		cleanupStack()
+		message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
+		interpreter.pushVal(NewAtomValueError(message))
+		return
+	}
+
+	/*
+	 * Handle asynchronous call
+	 * Create a new frame for the async function and execute it
+	 * The caller will wait for the result
+	 */
+
+	// Create a new frame for the async function
+	asyncFrame := NewAtomCallFrame(fn, NewAtomEnv(caller.Env), 0)
+
+	// Execute the async function
+	interpreter.executeFrame(asyncFrame)
+
+	// The async function should have pushed a promise to the stack
+	// Get the promise and set it as the awaited value
+	promise := interpreter.popp()
+	caller.State = ExecutionStateAwaiting
+	caller.Value = promise
+	interpreter.MicroTask.Enqueue(caller)
+
+	// Don't push anything to the stack here - the awaited value will be pushed
+	// when the promise is resolved in the microtask
+}
+
 func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
@@ -389,10 +441,7 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 
 	if CheckType(fn, AtomTypeMethod) {
 		method := fn.Value.(*AtomMethod)
-
-		// Push this
 		interpreter.pushVal(method.This)
-
 		fn = method.Fn
 		argc++
 	}
@@ -406,13 +455,12 @@ func DoCall(interpreter *AtomInterpreter, env *AtomEnv, fn *AtomValue, argc int)
 			return
 		}
 
-		newEnv := NewAtomEnv(env)
+		// Create a frame for the function
+		frame := NewAtomCallFrame(fn, NewAtomEnv(env), 0)
+		interpreter.executeFrame(frame)
 
-		interpreter.executeFrame(NewAtomCallFrame(
-			fn,
-			newEnv,
-			0,
-		))
+		// For async functions, the frame will push a promise to the stack
+		// For non-async functions, the frame will push the return value to the stack
 
 	} else if CheckType(fn, AtomTypeNativeFunc) {
 		nativeFunc := fn.Value.(NativeFunc)
