@@ -3,6 +3,7 @@ package main
 const (
 	KeyClass    = "class"
 	KeyExtends  = "extends"
+	KeyAsync    = "async"
 	KeyFunc     = "func"
 	KeyVar      = "var"
 	KeyConst    = "const"

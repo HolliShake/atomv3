@@ -1,0 +1,9 @@
+import [ println ] from "atom:std";
+
+
+const arr = [
+    1, 2, 3, 4, 5
+];
+
+println(arr);
+

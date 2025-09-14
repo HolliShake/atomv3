@@ -464,15 +464,14 @@ func (v *AtomValue) HashValue() int {
 		return int(*(*uint8)(unsafe.Pointer(&v.Value)))
 
 	case AtomTypeStr:
-		// Use unsafe string to bytes conversion to avoid allocation
+		// Use a stable hash function for strings
 		str := v.Value.(string)
 		if len(str) == 0 {
 			return 0
 		}
-		data := unsafe.Slice(unsafe.StringData(str), len(str))
-		hash := 0
-		for _, b := range data {
-			hash = hash*31 + int(b)
+		hash := 5381
+		for i := 0; i < len(str); i++ {
+			hash = ((hash << 5) + hash) + int(str[i])
 		}
 		return hash
 

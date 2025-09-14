@@ -16,7 +16,7 @@ var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc 
 		interpreter.pushVal(NewAtomValueError("cannot freeze non-object"))
 		return
 	}
-	interpreter.pushVal(interpreter.State.NullValue)
+	interpreter.pushVal(obj)
 })
 
 var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpreter, argc int) {

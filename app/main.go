@@ -56,5 +56,5 @@ func main() {
 	i.Interpret(f)
 
 	gruntime.ReadMemStats(&mEnd)
-	fmt.Printf("\n💾 Memory usage: %d kilobytes\n", (mEnd.Alloc-mStart.Alloc)/1024)
+	fmt.Printf("💾 Memory usage: %d kilobytes\n", (mEnd.Alloc-mStart.Alloc)/1024)
 }

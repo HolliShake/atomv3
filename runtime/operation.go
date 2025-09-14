@@ -291,17 +291,35 @@ func DoCallConstructor(interpreter *AtomInterpreter, env *AtomEnv, cls *AtomValu
 		return
 	}
 	atomClass := cls.Value.(*AtomClass)
-	properties := atomClass.Proto.Value.(*AtomObject)
 
+	// Create the instance object first
 	this := NewAtomValueObject(map[string]*AtomValue{})
 
-	// Check if has initializer
-	if initializer := properties.Get("init"); initializer == nil {
+	// Walk up the inheritance chain to collect all initializers
+	var initializers []*AtomValue
+	currentClass := atomClass
+
+	for currentClass != nil {
+		properties := currentClass.Proto.Value.(*AtomObject)
+		if initializer := properties.Get("init"); initializer != nil {
+			initializers = append(initializers, initializer)
+		}
+		if currentClass.Base == nil {
+			break
+		}
+		currentClass = currentClass.Base.Value.(*AtomClass)
+	}
+
+	// Call initializers from base to derived (reverse order)
+	if len(initializers) == 0 {
 		interpreter.pushVal(
 			NewAtomValueClassInstance(cls, this),
 		)
 	} else {
-		DoCallInit(interpreter, env, cls, initializer, this, 1+argc)
+		// Call the most derived initializer (last in the slice)
+		// The inheritance chain should be handled by the language design,
+		// not by calling multiple initializers
+		DoCallInit(interpreter, env, cls, initializers[len(initializers)-1], this, 1+argc)
 	}
 }
 
@@ -809,7 +827,7 @@ func DoCmpEq(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	}
 
 	// For other types, use simple reference equality for now
-	if val0.HashValue() == val1.HashValue() {
+	if val0.HashValue() == val1.HashValue() || val0 == val1 {
 		interpreter.pushVal(interpreter.State.TrueValue)
 		return
 	}

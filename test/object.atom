@@ -1,0 +1,15 @@
+import [ freeze, println ] from "atom:std";
+
+
+const obj = {
+    name: "John",
+    age: 30,
+    city: "New York"
+};
+
+const frz = freeze(obj);
+
+obj.name = "Jane";
+
+println(obj);
+println(frz, frz == obj);

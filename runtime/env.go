@@ -50,7 +50,6 @@ func (e *AtomEnv) Lookup(index string) (*AtomValue, error) {
 			return entry.Value, nil
 		}
 	}
-	fmt.Println("lookup", e.Locals)
 	return nil, fmt.Errorf("variable %s not found", index)
 }
 

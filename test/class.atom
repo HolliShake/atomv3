@@ -1,0 +1,24 @@
+import * from "atom:std";
+
+class Animal {
+    func init(self, name) {
+        self.name = name;
+    }
+
+    // Common property for an animals
+    func eat(self, food) {
+        std.println(self.name + " is eating " + food);
+    }
+
+}
+
+class Dog extends Animal {
+    func init(self, name) {
+        self.name = name;
+    }
+}
+
+const dog = new Dog("Buddy");
+std.println(dog);
+
+std.println(dog.eat("bone"));
