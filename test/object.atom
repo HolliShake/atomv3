@@ -1,6 +1,5 @@
 import [ freeze, println ] from "atom:std";
 
-
 const obj = {
     name: "John",
     age: 30,
@@ -13,3 +12,12 @@ obj.name = "Jane";
 
 println(obj);
 println(frz, frz == obj);
+
+const selfRef = {
+    prop: "PROP",
+    self: ""
+};
+
+selfRef["self"] = selfRef;
+
+println(selfRef);
