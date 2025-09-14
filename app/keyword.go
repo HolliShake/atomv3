@@ -27,4 +27,6 @@ const (
 	KetFalse    = "false"
 	KetNull     = "null"
 	KeyNew      = "new"
+	KeyTypeof   = "typeof"
+	KeyAwait    = "await"
 )

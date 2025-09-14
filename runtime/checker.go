@@ -11,3 +11,7 @@ func IsInteger(value float64) bool {
 func CheckType(value *AtomValue, ttype AtomType) bool {
 	return value.Type == ttype
 }
+
+func CheckTypeAsync(value *AtomValue) bool {
+	return CheckType(value, AtomTypeFunc) && value.Value.(*AtomCode).Async
+}

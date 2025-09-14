@@ -298,6 +298,42 @@ func (p *AtomParser) unary() *AtomAst {
 			rhs,
 			rhs.Position.Merge(p.lookahead.Position),
 		)
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyTypeof) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+		rhs := p.allocation()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		return NewUnary(
+			opt,
+			rhs,
+			rhs.Position.Merge(p.lookahead.Position),
+		)
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyAwait) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+		rhs := p.allocation()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		return NewUnary(
+			opt,
+			rhs,
+			rhs.Position.Merge(p.lookahead.Position),
+		)
 	}
 	return p.allocation()
 }
@@ -820,8 +856,10 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.classStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyEnum) {
 		return p.enumStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyAsync) {
+		return p.function(true)
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyFunc) {
-		return p.function()
+		return p.function(false)
 	} else if p.checkT(TokenTypeSym) && p.checkV("{") {
 		return p.block()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyImport) {
@@ -980,9 +1018,14 @@ func (p *AtomParser) enumStatement() *AtomAst {
 	)
 }
 
-func (p *AtomParser) function() *AtomAst {
+func (p *AtomParser) function(async bool) *AtomAst {
 	start := p.lookahead.Position
 	ended := start
+	astType := AstTypeFunction
+	if async {
+		astType = AstTypeAsyncFunction
+		p.acceptV(KeyAsync)
+	}
 	p.acceptV(KeyFunc)
 	name := p.terminal()
 	p.acceptV("(")
@@ -1011,6 +1054,7 @@ func (p *AtomParser) function() *AtomAst {
 	ended = p.lookahead.Position
 	p.acceptV("}")
 	return NewFunction(
+		astType,
 		name,
 		params,
 		body,

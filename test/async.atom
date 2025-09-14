@@ -1,0 +1,16 @@
+import [println] from "atom:std";
+
+async func call() {
+    return "from call";
+}
+
+async func delay() {
+    const c = await call();
+    const t = typeof(c);
+    println("awaited>>", c, t);
+    println("from delay");
+    return 1;
+}
+
+const x = delay();
+println(">>", x);

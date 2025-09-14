@@ -3,12 +3,20 @@ package runtime
 import "fmt"
 
 type AtomStack struct {
+	Index int
 	Stack []*AtomValue
 }
 
 func NewAtomStack() *AtomStack {
 	return &AtomStack{
-		Stack: []*AtomValue{},
+		Index: -1,
+		Stack: make([]*AtomValue, 1000),
+	}
+}
+
+func (s *AtomStack) SetIndex(index int) {
+	if index >= 0 && index < len(s.Stack) {
+		s.Index = index
 	}
 }
 
@@ -17,25 +25,38 @@ func (s *AtomStack) Get(index int) *AtomValue {
 }
 
 func (s *AtomStack) Push(obj *AtomValue) {
-	s.Stack = append(s.Stack, obj)
+	s.Index++
+	s.Stack[s.Index] = obj
 }
 
 func (s *AtomStack) Pop() *AtomValue {
-	top := s.Stack[len(s.Stack)-1]
-	s.Stack = s.Stack[:len(s.Stack)-1]
+	if s.Index < 0 {
+		return nil
+	}
+	top := s.Stack[s.Index]
+	s.Stack[s.Index] = nil
+	s.Index--
 	return top
 }
 
 func (s *AtomStack) Peek() *AtomValue {
-	return s.Stack[len(s.Stack)-1]
+	if s.Index >= 0 {
+		return s.Stack[s.Index]
+	}
+	return nil
 }
 
 func (s *AtomStack) Len() int {
-	return len(s.Stack)
+	return s.Index + 1
 }
 
 func (s *AtomStack) Dump() {
-	for _, obj := range s.Stack {
-		fmt.Println(obj.String())
+	for i := 0; i <= s.Index; i++ {
+		obj := s.Stack[i]
+		marker := ""
+		if i == s.Index {
+			marker = " <- current"
+		}
+		fmt.Printf("[%d] %s%s\n", i, obj.String(), marker)
 	}
 }

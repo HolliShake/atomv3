@@ -32,7 +32,7 @@ func (t *AtomTokenizer) isKeyword(word string) bool {
 		KeyClass, KeyExtends, KeyAsync, KeyFunc, KeyVar, KeyConst, KeyLocal, KeyEnum,
 		KeyImport, KeyFrom, KeyContinue, KeyBreak, KeyReturn,
 		KeyIf, KeyElse, KeySwitch, KeyCase, KeyDefault, KeyCatch, KeyFor,
-		KeyWhile, KeyDo, KetTrue, KetFalse, KetNull, KeyNew,
+		KeyWhile, KeyDo, KetTrue, KetFalse, KetNull, KeyNew, KeyTypeof, KeyAwait,
 	}
 
 	return slices.Contains(keywords, word)

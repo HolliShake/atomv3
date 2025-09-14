@@ -35,6 +35,8 @@ const (
 	AstTypeUnaryNot
 	AstTypeUnaryNeg
 	AstTypeUnaryPos
+	AstTypeUnaryTypeof
+	AstTypeUnaryAwait
 	AstTypeBinaryMul
 	AstTypeBinaryDiv
 	AstTypeBinaryMod
@@ -74,6 +76,7 @@ const (
 	AstTypeExpressionStatement
 	AstTypeClass
 	AstTypeEnum
+	AstTypeAsyncFunction
 	AstTypeFunction
 	AstTypeBlock
 	AstTypeVarStatement
@@ -103,6 +106,10 @@ func getUnaryAstType(op AtomToken) AtomAstType {
 		return AstTypeUnaryNeg
 	case "+":
 		return AstTypeUnaryPos
+	case "typeof":
+		return AstTypeUnaryTypeof
+	case "await":
+		return AstTypeUnaryAwait
 	default:
 		return AstInvalid
 	}
@@ -313,8 +320,8 @@ func NewEnumStatement(name *AtomAst, names []*AtomAst, values []*AtomAst, positi
 	return ast
 }
 
-func NewFunction(name *AtomAst, params []*AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
-	ast := NewAtomAst(AstTypeFunction, position)
+func NewFunction(astType AtomAstType, name *AtomAst, params []*AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(astType, position)
 	ast.Ast0 = name
 	ast.Arr0 = params
 	ast.Arr1 = body

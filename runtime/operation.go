@@ -457,6 +457,10 @@ func DoPos(interpreter *AtomInterpreter, val *AtomValue) {
 	interpreter.pushVal(NewAtomValueNum(CoerceToNum(val)))
 }
 
+func DoTypeof(interpreter *AtomInterpreter, val *AtomValue) {
+	interpreter.pushVal(NewAtomValueStr(GetTypeString(val)))
+}
+
 func DoAddition(interpreter *AtomInterpreter, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {

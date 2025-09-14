@@ -286,6 +286,33 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.emit(fn, runtime.OpPos)
 		}
 
+	case AstTypeUnaryTypeof:
+		{
+			c.expression(scope, fn, ast.Ast0)
+			c.emit(fn, runtime.OpTypeof)
+		}
+
+	case AstTypeUnaryAwait:
+		{
+			callAst := ast.Ast0
+			if callAst.AstType != AstTypeCall {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					"Expected call expression after await",
+					callAst.Position,
+				)
+				return
+			}
+			callableAst := callAst.Ast0
+			argumentsAst := callAst.Arr0
+			for i := len(argumentsAst) - 1; i >= 0; i-- {
+				c.expression(scope, fn, argumentsAst[i])
+			}
+			c.expression(scope, fn, callableAst)
+			c.emitInt(fn, runtime.OpAwaitCall, len(argumentsAst))
+		}
+
 	case AstTypeBinaryMul:
 		{
 			lhs := ast.Ast0
@@ -642,7 +669,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			body := ast.Arr0
 
 			//==========================
-			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "catch", 1)
+			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "catch", false, 1)
 			funScope := NewAtomScope(scope, AtomScopeTypeFunction)
 			fnOffset := c.state.SaveFunction(atomFunc)
 
@@ -759,11 +786,13 @@ func (c *AtomCompile) statement(scope *AtomScope, fn *runtime.AtomValue, ast *At
 			ast,
 		)
 
-	case AstTypeFunction:
+	case AstTypeAsyncFunction,
+		AstTypeFunction:
 		c.function(
 			scope,
 			fn,
 			ast,
+			ast.AstType == AstTypeAsyncFunction,
 		)
 
 	case AstTypeBlock:
@@ -1023,7 +1052,7 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 	}
 
 	funScope := NewAtomScope(scope, AtomScopeTypeFunction)
-	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
+	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, false, len(ast.Arr0))
 
 	params := ast.Arr0
 	//============================
@@ -1108,7 +1137,7 @@ func (c *AtomCompile) enumStatement(scope *AtomScope, fn *runtime.AtomValue, ast
 	c.emit(fn, 0) // Not constant
 }
 
-func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
+func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst, async bool) {
 	// Guard
 	if !scope.InSide(AtomScopeTypeGlobal, false) {
 		Error(
@@ -1121,7 +1150,7 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 	}
 
 	funScope := NewAtomScope(scope, AtomScopeTypeFunction)
-	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
+	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0))
 
 	params := ast.Arr0
 	//============================
@@ -1597,7 +1626,7 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
-	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "main", 0)
+	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "main", false, 0)
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)

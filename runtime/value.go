@@ -27,6 +27,7 @@ const (
 	AtomTypeFunc
 	AtomTypeNativeFunc
 	AtomTypeErr
+	AtomTypePromise
 )
 
 // String builder pool for memory efficiency
@@ -135,9 +136,9 @@ func NewAtomValueMethod(this *AtomValue, fn *AtomValue) *AtomValue {
 	return obj
 }
 
-func NewAtomValueFunction(file, name string, argc int) *AtomValue {
+func NewAtomValueFunction(file, name string, async bool, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
-	obj.Value = NewAtomCode(file, name, argc)
+	obj.Value = NewAtomCode(file, name, async, argc)
 	return obj
 }
 
@@ -150,6 +151,12 @@ func NewAtomValueNativeFunc(nativeFunc NativeFunc) *AtomValue {
 func NewAtomValueError(message string) *AtomValue {
 	obj := NewAtomValue(AtomTypeErr)
 	obj.Value = message
+	return obj
+}
+
+func NewAtomValuePromise(state PromiseState, value *AtomValue) *AtomValue {
+	obj := NewAtomValue(AtomTypePromise)
+	obj.Value = NewAtomPromise(state, value)
 	return obj
 }
 
@@ -443,6 +450,24 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 		// Fast path: direct string conversion
 		return v.Value.(string)
 
+	case AtomTypePromise:
+		promise := v.Value.(*AtomPromise)
+		return BuildString(func(b *strings.Builder) {
+			b.WriteString("Promise { ")
+			if promise.State == PromiseStateFulfilled {
+				if CheckType(promise.Value, AtomTypeStr) {
+					b.WriteByte('\'')
+					b.WriteString(promise.Value.String())
+					b.WriteByte('\'')
+				} else {
+					b.WriteString(promise.Value.String())
+				}
+			} else {
+				b.WriteString(promise.State.String())
+			}
+			b.WriteString(" }")
+		})
+
 	default:
 		// Fallback to fmt.Sprintf only when necessary
 		return fmt.Sprintf("%v", v.Value)
@@ -523,6 +548,10 @@ func (v *AtomValue) HashValue() int {
 		}
 		return hash
 
+	case AtomTypePromise:
+		promise := v.Value.(*AtomPromise)
+		return promise.Value.HashValue()
+
 	default:
 		panic("unknown type")
 	}
@@ -576,7 +605,7 @@ func BuildString(fn func(*strings.Builder)) string {
 
 // Helper function to get string representation of a value, optimized for string types
 func ValueToString(v *AtomValue) string {
-	if v.Type == AtomTypeStr {
+	if CheckType(v, AtomTypeStr) {
 		// Fast path: add quotes directly
 		return "'" + v.Value.(string) + "'"
 	}
@@ -585,7 +614,7 @@ func ValueToString(v *AtomValue) string {
 
 // Helper function to get string representation with visited tracking for circular reference detection
 func valueToStringWithVisited(v *AtomValue, visited map[uintptr]bool) string {
-	if v.Type == AtomTypeStr {
+	if CheckType(v, AtomTypeStr) {
 		// Fast path: add quotes directly
 		return "'" + v.Value.(string) + "'"
 	}

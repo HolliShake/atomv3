@@ -1,46 +1,57 @@
 package runtime
 
 type AtomCode struct {
-	File string
-	Name string
-	Argc int
-	Line []int
-	Code []OpCode // Instructions
+	File  string
+	Name  string
+	Async bool
+	Argc  int
+	Line  []int
+	Code  []OpCode // Instructions
 }
 
-func NewAtomCode(file, name string, argc int) *AtomCode {
+func NewAtomCode(file, name string, async bool, argc int) *AtomCode {
 	return &AtomCode{
-		File: file,
-		Name: name,
-		Argc: argc,
-		Line: []int{},
-		Code: []OpCode{},
+		File:  file,
+		Name:  name,
+		Async: async,
+		Argc:  argc,
+		Line:  []int{},
+		Code:  []OpCode{},
 	}
 }
 
 func (c *AtomCode) HashValue() int {
-	hash := 0
+	hash := uint32(0)
 
 	// Hash the file name
 	for _, b := range []byte(c.File) {
-		hash = hash*31 + int(b)
+		hash = hash*31 + uint32(b)
 	}
 
 	// Hash the function name
 	for _, b := range []byte(c.Name) {
-		hash = hash*31 + int(b)
+		hash = hash*31 + uint32(b)
+	}
+
+	// Hash the async flag
+	if c.Async {
+		hash = hash*31 + 1
+	} else {
+		hash = hash*31 + 0
 	}
 
 	// Hash the argument count
-	hash = hash*31 + c.Argc
+	hash = hash*31 + uint32(c.Argc)
 
-	// Hash the code length
-	hash = hash*31 + len(c.Code)
+	// Hash the line numbers
+	for _, line := range c.Line {
+		hash = hash*31 + uint32(line)
+	}
 
 	// Hash the code
 	for _, opcode := range c.Code {
-		hash = hash*31 + int(opcode)
+		hash = hash*31 + uint32(opcode)
 	}
 
-	return hash
+	return int(hash)
 }

@@ -12,9 +12,8 @@ type AtomInterpreter struct {
 	State           *AtomState
 	Frame           *AtomStack
 	EvaluationStack *AtomStack
+	MicroTask       *Queue[*AtomCallFrame]
 	ModuleTable     map[string]*AtomValue
-	GcRoot          *AtomValue
-	Allocation      int
 }
 
 func NewInterpreter(state *AtomState) *AtomInterpreter {
@@ -22,7 +21,7 @@ func NewInterpreter(state *AtomState) *AtomInterpreter {
 		State:           state,
 		Frame:           NewAtomStack(),
 		EvaluationStack: NewAtomStack(),
-		GcRoot:          NewAtomValue(AtomTypeObj),
+		MicroTask:       NewQueue[*AtomCallFrame](),
 		ModuleTable:     map[string]*AtomValue{},
 	}
 }
@@ -52,6 +51,13 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 
 	var jump = func(offset int) {
 		strt = offset
+	}
+
+	var saveAsTask = func(promise *AtomValue, stack int) {
+		callFrame.Ip = strt
+		callFrame.Stack = stack
+		callFrame.Promise = promise
+		i.MicroTask.Enqueue(callFrame)
 	}
 
 	for strt < size {
@@ -138,6 +144,33 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			DoCall(i, env0, call, argc)
 			forward(4)
 
+		case OpAwaitCall:
+			argc := ReadInt(code.Code, strt)
+			call := i.popp()
+			DoCall(i, env0, call, argc)
+
+			if !CheckType(i.peek(), AtomTypePromise) {
+				forward(4)
+				continue
+			}
+
+			// Is fullfilled?
+			if i.peek().Value.(*AtomPromise).IsFulfilled() {
+				// unwrap
+				i.pushVal(i.popp().Value.(*AtomPromise).Value)
+			}
+
+			stack := i.EvaluationStack.Index
+
+			// Push a promise
+			prom := NewAtomValuePromise(PromiseStatePending, nil)
+			i.pushVal(prom)
+
+			forward(4)
+			saveAsTask(prom, stack)
+			// Do immediate return
+			return
+
 		case OpNot:
 			val := i.popp()
 			DoNot(i, val)
@@ -149,6 +182,10 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 		case OpPos:
 			val := i.popp()
 			DoPos(i, val)
+
+		case OpTypeof:
+			val := i.popp()
+			DoTypeof(i, val)
 
 		case OpIndex:
 			index := i.popp()
@@ -349,6 +386,12 @@ func (i *AtomInterpreter) executeFrame(callFrame *AtomCallFrame) {
 			i.popp()
 
 		case OpReturn:
+			if callFrame.Fn.Value.(*AtomCode).Async {
+				// Wrap
+				i.pushVal(
+					NewAtomValuePromise(PromiseStateFulfilled, i.popp()),
+				)
+			}
 			return
 
 		default:
@@ -366,6 +409,12 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 		NewAtomEnv(nil),
 		0,
 	))
+
+	for !i.MicroTask.IsEmpty() {
+		top, _ := i.MicroTask.Dequeue()
+		i.EvaluationStack.SetIndex(top.Stack)
+		i.executeFrame(top)
+	}
 
 	if i.EvaluationStack.Len() != 1 {
 		i.EvaluationStack.Dump()
