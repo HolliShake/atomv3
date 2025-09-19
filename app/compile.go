@@ -685,11 +685,18 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.emitStr(atomFunc, runtime.OpStoreFast, variable.Str0)
 
 			// Body
+			visibleReturn := false
 			for _, stmt := range body {
 				c.statement(funScope, atomFunc, stmt)
+				if stmt.AstType == AstTypeReturnStatement {
+					visibleReturn = true
+					break
+				}
 			}
-			c.emit(atomFunc, runtime.OpLoadNull)
-			c.emit(atomFunc, runtime.OpReturn)
+			if !visibleReturn {
+				c.emit(atomFunc, runtime.OpLoadNull)
+				c.emit(atomFunc, runtime.OpReturn)
+			}
 
 			// Load and call
 			c.emitInt(fn, runtime.OpLoadFunction, fnOffset)
@@ -1188,12 +1195,19 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 		c.emitStr(atomFunc, runtime.OpStoreFast, param.Str0)
 	}
 	body := ast.Arr1
+	visibleReturn := false
 	for _, stmt := range body {
 		c.statement(funScope, atomFunc, stmt)
+		if stmt.AstType == AstTypeReturnStatement {
+			visibleReturn = true
+			break
+		}
 	}
 
-	c.emit(atomFunc, runtime.OpLoadNull)
-	c.emit(atomFunc, runtime.OpReturn)
+	if !visibleReturn {
+		c.emit(atomFunc, runtime.OpLoadNull)
+		c.emit(atomFunc, runtime.OpReturn)
+	}
 }
 
 func (c *AtomCompile) block(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
