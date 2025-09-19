@@ -1,21 +1,367 @@
-import * from "atom:std";
+import [ println ] from "atom:std";
 
 async func wast() {
-    std.println("wait->start");
+    println("wait->start");
     return "Hola!";
 }
 
 async func callee() {
-    std.println("callee->start");
-    return await wast();
+    println("callee->start");
+    const data = await wast();
+    println("Done", data);
+    return data;
 }
 
 async func caller() {
-    std.println("Starting...");
+    println("Starting...");
     const data = await callee();
-    std.println("caller->callee() =", data);
+    println("caller->callee() =", data);
     return data;
 }
 
 caller();
 
+// Test with multiple async calls
+async func fetchData(id) {
+    println("Fetching data for ID:", id);
+    return "Data-" + id;
+}
+
+async func processMultiple() {
+    println("Processing multiple async calls...");
+    const data1 = await fetchData("001");
+    const data2 = await fetchData("002");
+    const data3 = await fetchData("003");
+    println("All data:", data1, data2, data3);
+    return [data1, data2, data3];
+}
+
+processMultiple();
+
+// Test with error handling and nested async
+async func mayFail(shouldFail) {
+    println("mayFail called with:", shouldFail);
+    if (shouldFail) {
+        return null;
+    }
+    return "Success!";
+}
+
+async func handleAsync() {
+    println("Testing async with conditionals...");
+    const result1 = await mayFail(false);
+    const result2 = await mayFail(true);
+    println("Results:", result1, result2);
+    return result1;
+}
+
+handleAsync();
+
+// Test async with sequential calls
+async func delayedMessage(msg, delay) {
+    println("Delayed message:", msg, "delay:", delay);
+    return msg + " (delayed)";
+}
+
+async func processMessages() {
+    println("Processing messages in sequence...");
+    
+    const result1 = await delayedMessage("Hello", 1);
+    println("Processed:", result1);
+    
+    const result2 = await delayedMessage("World", 2);
+    println("Processed:", result2);
+    
+    const result3 = await delayedMessage("Async", 3);
+    println("Processed:", result3);
+    
+    return "All messages processed";
+}
+
+processMessages();
+
+// Test async function returning different types
+async func returnNumber() {
+    println("Returning number...");
+    return 42;
+}
+
+async func returnArray() {
+    println("Returning array...");
+    return [1, 2, 3, 4, 5];
+}
+
+async func returnObject() {
+    println("Returning object...");
+    return { name: "Test", value: 100 };
+}
+
+async func testReturnTypes() {
+    println("Testing different return types...");
+    const num = await returnNumber();
+    const arr = await returnArray();
+    const obj = await returnObject();
+    
+    println("Number:", num);
+    println("Array:", arr);
+    println("Object:", obj);
+    
+    return "Type tests complete";
+}
+
+testReturnTypes();
+
+// Test deeply nested async calls
+async func level1() {
+    println("Level 1 async");
+    return "L1";
+}
+
+async func level2() {
+    println("Level 2 async");
+    const data = await level1();
+    return "L2-" + data;
+}
+
+async func level3() {
+    println("Level 3 async");
+    const data = await level2();
+    return "L3-" + data;
+}
+
+async func testNesting() {
+    println("Testing nested async calls...");
+    const result = await level3();
+    println("Final result:", result);
+    return result;
+}
+
+testNesting();
+
+// Test async with parameters and calculations
+async func calculate(a, b) {
+    println("Calculating:", a, "+", b);
+    return a + b;
+}
+
+async func multiply(a, b) {
+    println("Multiplying:", a, "*", b);
+    return a * b;
+}
+
+async func complexCalculation() {
+    println("Starting complex calculation...");
+    const sum = await calculate(10, 5);
+    const product = await multiply(sum, 2);
+    const final = await calculate(product, 8);
+    println("Complex result:", final);
+    return final;
+}
+
+complexCalculation();
+
+// Test async with while loops
+async func processWithWhile() {
+    println("Testing async with while loop...");
+    local counter = 0;
+    local results = [null, null, null];
+    
+    while (counter < 3) {
+        const data = await fetchData("W" + counter);
+        results[counter] = data;
+        println("While iteration:", counter, "result:", data);
+        counter = counter + 1;
+    }
+    
+    println("While loop complete, results:", results);
+    return results;
+}
+
+processWithWhile();
+
+// Test async with do-while loops
+async func processWithDoWhile() {
+    println("Testing async with do-while loop...");
+    local counter = 0;
+    local accumulator = "";
+    
+    do {
+        const msg = await delayedMessage("Msg" + counter, counter);
+        if (counter > 0) {
+            accumulator = accumulator + " ";
+        }
+        accumulator = accumulator + msg;
+        println("Do-while iteration:", counter, "message:", msg);
+        counter = counter + 1;
+    } while (counter < 4);
+    
+    println("Do-while loop complete, accumulator:", accumulator);
+    return accumulator;
+}
+
+processWithDoWhile();
+
+// Test async with nested while loops
+async func nestedWhileTest() {
+    println("Testing nested while loops with async...");
+    local outer = 0;
+    local totalResults = [null, null];
+    
+    while (outer < 2) {
+        println("Outer loop iteration:", outer);
+        local inner = 0;
+        local innerResults = [null, null, null];
+        
+        while (inner < 3) {
+            const data = await calculate(outer, inner);
+            innerResults[inner] = data;
+            println("Inner loop:", outer, inner, "result:", data);
+            inner = inner + 1;
+        }
+        
+        totalResults[outer] = innerResults;
+        outer = outer + 1;
+    }
+    
+    println("Nested while complete, total results:", totalResults);
+    return totalResults;
+}
+
+nestedWhileTest();
+
+// Test async with conditional logic in loops
+async func conditionalLoopTest() {
+    println("Testing conditional logic in async loops...");
+    local index = 0;
+    local validResults = [null, null, null, null, null];
+    local validCount = 0;
+    
+    while (index < 5) {
+        const shouldSucceed = index % 2 == 0;
+        const result = await mayFail(!shouldSucceed);
+        
+        if (result != null) {
+            validResults[validCount] = result;
+            validCount = validCount + 1;
+            println("Valid result at index:", index, "value:", result);
+        } else {
+            println("Null result at index:", index);
+        }
+        
+        index = index + 1;
+    }
+    
+    println("Conditional loop complete, valid results:", validResults);
+    return validResults;
+}
+
+conditionalLoopTest();
+
+// Test async with accumulation patterns
+async func accumulationTest() {
+    println("Testing accumulation patterns with async...");
+    local sum = 0;
+    local product = 1;
+    local counter = 1;
+    
+    while (counter <= 4) {
+        const value = await returnNumber();
+        const adjustedValue = value + counter;
+        sum = sum + adjustedValue;
+        product = product * counter;
+        
+        println("Accumulation step:", counter, "value:", adjustedValue, "sum:", sum, "product:", product);
+        counter = counter + 1;
+    }
+    
+    const finalResult = await calculate(sum, product);
+    println("Final accumulated result:", finalResult);
+    return finalResult;
+}
+
+accumulationTest();
+
+// Test async with string building
+async func stringBuildingTest() {
+    println("Testing string building with async...");
+    local result = "";
+    local counter = 0;
+    
+    do {
+        const part = await delayedMessage("Part" + counter, counter);
+        if (counter > 0) {
+            result = result + "-";
+        }
+        result = result + part;
+        println("String building step:", counter, "current:", result);
+        counter = counter + 1;
+    } while (counter < 3);
+    
+    println("String building complete:", result);
+    return result;
+}
+
+stringBuildingTest();
+
+// Test async with array building using while
+async func arrayBuildingTest() {
+    println("Testing array building with async...");
+    local results = [null, null, null, null];
+    local index = 0;
+    
+    while (index < 4) {
+        if (index % 2 == 0) {
+            const numResult = await returnNumber();
+            results[index] = numResult + index;
+        } else {
+            const arrResult = await returnArray();
+            results[index] = arrResult;
+        }
+        
+        println("Array building step:", index, "value:", results[index]);
+        index = index + 1;
+    }
+    
+    println("Array building complete:", results);
+    return results;
+}
+
+arrayBuildingTest();
+
+// Test async with complex nested structures
+async func complexNestedTest() {
+    println("Testing complex nested async operations...");
+    local mainCounter = 0;
+    local finalData = {};
+    
+    while (mainCounter < 2) {
+        println("Main iteration:", mainCounter);
+        local subCounter = 0;
+        local subData = [null, null];
+        
+        do {
+            const baseValue = await calculate(mainCounter, subCounter);
+            local processedValue = baseValue;
+            
+            local innerCounter = 0;
+            while (innerCounter < 2) {
+                const multiplier = await multiply(processedValue, 2);
+                processedValue = multiplier;
+                println("Inner processing:", mainCounter, subCounter, innerCounter, "value:", processedValue);
+                innerCounter = innerCounter + 1;
+            }
+            
+            subData[subCounter] = processedValue;
+            subCounter = subCounter + 1;
+        } while (subCounter < 2);
+        
+        const groupKey = "group" + mainCounter;
+        finalData[groupKey] = subData;
+        mainCounter = mainCounter + 1;
+    }
+    
+    println("Complex nested test complete:", finalData);
+    return finalData;
+}
+
+complexNestedTest();

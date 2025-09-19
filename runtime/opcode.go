@@ -19,7 +19,7 @@ const (
 	OpMakeEnum                 // with 4 bytes argument
 	OpCallConstructor          // with 4 bytes argument
 	OpCall                     // with 4 bytes argument
-	OpAwaitCall                // with 4 bytes argument
+	OpAwait                    //
 	OpNot                      //
 	OpNeg                      //
 	OpPos                      //

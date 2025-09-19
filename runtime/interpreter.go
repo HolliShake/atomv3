@@ -9,42 +9,28 @@ const (
 )
 
 type AtomInterpreter struct {
-	State           *AtomState
-	Frame           *AtomStack
-	EvaluationStack *AtomStack
-	MicroTask       *Queue[*AtomCallFrame]
-	ModuleTable     map[string]*AtomValue
+	State       *AtomState
+	Scheduler   *AtomScheduler
+	ModuleTable map[string]*AtomValue
 }
 
 func NewInterpreter(state *AtomState) *AtomInterpreter {
 	interpreter := &AtomInterpreter{
-		State:           state,
-		Frame:           NewAtomStack(),
-		EvaluationStack: NewAtomStack(),
-		MicroTask:       NewQueue[*AtomCallFrame](),
-		ModuleTable:     map[string]*AtomValue{},
+		State:       state,
+		ModuleTable: map[string]*AtomValue{},
 	}
+	interpreter.Scheduler = NewAtomScheduler(interpreter)
 	return interpreter
 }
 
-func (i *AtomInterpreter) pushVal(value *AtomValue) {
-	i.EvaluationStack.Push(value)
-}
-
-func (i *AtomInterpreter) popp() *AtomValue {
-	return i.EvaluationStack.Pop()
-}
-
-func (i *AtomInterpreter) peek() *AtomValue {
-	return i.EvaluationStack.Peek()
-}
-
-func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
+func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 	// Frame here is a function
-	var strt = frame.Ip
 	var code = frame.Fn.Value.(*AtomCode)
 	var size = len(code.Code)
 	var env0 = frame.Env
+	var strt = frame.Ip
+
+	i.Scheduler.MoveNextEvent(frame)
 
 	var forward = func(offset int) {
 		strt += offset
@@ -56,8 +42,6 @@ func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 		frame.Ip = offset
 	}
 
-	ExecuteTransition(i, frame)
-
 	for strt < size {
 		opCode := code.Code[strt]
 		forward(1)
@@ -65,202 +49,200 @@ func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 		switch opCode {
 		case OpLoadInt:
 			value := ReadInt(code.Code, strt)
-			i.pushVal(NewAtomValueInt(value))
+			frame.Stack.Push(NewAtomValueInt(value))
 			forward(4)
 
 		case OpLoadNum:
 			value := ReadNum(code.Code, strt)
-			i.pushVal(NewAtomValueNum(value))
+			frame.Stack.Push(NewAtomValueNum(value))
 			forward(8)
 
 		case OpLoadStr:
 			value := ReadStr(code.Code, strt)
-			i.pushVal(NewAtomValueStr(value))
+			frame.Stack.Push(NewAtomValueStr(value))
 			forward(len(value) + 1)
 
 		case OpLoadBool:
 			if ReadInt(code.Code, strt) != 0 {
-				i.pushVal(i.State.TrueValue)
+				frame.Stack.Push(i.State.TrueValue)
 			} else {
-				i.pushVal(i.State.FalseValue)
+				frame.Stack.Push(i.State.FalseValue)
 			}
 			forward(4)
 
 		case OpLoadNull:
-			i.pushVal(i.State.NullValue)
+			frame.Stack.Push(i.State.NullValue)
 
 		case OpLoadArray:
 			size := ReadInt(code.Code, strt)
-			DoLoadArray(i, size)
+			DoLoadArray(frame, size)
 			forward(4)
 
 		case OpLoadObject:
 			size := ReadInt(code.Code, strt)
-			DoLoadObject(i, size)
+			DoLoadObject(frame, size)
 			forward(4)
 
 		case OpLoadName:
-			variable := ReadStr(code.Code, strt)
-			DoLoadName(i, env0, variable)
-			forward(len(variable) + 1)
+			name := ReadStr(code.Code, strt)
+			DoLoadName(frame, env0, name)
+			forward(len(name) + 1)
 
 		case OpLoadModule0:
 			name := ReadStr(code.Code, strt)
-			DoLoadModule0(i, name)
+			DoLoadModule0(i, frame, name)
 			forward(len(name) + 1)
 
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, strt)
-			DoLoadFunction(i, offset)
+			DoLoadFunction(i, frame, offset)
 			forward(4)
 
 		case OpMakeClass:
 			size := ReadInt(code.Code, strt)
 			name := ReadStr(code.Code, strt+4)
-			DoMakeClass(i, name, size)
+			DoMakeClass(i, frame, name, size)
 			forward(4 + len(name) + 1)
 
 		case OpExtendClass:
-			ext := i.popp()
-			cls := i.peek()
-			DoExtendClass(i, cls, ext)
+			ext := frame.Stack.Pop()
+			cls := frame.Stack.Peek()
+			DoExtendClass(cls, ext)
 
 		case OpMakeEnum:
 			size := ReadInt(code.Code, strt)
-			DoMakeEnum(i, env0, size)
+			DoMakeEnum(frame, env0, size)
 			forward(4)
 
 		case OpCallConstructor:
 			argc := ReadInt(code.Code, strt)
-			call := i.popp()
-			DoCallConstructor(i, env0, call, argc)
+			call := frame.Stack.Pop()
+			DoCallConstructor(i, frame, env0, call, argc)
 			forward(4)
 
 		case OpCall:
 			argc := ReadInt(code.Code, strt)
-			call := i.popp()
-			DoCall(i, env0, call, argc)
+			call := frame.Stack.Pop()
+			DoCall(i, frame, env0, call, argc)
 			forward(4)
 
-		case OpAwaitCall:
-			argc := ReadInt(code.Code, strt)
-			call := i.popp()
-			DoAwaitCall(i, frame, call, argc)
-			forward(4)
-			return
+		case OpAwait:
+			if i.Scheduler.Await(frame) {
+				return
+			}
 
 		case OpNot:
-			val := i.popp()
-			DoNot(i, val)
+			val := frame.Stack.Pop()
+			DoNot(i, frame, val)
 
 		case OpNeg:
-			val := i.popp()
-			DoNeg(i, val)
+			val := frame.Stack.Pop()
+			DoNeg(frame, val)
 
 		case OpPos:
-			val := i.popp()
-			DoPos(i, val)
+			val := frame.Stack.Pop()
+			DoPos(frame, val)
 
 		case OpTypeof:
-			val := i.popp()
-			DoTypeof(i, val)
+			val := frame.Stack.Pop()
+			DoTypeof(frame, val)
 
 		case OpIndex:
-			index := i.popp()
-			obj := i.popp()
-			DoIndex(i, obj, index)
+			idx := frame.Stack.Pop()
+			obj := frame.Stack.Pop()
+			DoIndex(i, frame, obj, idx)
 
 		case OpPluckAttribute:
-			attribute := ReadStr(code.Code, strt)
-			obj := i.peek()
-			DoPluckAttribute(i, obj, attribute)
-			forward(len(attribute) + 1)
+			att := ReadStr(code.Code, strt)
+			obj := frame.Stack.Peek()
+			DoPluckAttribute(i, frame, obj, att)
+			forward(len(att) + 1)
 
 		case OpMul:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoMultiplication(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoMultiplication(frame, lhs, rhs)
 
 		case OpDiv:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoDivision(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoDivision(frame, lhs, rhs)
 
 		case OpMod:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoModulus(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoModulus(frame, lhs, rhs)
 
 		case OpAdd:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoAddition(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoAddition(frame, lhs, rhs)
 
 		case OpSub:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoSubtraction(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoSubtraction(frame, lhs, rhs)
 
 		case OpShl:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoShiftLeft(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoShiftLeft(frame, lhs, rhs)
 
 		case OpShr:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoShiftRight(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoShiftRight(frame, lhs, rhs)
 
 		case OpCmpLt:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoCmpLt(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoCmpLt(i, frame, lhs, rhs)
 
 		case OpCmpLte:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoCmpLte(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoCmpLte(i, frame, lhs, rhs)
 
 		case OpCmpGt:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoCmpGt(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoCmpGt(i, frame, lhs, rhs)
 
 		case OpCmpGte:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoCmpGte(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoCmpGte(i, frame, lhs, rhs)
 
 		case OpCmpEq:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoCmpEq(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoCmpEq(i, frame, lhs, rhs)
 
 		case OpCmpNe:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoCmpNe(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoCmpNe(i, frame, lhs, rhs)
 
 		case OpAnd:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoAnd(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoAnd(frame, lhs, rhs)
 
 		case OpOr:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoOr(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoOr(frame, lhs, rhs)
 
 		case OpXor:
-			rhs := i.popp()
-			lhs := i.popp()
-			DoXor(i, lhs, rhs)
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Pop()
+			DoXor(frame, lhs, rhs)
 
 		case OpInitVar:
 			v := ReadStr(code.Code, strt)
 			g := code.Code[strt+len(v)+1] == 1
 			c := code.Code[strt+len(v)+2] == 1
-			value := i.popp()
+			value := frame.Stack.Pop()
 			err := env0.New(v, g, c, value)
 			if err != nil {
 				panic(err)
@@ -269,45 +251,45 @@ func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 
 		case OpStoreFast:
 			param := ReadStr(code.Code, strt)
-			value := i.popp()
+			value := frame.Stack.Pop()
 			env0.New(param, false, false, value)
 			forward(len(param) + 1)
 
 		case OpStoreLocal:
 			index := ReadStr(code.Code, strt)
-			value := i.popp()
+			value := frame.Stack.Pop()
 			env0.Store(index, value)
 			forward(len(index) + 1)
 
 		case OpSetIndex:
-			index := i.popp()
-			obj := i.popp()
-			DoSetIndex(i, obj, index)
+			idx := frame.Stack.Pop()
+			obj := frame.Stack.Pop()
+			DoSetIndex(i, frame, obj, idx)
 
 		case OpJumpIfFalseOrPop:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			value := i.peek()
+			value := frame.Stack.Peek()
 			if !CoerceToBool(value) {
 				jump(offset)
 			} else {
-				i.popp()
+				frame.Stack.Pop()
 			}
 
 		case OpJumpIfTrueOrPop:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			value := i.peek()
+			value := frame.Stack.Peek()
 			if CoerceToBool(value) {
 				jump(offset)
 			} else {
-				i.popp()
+				frame.Stack.Pop()
 			}
 
 		case OpPopJumpIfFalse:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			value := i.popp()
+			value := frame.Stack.Pop()
 			if !CoerceToBool(value) {
 				jump(offset)
 			}
@@ -315,7 +297,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 		case OpPopJumpIfTrue:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			value := i.popp()
+			value := frame.Stack.Pop()
 			if CoerceToBool(value) {
 				jump(offset)
 			}
@@ -323,8 +305,8 @@ func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 		case OpPeekJumpIfEqual:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			rhs := i.popp()
-			lhs := i.peek()
+			rhs := frame.Stack.Pop()
+			lhs := frame.Stack.Peek()
 			if rhs.HashValue() == lhs.HashValue() {
 				jump(offset)
 			}
@@ -332,7 +314,7 @@ func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 		case OpPopJumpIfNotError:
 			offset := ReadInt(code.Code, strt)
 			forward(4)
-			value := i.peek()
+			value := frame.Stack.Peek()
 			if !CheckType(value, AtomTypeErr) {
 				jump(offset)
 			}
@@ -355,17 +337,16 @@ func (i *AtomInterpreter) executeFrame(frame *AtomCallFrame) {
 			env0 = env0.Parent
 
 		case OpDupTop:
-			i.pushVal(i.peek())
+			frame.Stack.Push(frame.Stack.Peek())
 
 		case OpNoOp:
 			forward(0)
 
 		case OpPopTop:
-			i.popp()
+			frame.Stack.Pop()
 
 		case OpReturn:
-			// For async functions, the return value will be handled in ExecuteTransition
-			ExecuteTransition(i, frame)
+			i.Scheduler.Resolve(frame)
 			return
 
 		default:
@@ -379,17 +360,7 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "std", EXPORT_STD)
 
 	// Run while the frame is not empty
-	DoCall(i, nil, atomFunc, 0)
+	i.ExecuteFrame(NewAtomCallFrame(nil, atomFunc, NewAtomEnv(nil), 0))
 
-	ExecuteMicroTask(i)
-
-	// Clean up the stack - we should only have one value left
-	// Remove any extra values that were left on the stack
-	for i.EvaluationStack.Len() > 1 {
-		i.popp()
-	}
-	if i.EvaluationStack.Len() != 1 {
-		i.EvaluationStack.Dump()
-		panic(fmt.Sprintf("Evaluation stack is not empty: %d", i.EvaluationStack.Len()))
-	}
+	i.Scheduler.Run()
 }

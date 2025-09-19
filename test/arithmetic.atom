@@ -1,0 +1,29 @@
+import [print, println] from "atom:std";
+
+
+func call(a, b) {
+
+    println(a, "+", b, "=", a + b);
+}
+
+func add(a, b) {
+    println(">>", a, b);
+    call(a, b);
+}
+
+println("Starting...");
+add(1, 2);
+
+
+
+
+class Dog {
+    func init(self, name) {
+        self.name = name;
+        println(">>", self, name);
+    }
+    
+}
+
+
+println(new Dog("Buddy"));

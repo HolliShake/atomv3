@@ -3,7 +3,7 @@ package runtime
 type NativeFunc struct {
 	Name     string
 	Paramc   int
-	Callable func(interpreter *AtomInterpreter, argc int)
+	Callable func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)
 }
 
 type NativeClass struct {
@@ -13,7 +13,7 @@ type NativeClass struct {
 
 const Variadict = -1
 
-func NewNativeFunc(name string, paramc int, callable func(interpreter *AtomInterpreter, argc int)) NativeFunc {
+func NewNativeFunc(name string, paramc int, callable func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)) NativeFunc {
 	return NativeFunc{
 		Name:     name,
 		Paramc:   paramc,

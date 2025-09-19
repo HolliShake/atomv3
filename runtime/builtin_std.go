@@ -6,38 +6,38 @@ import (
 	"github.com/fatih/color"
 )
 
-var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, argc int) {
-	obj := interpreter.popp()
+var freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	obj := frame.Stack.Pop()
 	if CheckType(obj, AtomTypeObj) {
 		obj.Value.(*AtomObject).Freeze = true
 	} else if CheckType(obj, AtomTypeArray) {
 		obj.Value.(*AtomArray).Freeze = true
 	} else {
-		interpreter.pushVal(NewAtomValueError("cannot freeze non-object"))
+		frame.Stack.Push(NewAtomValueError("cannot freeze non-object"))
 		return
 	}
-	interpreter.pushVal(obj)
+	frame.Stack.Push(obj)
 })
 
-var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpreter, argc int) {
+var println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	for i := range argc {
-		fmt.Print(color.YellowString(interpreter.popp().String()))
+		fmt.Print(color.YellowString(frame.Stack.Pop().String()))
 		if i < argc-1 {
 			fmt.Print(" ")
 		}
 	}
 	fmt.Println()
-	interpreter.pushVal(interpreter.State.NullValue)
+	frame.Stack.Push(interpreter.State.NullValue)
 })
 
-var print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpreter, argc int) {
+var print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	for i := range argc {
-		fmt.Print(color.GreenString(interpreter.popp().String()))
+		fmt.Print(color.GreenString(frame.Stack.Pop().String()))
 		if i < argc-1 {
 			fmt.Print(" ")
 		}
 	}
-	interpreter.pushVal(interpreter.State.NullValue)
+	frame.Stack.Push(interpreter.State.NullValue)
 })
 
 var EXPORT_STD = map[string]*AtomValue{

@@ -11,14 +11,12 @@ const (
 type AtomPromise struct {
 	State PromiseState
 	Value *AtomValue
-	Then  *AtomValue
 }
 
 func NewAtomPromise(state PromiseState, value *AtomValue) *AtomPromise {
 	return &AtomPromise{
 		State: state,
 		Value: value,
-		Then:  nil,
 	}
 }
 
@@ -31,11 +29,6 @@ func (p *AtomPromise) HashValue() int {
 	// Hash the promise value if it exists
 	if p.Value != nil {
 		hash = hash*31 + p.Value.HashValue()
-	}
-
-	// Hash the then handler if it exists
-	if p.Then != nil {
-		hash = hash*31 + p.Then.HashValue()
 	}
 
 	return hash

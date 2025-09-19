@@ -3,20 +3,12 @@ package runtime
 import "fmt"
 
 type AtomStack struct {
-	Index int
 	Stack []*AtomValue
 }
 
 func NewAtomStack() *AtomStack {
 	return &AtomStack{
-		Index: -1,
-		Stack: make([]*AtomValue, 1000),
-	}
-}
-
-func (s *AtomStack) SetIndex(index int) {
-	if index >= 0 && index < len(s.Stack) {
-		s.Index = index
+		Stack: make([]*AtomValue, 0, 8), // Pre-allocate with capacity
 	}
 }
 
@@ -24,38 +16,46 @@ func (s *AtomStack) Get(index int) *AtomValue {
 	return s.Stack[index]
 }
 
+func (s *AtomStack) Copy(Stack *AtomStack, size int) {
+	for i := range size {
+		s.Stack = append(s.Stack, Stack.Stack[len(Stack.Stack)-size+i])
+	}
+}
+
 func (s *AtomStack) Push(obj *AtomValue) {
-	s.Index++
-	s.Stack[s.Index] = obj
+	s.Stack = append(s.Stack, obj)
 }
 
 func (s *AtomStack) Pop() *AtomValue {
-	if s.Index < 0 {
-		return nil
+	if len(s.Stack) == 0 {
+		panic("Pop on empty stack")
 	}
-	top := s.Stack[s.Index]
-	s.Stack[s.Index] = nil
-	s.Index--
+	top := s.Stack[len(s.Stack)-1]
+	s.Stack = s.Stack[:len(s.Stack)-1]
 	return top
 }
 
 func (s *AtomStack) Peek() *AtomValue {
-	if s.Index >= 0 {
-		return s.Stack[s.Index]
+	if len(s.Stack) == 0 {
+		panic("Peek on empty stack")
 	}
-	return nil
+	return s.Stack[len(s.Stack)-1]
 }
 
 func (s *AtomStack) Len() int {
-	return s.Index + 1
+	return len(s.Stack)
+}
+
+func (s *AtomStack) IsEmpty() bool {
+	return len(s.Stack) == 0
 }
 
 func (s *AtomStack) Dump() {
-	for i := 0; i <= s.Index; i++ {
+	for i := 0; i < len(s.Stack); i++ {
 		obj := s.Stack[i]
 		marker := ""
-		if i == s.Index {
-			marker = " <- current"
+		if i == len(s.Stack)-1 {
+			marker = " <- top"
 		}
 		fmt.Printf("[%d] %s%s\n", i, obj.String(), marker)
 	}

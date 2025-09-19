@@ -23,18 +23,22 @@ func Decompile(code *AtomCode) string {
 			value := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_INT %d\n", value))
 			pc += 4
+
 		case OpLoadNum:
 			value := ReadNum(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_NUM %f\n", value))
 			pc += 8
+
 		case OpLoadStr:
 			value := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_STR \"%s\"\n", value))
 			pc += len(value) + 1
+
 		case OpLoadBool:
 			value := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_BOOL %t\n", value != 0))
 			pc += 4
+
 		case OpLoadNull:
 			builder.WriteString("LOAD_NULL\n")
 
@@ -42,31 +46,38 @@ func Decompile(code *AtomCode) string {
 			size := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_ARRAY %d\n", size))
 			pc += 4
+
 		case OpLoadObject:
 			size := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_OBJECT %d\n", size))
 			pc += 4
+
 		case OpLoadName:
 			name := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_NAME \"%s\"\n", name))
 			pc += len(name) + 1
+
 		case OpLoadModule0:
 			name := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_MODULE0 \"%s\"\n", name))
 			pc += len(name) + 1
+
 		case OpLoadModule1:
 			path := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_MODULE1 \"%s\"\n", path))
 			pc += len(path) + 1
+
 		case OpLoadFunction:
 			index := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_FUNCTION %d\n", index))
 			pc += 4
+
 		case OpMakeClass:
 			size := ReadInt(code.Code, pc)
 			name := ReadStr(code.Code, pc+4)
 			builder.WriteString(fmt.Sprintf("MAKE_CLASS %d \"%s\"\n", size, name))
 			pc += 4 + len(name) + 1
+
 		case OpExtendClass:
 			builder.WriteString("EXTEND_CLASS\n")
 
@@ -74,18 +85,20 @@ func Decompile(code *AtomCode) string {
 			size := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("MAKE_ENUM %d\n", size))
 			pc += 4
+
 		case OpCallConstructor:
 			argc := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("CALL_CONSTRUCTOR %d\n", argc))
 			pc += 4
+
 		case OpCall:
 			argc := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("CALL %d\n", argc))
 			pc += 4
-		case OpAwaitCall:
-			argc := ReadInt(code.Code, pc)
-			builder.WriteString(fmt.Sprintf("AWAIT_CALL %d\n", argc))
-			pc += 4
+
+		case OpAwait:
+			builder.WriteString("Await\n")
+
 		case OpNot:
 			builder.WriteString("NOT\n")
 
@@ -105,6 +118,7 @@ func Decompile(code *AtomCode) string {
 			attr := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("PLUCK_ATTRIBUTE \"%s\"\n", attr))
 			pc += len(attr) + 1
+
 		case OpMul:
 			builder.WriteString("MUL\n")
 
@@ -159,14 +173,17 @@ func Decompile(code *AtomCode) string {
 			isConstant := ReadInt(code.Code, pc+len(name)+2)
 			builder.WriteString(fmt.Sprintf("INIT_VAR \"%s\" %t %t\n", name, isGlobal != 0, isConstant != 0))
 			pc += len(name) + 1 + 1 + 1
+
 		case OpStoreFast:
 			name := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("STORE_FAST \"%s\"\n", name))
 			pc += len(name) + 1
+
 		case OpStoreLocal:
 			name := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("STORE_LOCAL \"%s\"\n", name))
 			pc += len(name) + 1
+
 		case OpSetIndex:
 			builder.WriteString("SET_INDEX\n")
 
@@ -174,34 +191,42 @@ func Decompile(code *AtomCode) string {
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("JUMP_IF_FALSE_OR_POP %d\n", offset))
 			pc += 4
+
 		case OpJumpIfTrueOrPop:
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("JUMP_IF_TRUE_OR_POP %d\n", offset))
 			pc += 4
+
 		case OpPopJumpIfFalse:
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("POP_JUMP_IF_FALSE %d\n", offset))
 			pc += 4
+
 		case OpPopJumpIfTrue:
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("POP_JUMP_IF_TRUE %d\n", offset))
 			pc += 4
+
 		case OpPeekJumpIfEqual:
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("PEEK_JUMP_IF_EQUAL %d\n", offset))
 			pc += 4
+
 		case OpPopJumpIfNotError:
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("POP_JUMP_IF_NOT_ERROR %d\n", offset))
 			pc += 4
+
 		case OpJump:
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("JUMP %d\n", offset))
 			pc += 4
+
 		case OpAbsoluteJump:
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("ABSOLUTE_JUMP %d\n", offset))
 			pc += 4
+
 		case OpEnterBlock:
 			builder.WriteString("ENTER_BLOCK\n")
 

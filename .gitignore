@@ -1,4 +1,5 @@
 *.exe
 *.js
+*.py
 app/*.exe
 app/atom

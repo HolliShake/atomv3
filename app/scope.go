@@ -6,6 +6,7 @@ const (
 	AtomScopeTypeGlobal AtomScopeType = iota
 	AtomScopeTypeClass
 	AtomScopeTypeFunction
+	AtomScopeTypeAsyncFunction
 	AtomScopeTypeBlock
 	AtomScopeTypeLoop
 )

@@ -1,19 +1,22 @@
 package runtime
 
 type AtomCallFrame struct {
-	Fn    *AtomValue     // Function
-	Env   *AtomEnv       // Environment
-	Ip    int            // Instruction pointer
-	State ExecutionState // For async/await
-	Value *AtomValue     // For delayed task
+	Caller  *AtomCallFrame // Caller
+	Fn      *AtomValue     // Function
+	Env     *AtomEnv       // Environment
+	Ip      int            // Instruction pointer
+	Stack   *AtomStack     // EvaluationStack
+	Promise *AtomValue     // Promise
+	State   ExecutionState // For async/await
 }
 
-func NewAtomCallFrame(fn *AtomValue, env *AtomEnv, ip int) *AtomCallFrame {
+func NewAtomCallFrame(caller *AtomCallFrame, fn *AtomValue, env *AtomEnv, ip int) *AtomCallFrame {
 	return &AtomCallFrame{
-		Fn:    fn,
-		Env:   env,
-		Ip:    ip,
-		State: ExecutionStateIdle,
-		Value: nil,
+		Caller:  caller,
+		Fn:      fn,
+		Env:     env,
+		Ip:      ip,
+		Stack:   NewAtomStack(),
+		Promise: nil,
 	}
 }

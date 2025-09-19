@@ -294,6 +294,16 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeUnaryAwait:
 		{
+			// Guard
+			if !scope.InSide(AtomScopeTypeAsyncFunction, true) {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					"Await must be in function scope",
+					ast.Position,
+				)
+				return
+			}
 			callAst := ast.Ast0
 			if callAst.AstType != AstTypeCall {
 				Error(
@@ -304,13 +314,8 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				)
 				return
 			}
-			callableAst := callAst.Ast0
-			argumentsAst := callAst.Arr0
-			for i := len(argumentsAst) - 1; i >= 0; i-- {
-				c.expression(scope, fn, argumentsAst[i])
-			}
-			c.expression(scope, fn, callableAst)
-			c.emitInt(fn, runtime.OpAwaitCall, len(argumentsAst))
+			c.expression(scope, fn, callAst)
+			c.emit(fn, runtime.OpAwait)
 		}
 
 	case AstTypeBinaryMul:
@@ -904,7 +909,7 @@ func (c *AtomCompile) continueStatement(scope *AtomScope, fn *runtime.AtomValue,
 
 func (c *AtomCompile) returnStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	// Guard
-	if !scope.InSide(AtomScopeTypeFunction, true) {
+	if !(scope.InSide(AtomScopeTypeFunction, true) || scope.InSide(AtomScopeTypeAsyncFunction, true)) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
@@ -1149,7 +1154,12 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 		return
 	}
 
-	funScope := NewAtomScope(scope, AtomScopeTypeFunction)
+	scopeType := AtomScopeTypeFunction
+	if async {
+		scopeType = AtomScopeTypeAsyncFunction
+	}
+
+	funScope := NewAtomScope(scope, scopeType)
 	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0))
 
 	params := ast.Arr0
@@ -1288,7 +1298,7 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 }
 
 func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
-	if !scope.InSide(AtomScopeTypeBlock, false) && !scope.InSide(AtomScopeTypeFunction, false) {
+	if !scope.InSide(AtomScopeTypeBlock, false) && !(scope.InSide(AtomScopeTypeFunction, false) || scope.InSide(AtomScopeTypeAsyncFunction, false)) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
