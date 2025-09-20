@@ -74,7 +74,7 @@ func DoLoadCapture(frame *AtomCallFrame, index int) {
 func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
 	module := interpreter.ModuleTable[name]
 	if module == nil {
-		message := fmt.Sprintf("module %s not found", name)
+		message := FormatError(frame, fmt.Sprintf("module %s not found", name))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -136,7 +136,7 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 	}
 	if !CheckType(cls, AtomTypeClass) {
 		cleanupStack()
-		message := GetTypeString(cls) + " is not a constructor"
+		message := FormatError(frame, GetTypeString(cls)+" is not a constructor")
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -191,7 +191,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		code := fn.Value.(*AtomCode)
 		if argc != code.Argc {
 			cleanupStack()
-			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
+			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -209,7 +209,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		nativeFunc := fn.Value.(NativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
 			cleanupStack()
-			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeFunc.Paramc, argc)
+			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeFunc.Paramc, argc))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -218,7 +218,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 
 	} else {
 		cleanupStack()
-		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
+		message := FormatError(frame, fmt.Sprintf("Error: %s is not a function", GetTypeString(fn)))
 		frame.Stack.Push(NewAtomValueError(message))
 	}
 }
@@ -237,7 +237,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomVal
 		code := fn.Value.(*AtomCode)
 		if argc != code.Argc {
 			cleanupStack()
-			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
+			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -257,7 +257,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomVal
 		nativeFunc := fn.Value.(NativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
 			cleanupStack()
-			message := "Error: argument count mismatch"
+			message := FormatError(frame, "Error: argument count mismatch")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -272,7 +272,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomVal
 
 	} else {
 		cleanupStack()
-		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
+		message := FormatError(frame, fmt.Sprintf("Error: %s is not a function", GetTypeString(fn)))
 		frame.Stack.Push(NewAtomValueError(message))
 	}
 }
@@ -287,7 +287,7 @@ func DoNot(interpreter *AtomInterpreter, frame *AtomCallFrame, val *AtomValue) {
 
 func DoNeg(frame *AtomCallFrame, val *AtomValue) {
 	if !IsNumberType(val) {
-		message := fmt.Sprintf("Error: cannot negate type: %s", GetTypeString(val))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot negate type: %s", GetTypeString(val)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -296,7 +296,7 @@ func DoNeg(frame *AtomCallFrame, val *AtomValue) {
 
 func DoPos(frame *AtomCallFrame, val *AtomValue) {
 	if !IsNumberType(val) {
-		message := fmt.Sprintf("Error: cannot pos type: %s", GetTypeString(val))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot pos type: %s", GetTypeString(val)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -310,7 +310,7 @@ func DoTypeof(frame *AtomCallFrame, val *AtomValue) {
 func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue, index *AtomValue) {
 	if CheckType(obj, AtomTypeStr) {
 		if !IsNumberType(index) {
-			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			message := FormatError(frame, fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index)))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -318,7 +318,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		r := []rune(obj.Value.(string))
 		indexValue := CoerceToLong(index)
 		if indexValue < 0 || indexValue >= int64(len(r)) {
-			message := fmt.Sprintf("index out of bounds: %d", indexValue)
+			message := FormatError(frame, fmt.Sprintf("index out of bounds: %d", indexValue))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -328,7 +328,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 
 	} else if CheckType(obj, AtomTypeArray) {
 		if !IsNumberType(index) {
-			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			message := FormatError(frame, fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index)))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -337,7 +337,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		indexValue := CoerceToLong(index)
 
 		if !array.ValidIndex(int(indexValue)) {
-			message := fmt.Sprintf("index out of bounds: %d", indexValue)
+			message := FormatError(frame, fmt.Sprintf("index out of bounds: %d", indexValue))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -396,7 +396,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 
 	} else if CheckType(obj, AtomTypeEnum) {
 		if !CheckType(index, AtomTypeStr) {
-			message := fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			message := FormatError(frame, fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index)))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -414,7 +414,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		return
 
 	} else {
-		message := fmt.Sprintf("cannot index type: %s", GetTypeString(obj))
+		message := FormatError(frame, fmt.Sprintf("cannot index type: %s", GetTypeString(obj)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -422,7 +422,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 
 func DoPluckAttribute(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue, attribute string) {
 	if !CheckType(obj, AtomTypeObj) {
-		message := fmt.Sprintf("cannot pluck attribute type: %s", GetTypeString(obj))
+		message := FormatError(frame, fmt.Sprintf("cannot pluck attribute type: %s", GetTypeString(obj)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -455,7 +455,7 @@ func DoMultiplication(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -490,7 +490,7 @@ func DoDivision(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot divide types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot divide types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -519,7 +519,7 @@ func DoModulus(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		if b == 0 {
-			message := "Error: division by zero"
+			message := FormatError(frame, "Error: division by zero")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -530,7 +530,7 @@ func DoModulus(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot modulo types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot modulo types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -539,7 +539,7 @@ func DoModulus(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
-		message := "Error: division by zero"
+		message := FormatError(frame, "Error: division by zero")
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -588,7 +588,7 @@ func DoAddition(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -623,7 +623,7 @@ func DoSubtraction(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot subtract types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -653,7 +653,7 @@ func DoShiftLeft(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot shift left types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot shift left types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -683,7 +683,7 @@ func DoShiftRight(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot shift right types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot shift right types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -703,7 +703,7 @@ func DoShiftRight(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 func DoCmpLt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -722,7 +722,7 @@ func DoCmpLt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 
 func DoCmpLte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -741,7 +741,7 @@ func DoCmpLte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValu
 
 func DoCmpGt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot compare greater than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot compare greater than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -760,7 +760,7 @@ func DoCmpGt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 
 func DoCmpGte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot compare greater than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot compare greater than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -868,7 +868,7 @@ func DoAnd(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -896,7 +896,7 @@ func DoOr(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -924,7 +924,7 @@ func DoXor(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	}
 
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := FormatError(frame, fmt.Sprintf("Error: cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -956,7 +956,7 @@ func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomVal
 	if CheckType(obj, AtomTypeArray) {
 		if !IsNumberType(index) {
 			cleanupStack(1)
-			message := fmt.Sprintf("cannot set index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			message := FormatError(frame, fmt.Sprintf("cannot set index type: %s with type: %s", GetTypeString(obj), GetTypeString(index)))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -965,14 +965,14 @@ func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomVal
 
 		if array.Freeze {
 			cleanupStack(2)
-			message := "cannot set index on frozen array"
+			message := FormatError(frame, "cannot set index on frozen array")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
 
 		if !array.ValidIndex(int(indexValue)) {
 			cleanupStack(2)
-			message := fmt.Sprintf("index out of bounds: %d", indexValue)
+			message := FormatError(frame, fmt.Sprintf("index out of bounds: %d", indexValue))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -983,7 +983,7 @@ func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomVal
 	} else if CheckType(obj, AtomTypeObj) {
 		if obj.Value.(*AtomObject).Freeze {
 			cleanupStack(2) // includes duplicate obj
-			message := "cannot set index on frozen object"
+			message := FormatError(frame, "cannot set index on frozen object")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -995,7 +995,7 @@ func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomVal
 
 	} else {
 		cleanupStack(2)
-		message := fmt.Sprintf("cannot set index type: %s", GetTypeString(obj))
+		message := FormatError(frame, fmt.Sprintf("cannot set index type: %s", GetTypeString(obj)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}

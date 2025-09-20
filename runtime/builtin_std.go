@@ -11,7 +11,9 @@ import (
 
 var std_decompile = NewNativeFunc("decompile", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
-		frame.Stack.Push(NewAtomValueError("decompile expects 1 argument"))
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "decompile expects 1 argument"),
+		))
 		return
 	}
 	if !CheckType(frame.Stack.Peek(), AtomTypeFunc) {
@@ -47,14 +49,18 @@ var std_print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpre
 
 var std_readLine = NewNativeFunc("readLine", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
-		frame.Stack.Push(NewAtomValueError("readLine expects 1 argument"))
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "readLine expects 1 argument"),
+		))
 		return
 	}
 	fmt.Print(color.BlueString(frame.Stack.Pop().String()))
 	reader := bufio.NewReader(os.Stdin)
 	text, err := reader.ReadString('\n')
 	if err != nil {
-		frame.Stack.Push(NewAtomValueError(err.Error()))
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, err.Error()),
+		))
 		return
 	}
 	frame.Stack.Push(NewAtomValueStr(strings.TrimSpace(text)))
@@ -82,12 +88,16 @@ func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 
 var std_throw = NewNativeFunc("throw", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
-		frame.Stack.Push(NewAtomValueError("throw expects 1 argument"))
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "throw expects 1 argument"),
+		))
 		return
 	}
 	if !CheckType(frame.Stack.Peek(), AtomTypeErr) {
 		frame.Stack.Pop()
-		frame.Stack.Push(NewAtomValueError("throw expects an error"))
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "throw expects an error"),
+		))
 		return
 	}
 	std_throw_error(frame.Caller, frame.Stack.Pop())

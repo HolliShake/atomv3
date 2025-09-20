@@ -7,7 +7,9 @@ var obj_freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, f
 	} else if CheckType(obj, AtomTypeArray) {
 		obj.Value.(*AtomArray).Freeze = true
 	} else {
-		frame.Stack.Push(NewAtomValueError("cannot freeze non-object"))
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "cannot freeze non-object"),
+		))
 		return
 	}
 	frame.Stack.Push(obj)
