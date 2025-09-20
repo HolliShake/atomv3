@@ -5,11 +5,13 @@ import (
 	"math"
 )
 
-func DoExportGlobal(interpreter *AtomInterpreter, frame *AtomCallFrame) {
+func DoMakeModule(interpreter *AtomInterpreter, frame *AtomCallFrame, size int) {
 	elements := map[string]*AtomValue{}
-	// for k, v := range frame.Env.Locals {
-	// 	elements[k] = v.Value
-	// }
+	for range size {
+		k := frame.Stack.Pop()
+		v := frame.Stack.Pop()
+		elements[k.Value.(string)] = v
+	}
 	frame.Stack.Push(NewAtomValueObject(elements))
 }
 

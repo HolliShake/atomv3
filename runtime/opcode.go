@@ -3,10 +3,10 @@ package runtime
 type OpCode byte
 
 const (
-	OpExportGlobal OpCode = iota + 69
+	OpMakeModule OpCode = iota + 69 // with 4 bytes argument
 	OpLoadInt
 	OpLoadNum           //
-	OpLoadStr           // With N bytes argument
+	OpLoadStr           // with N bytes argument
 	OpLoadBool          //
 	OpLoadNull          //
 	OpLoadArray         // with 4 bytes argument

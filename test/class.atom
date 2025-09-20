@@ -1,7 +1,9 @@
-import "atom:std";
+import [ println ] from "atom:std";
 import "gui";
 import "hash";
 import "./imports.atom";
+
+var cat = 20;
 
 class Animal {
     func init(self, name) {
@@ -29,6 +31,9 @@ async func waitable() {
 
 class Dog extends Animal {
     func init(self, name, ageInMonths) {
+        println("cat", cat);
+        cat = 1000;
+        println("cat", cat);
         self.name = name;
         self.age = ageInMonths;
     }
@@ -47,4 +52,6 @@ std.println(">>", d, dog.process());
 
 std.println(gui.getName());
 
-std.println(std.readLine(">>"), gui, hash, imports);
+std.println(gui, hash, imports.factorial(5));
+
+println(cat);

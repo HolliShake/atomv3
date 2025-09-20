@@ -5,8 +5,7 @@ func factorial(n) {
     if (n <= 1) {
         return 1;
     }
-    std.println(factorial);
-    return n + (factorial(n - 1) catch (err) {
+    return n * (factorial(n - 1) catch (err) {
         std.throw(err);
     });
 }

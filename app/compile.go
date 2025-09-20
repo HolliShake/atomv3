@@ -143,37 +143,6 @@ func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast
 	c.emitInt(atomFunc, runtime.OpStoreLocal, indx)
 }
 
-func (c *AtomCompile) emitVarSymbol(atomFunc *runtime.AtomValue, scope *AtomScope, name string, global, constant bool, pos AtomPosition) {
-	for current := scope; current != nil; current = current.Parent {
-		if _, exists := current.Names[name]; exists {
-			Error(
-				c.parser.tokenizer.file,
-				c.parser.tokenizer.data,
-				fmt.Sprintf("Variable %s already exists", name),
-				pos,
-			)
-		}
-	}
-
-	// Increment code locals
-	code := atomFunc.Value.(*runtime.AtomCode)
-	indx := len(code.Locals)
-	cell := runtime.NewAtomCell(nil)
-	code.Locals = append(code.Locals, cell)
-
-	// Save to symbol table
-	scope.Names[name] = NewAtomSymbol(
-		name,
-		global,
-		constant,
-		indx,
-		cell,
-	)
-
-	c.emitLine(atomFunc, pos)
-	c.emitInt(atomFunc, runtime.OpStoreLocal, indx)
-}
-
 func (c *AtomCompile) emitCapture(atomFunc *runtime.AtomValue, scope *AtomScope, opcode runtime.OpCode, ast *AtomAst) {
 	symb := c.lookup(scope, ast.Str0)
 	code := atomFunc.Value.(*runtime.AtomCode)
@@ -1881,13 +1850,16 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 	}
 
 	// Save to table
-	c.emitVarSymbol(
+	c.emitVar(
 		fn,
 		scope,
-		normalizedPath,
+		NewTerminal(
+			AstTypeIdn,
+			normalizedPath,
+			path.Position,
+		),
 		true,
 		false,
-		path.Position,
 	)
 }
 
@@ -2130,8 +2102,22 @@ func (c *AtomCompile) Export() int {
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)
 	}
+
+	// Get global vars
+	count := 0
+	for _, name := range globalScope.Names {
+		if !name.global {
+			continue
+		}
+		count++
+		c.emitLine(programFunc, ast.Position)
+		c.emitInt(programFunc, runtime.OpLoadName, name.index)
+		c.emitLine(programFunc, ast.Position)
+		c.emitStr(programFunc, runtime.OpLoadStr, name.name)
+	}
 	c.emitLine(programFunc, ast.Position)
-	c.emit(programFunc, runtime.OpExportGlobal)
+	c.emitInt(programFunc, runtime.OpMakeModule, count)
+
 	c.emitLine(programFunc, ast.Position)
 	c.emit(programFunc, runtime.OpReturn)
 	return c.state.SaveFunction(programFunc)

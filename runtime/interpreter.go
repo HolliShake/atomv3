@@ -31,10 +31,6 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 	i.Scheduler.Running(frame)
 
-	var forwardPc = func(offset int) {
-		frame.Pc += offset
-	}
-
 	var forwardIp = func(offset int) {
 		strt += offset
 		frame.Ip += offset
@@ -42,18 +38,18 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 	var jump = func(offset int) {
 		strt = offset
-		frame.Pc = offset
 		frame.Ip = offset
 	}
 
 	for strt < size {
 		opCode := code.Code[strt]
-		forwardPc(1)
 		forwardIp(1)
 
 		switch opCode {
-		case OpExportGlobal:
-			DoExportGlobal(i, frame)
+		case OpMakeModule:
+			size := ReadInt(code.Code, strt)
+			DoMakeModule(i, frame, size)
+			forwardIp(4)
 
 		case OpLoadInt:
 			value := ReadInt(code.Code, strt)
