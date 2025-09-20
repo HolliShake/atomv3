@@ -4,22 +4,57 @@ Atom is a custom programming language implemented in Go, featuring a complete co
 
 ## Features
 
+Atom is a modern, dynamically-typed programming language with a comprehensive feature set:
+
+### Core Language Features
 - **Dynamic Typing**: Supports integers (32-bit), floats (64-bit), strings, booleans, arrays, objects, functions, classes, enums, promises, and errors
 - **Function Support**: First-class functions with parameters, return statements, and async/await support
 - **Variable Declarations**: `var`, `const`, and `local` variable declarations with proper scoping
 - **Control Flow**: `if-else`, `switch` statements and expressions, `while`, `do-while`, `break`, `continue`
 - **Object-Oriented Programming**: Classes with inheritance (`extends`), methods, constructors, and instance management
 - **Enums**: Enum declarations with custom values and pattern matching in switch expressions
+
+### Advanced Features
+- **Async/Await**: Full async/await support with promise-based execution and microtask scheduling
+- **Error Handling**: Catch expressions with error propagation and comprehensive error reporting
 - **Arithmetic Operations**: Full set of mathematical, bitwise, and logical operations with proper precedence
 - **Assignment Operators**: Compound assignment operators (`+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`)
+
+### Data Structures
 - **Array Support**: Array literals, indexing, element access, and freezing for immutability
 - **Object Support**: Object literals with key-value pairs, property access, method calls, and freezing
-- **Error Handling**: Try-catch expressions with error propagation and comprehensive error reporting
-- **Async/Await**: Full async/await support with promise-based execution and microtask scheduling
-- **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`) with colored output
+- **Self-Reference**: Support for circular references in arrays and objects
+
+### Runtime Features
 - **Stack-based VM**: Efficient bytecode execution with evaluation stack and frame management
 - **Memory Management**: Basic garbage collection with GC roots and memory usage reporting
+- **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`) with colored output
 - **Error Reporting**: Comprehensive error messages with source location, context display, and debugging information
+
+### Startup Experience
+When you run Atom without arguments, it displays an impressive ASCII art banner:
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║    █████╗ ████████╗ ██████╗ ███╗   ███╗    ██████╗ ██████╗  ██████╗ ███████╗ ║
+║   ██╔══██╗╚══██╔══╝██╔═══██╗████╗ ████║   ██╔════╝██╔═══██╗██╔═══██╗██╔════╝ ║
+║   ███████║   ██║   ██║   ██║██╔████╔██║   ██║     ██║   ██║██║   ██║███████╗ ║
+║   ██╔══██║   ██║   ██║   ██║██║╚██╔╝██║   ██║     ██║   ██║██║   ██║██╔════╝ ║
+║   ██║  ██║   ██║   ╚██████╔╝██║ ╚═╝ ██║   ╚██████╗╚██████╔╝╚██████╔╝███████╗ ║
+║   ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝    ╚═════╝ ╚═════╝  ╚═════╝ ╚══════╝ ║
+║                                                                              ║
+║                    A Custom Programming Language                             ║
+║                    Implemented in Go                                         ║
+║                                                                              ║
+║  Features: Dynamic Typing • OOP • Functions • Arrays • Objects • Classes     ║
+║  Author:   Philipp Andrew Redondo                                            ║
+║  License:  MIT License                                                       ║
+║  GitHub:   https://github.com/HolliShake/atomv3                              ║
+║                                                                              ║
+║  usage: atom <file.atom>                                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
 
 ## Language Syntax
 
@@ -455,12 +490,33 @@ do {
 
 ### Hello World
 ```atom
-var message = "Hello, World!";
-message;
+import [println] from "atom:std";
+println("Hello, World!");
+```
+
+### Basic Arithmetic and Functions
+```atom
+import [println] from "atom:std";
+
+func add(a, b) {
+    return a + b;
+}
+
+func factorial(n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+println("5 + 3 =", add(5, 3));
+println("Factorial of 5 =", factorial(5));
 ```
 
 ### Fibonacci Sequence
 ```atom
+import [println] from "atom:std";
+
 func fibonacci(n) {
     if (n <= 1) {
         return n;
@@ -469,38 +525,207 @@ func fibonacci(n) {
 }
 
 const n = 10;
-fibonacci(n);
+println("Fibonacci sequence up to", n, ":", fibonacci(n));
 ```
 
-### Array Operations
+### Object-Oriented Programming
 ```atom
-func sumArray(arr) {
-    var total = 0;
-    // Note: Array iteration would need to be implemented
-    return total;
+import [println] from "atom:std";
+
+class Animal {
+    func init(self, name) {
+        self.name = name;
+    }
+    
+    func eat(self, food) {
+        println(self.name + " is eating " + food);
+    }
 }
 
-var numbers = [1, 2, 3, 4, 5];
-sumArray(numbers);
+class Dog extends Animal {
+    func init(self, name, age) {
+        self.name = name;
+        self.age = age;
+    }
+    
+    func bark(self) {
+        println("Woof! I'm " + self.name + " and I'm " + self.age + " years old");
+    }
+}
+
+const myDog = new Dog("Buddy", 3);
+myDog.eat("bone");
+myDog.bark();
 ```
 
-### Complex Example (from test.atom)
+### Async/Await Programming
+```atom
+import [println] from "atom:std";
+
+async func fetchData(id) {
+    println("Fetching data for ID:", id);
+    return "Data-" + id;
+}
+
+async func processData() {
+    println("Starting data processing...");
+    const data1 = await fetchData("001");
+    const data2 = await fetchData("002");
+    println("All data:", data1, data2);
+    return [data1, data2];
+}
+
+processData();
+```
+
+### Error Handling with Catch Expressions
+```atom
+import [println] from "atom:std";
+
+func riskyOperation() {
+    return someArray[999]; // This might throw an error
+}
+
+const result = riskyOperation() catch(err) {
+    println("Error occurred:", err);
+    return null;
+};
+
+// String indexing with error handling
+const g = "He😊lo"[2] catch(e) {
+    println("String index error:", e);
+    return "Hello!";
+};
+
+println("Result:", g);
+```
+
+### Switch Statements and Enums
+```atom
+import [println] from "atom:std";
+
+enum Status {
+    OK = 2,
+    BAD = 3,
+    PENDING = 1
+}
+
+var result = (Status.BAD) switch {
+    case(Status.OK) => "Success"
+    case(Status.BAD) => "Error"
+    default => "Unknown"
+};
+
+println("Status result:", result);
+println("Status values:", Status.OK, Status.BAD, Status.PENDING);
+```
+
+### Arrays and Objects
+```atom
+import [println, freeze] from "atom:std";
+
+// Array operations
+const numbers = [1, 2, 3, 4, 5];
+numbers[1] = 42;
+println("Modified array:", numbers);
+
+// Object operations
+const person = {
+    name: "Alice",
+    age: 30,
+    greet: function() {
+        return "Hello, I'm " + this.name;
+    }
+};
+
+println("Person:", person);
+println("Greeting:", person.greet());
+
+// Freezing objects and arrays
+freeze(person);
+freeze(numbers);
+// person.name = "Bob"; // This would cause an error
+```
+
+### Complex Control Flow
+```atom
+import [println] from "atom:std";
+
+var counter = 0;
+
+// While loop with break and continue
+while (counter < 10) {
+    if (counter == 5) {
+        counter += 1;
+        continue;
+    }
+    if (counter == 8) {
+        break;
+    }
+    println("Counter:", counter);
+    counter += 1;
+}
+
+// Do-while loop
+do {
+    println("Do-while iteration:", counter);
+    counter += 1;
+} while (counter < 12);
+
+// Conditional expressions
+const value = if (counter > 10) 
+    100 
+else 
+    50;
+
+println("Conditional value:", value);
+```
+
+### Advanced Async Patterns
+```atom
+import [println] from "atom:std";
+
+async func calculate(a, b) {
+    println("Calculating:", a, "+", b);
+    return a + b;
+}
+
+async func processWithLoops() {
+    local results = [null, null, null];
+    local index = 0;
+    
+    while (index < 3) {
+        const data = await calculate(index, index * 2);
+        results[index] = data;
+        println("Loop iteration:", index, "result:", data);
+        index = index + 1;
+    }
+    
+    return results;
+}
+
+processWithLoops();
+```
+
+### Comprehensive Test Example
 ```atom
 import [print, println] from "atom:std";
 
+// This example demonstrates most language features
 var x = 1;
 
 func add(a, b) {
-   return a + b;
+    return a + b;
 }
 
+// Arithmetic expressions
 2 + 23 / 23 - 2;
-
 3 + 2 + add(12, 2);
 
-if (0 || 0)
+// Control flow
+if (0 || 0) {
     2 + 2;
-else {
+} else {
     3 + 3;
     local x = 69420;
     local y = x + 1;
@@ -508,8 +733,7 @@ else {
     y;
 }
 
-1 && 2;
-
+// Recursive function
 func fact(n) {
     if (n == 0) {
         return 1;
@@ -520,6 +744,7 @@ func fact(n) {
 const n = 3 + 2;
 fact(n);
 
+// Arrays and objects
 println([1, 2, 3, 4, 5, 6, fact(n), "Nah!!"]);
 
 var obj = {
@@ -528,174 +753,150 @@ var obj = {
     val: 0
 };
 
-obj;
-obj.getName;
-
 obj.val += 2;
 obj["val"] += 2;
-
 println(obj);
 
+// Assignment operators
 var xh = 12;
-
 xh *= 2;
-xh = 100;
-
-'2';;
-
-std.freeze(obj);
-
-println("error", obj.getName = "Hello World");
-obj;
-
-const arr = [
-    1,2,3,4,5,6,7,8,9,10
-];
-
-std.freeze(arr);
-println("error arr freeze", arr[0] = 2);
-
-println("error", arr[232323] = 2);
-println("error", 2[23]);
-
-arr[0];
-
-xh  *= 2;
-xh  /= 3;
-xh  %= 4;
-xh  += 3;
-xh  -= 4;
+xh /= 3;
+xh %= 4;
+xh += 3;
+xh -= 4;
 xh >>= 5;
 xh <<= 6;
-xh  &= 7;
-xh  |= 8;
-xh  ^= 9;
+xh &= 7;
+xh |= 8;
+xh ^= 9;
 
+// Function with side effects
 var r = 1;
-
 func mutate() {
-    r;
     println(r);
     r += 200;
     local a = 300 + r;
-    a;
-    fact(3 + 2);
     return a;
 }
 
 const b = mutate();
-b;
-println(r);
-b;
-r;
+println("Final r:", r);
 
-fact(40);
-
-println("Hello, World!", 1, 2, 3);
-
-print("Wheels on the bus!", std, "\n");
-
-const mod = [];
-
-const Log = println;
-
-Log("Hello, World!");
-
-println(!1);
-
+// Switch expressions
 const xx = (5) switch {
     case(1, 2) => 200
     case(3, 4) => 300
-    default    => 400
+    default => 400
 };
 
-println(">>", xx);
+println("Switch result:", xx);
 
-const cond = 
-    if (3 < 2)
-        2 + 2
-    else if (3 < 2)
-        3 + 3
-    else
-        4 + 4
-    ;
+// Conditional expressions
+const cond = if (3 < 2)
+    2 + 2
+else if (3 < 2)
+    3 + 3
+else
+    4 + 4;
 
-println(cond);
-
-var ll = 0;
-
-while (1 && ll < 10) {
-    println(ll);
-    ll += 1;
-}
-
-do {
-    if (ll == 18) {
-        ll += 1;
-        continue;
-    } else if (ll == 19) {
-        ll += 1;
-        break;
-    }
-    println(ll);
-    ll += 1;
-} while (ll < 20)
-
-println(ll);
+println("Conditional result:", cond);
 
 println("Done");
-
-func $test_getName() {
-    return "Hello, World!";
-}
-
-const g = "He😊lo"[2] catch(e) {
-    println(">>", e);
-    return "Hello!";
-};
-
-println(g);
-
-switch (2 + 2 + 3) {
-    case(2, 4): {
-        println("Hola");
-    }
-    default: {
-        println("Mundo");
-    }
-}
-
-println(true && false, null);
-
-enum Status {
-    OK  = 2,
-    BAD = 3
-}
-
-var result = (Status.BAD) switch {
-    case(Status.OK)  => "Yes"
-    case(Status.BAD) => "No"
-    default => "Unknown"
-};
-
-println(result);
-
-println(">>", Status, Status.OK, Status.BAD);
-
-class Animal {
-    func eat(self) {
-
-    }
-}
-
-class Dog extends Animal {
-    local x = 2;
-
-    func init(self) {
-
-    }
-}
 ```
+
+## Test Files and Examples
+
+The `test/` directory contains comprehensive test files that demonstrate various language features and capabilities:
+
+### Core Test Files
+
+- **`test.atom`** (273 lines) - The main comprehensive test suite that demonstrates:
+  - Basic arithmetic operations and operator precedence
+  - Function declarations and recursive calls
+  - Control flow with if-else statements
+  - Variable declarations (`var`, `const`, `local`)
+  - Object creation and manipulation
+  - Array operations and indexing
+  - Assignment operators (`+=`, `-=`, `*=`, etc.)
+  - Switch statements and expressions
+  - Conditional expressions
+  - While and do-while loops with break/continue
+  - Error handling with catch expressions
+  - Enum declarations and usage
+  - Class definitions and inheritance
+  - Import statements from `atom:std`
+
+- **`arithmetic.atom`** (26 lines) - Tests basic arithmetic operations:
+  - Function calls with parameters
+  - Addition operations
+  - Class instantiation with constructors
+  - Basic object creation
+
+- **`array.atom`** (12 lines) - Demonstrates array features:
+  - Array literals with multiple elements
+  - Array self-reference (circular reference)
+  - Array indexing and modification
+
+- **`async.atom`** (368 lines) - Comprehensive async/await testing:
+  - Basic async function chains
+  - Multiple concurrent async calls
+  - Error handling in async functions
+  - Sequential async processing
+  - Different return types from async functions
+  - Nested async calls (3+ levels deep)
+  - Async functions with parameters and calculations
+  - Async operations within while loops
+  - Async operations within do-while loops
+  - Nested while loops with async calls
+  - Conditional logic in async loops
+  - Accumulation patterns with async
+  - String building with async operations
+  - Array building using async operations
+  - Complex nested async structures
+
+- **`class.atom`** (45 lines) - Object-oriented programming features:
+  - Base class definitions with methods
+  - Class inheritance using `extends`
+  - Constructor methods with parameters
+  - Method overriding in derived classes
+  - Async methods in classes
+  - Error handling with division by zero
+  - Class instantiation and method calls
+
+- **`function.atom`** (20 lines) - Function capabilities:
+  - Recursive function definitions
+  - Factorial calculation
+  - Fibonacci sequence calculation
+  - Function calls with return values
+
+- **`object.atom`** (24 lines) - Object manipulation:
+  - Object literals with properties
+  - Object freezing functionality
+  - Self-referencing objects
+  - Property access and modification
+
+### Comparison Files
+
+- **`async.js`** (440 lines) - JavaScript equivalent of async.atom for comparison
+- **`async.py`** (320 lines) - Python equivalent of async.atom for comparison
+
+These comparison files demonstrate how Atom's async/await syntax compares to established languages like JavaScript and Python, showing the language's modern async programming capabilities.
+
+### Running Tests
+
+To run any test file:
+
+```bash
+# Run the comprehensive test suite
+./atom test/test.atom
+
+# Run specific feature tests
+./atom test/async.atom
+./atom test/class.atom
+./atom test/arithmetic.atom
+```
+
+Each test file is designed to be self-contained and demonstrates specific language features, making them excellent examples for learning the language syntax and capabilities.
 
 ## Architecture
 
@@ -867,15 +1068,15 @@ atom/
 │   ├── decompile.go       # Bytecode decompilation utilities
 │   └── go.mod             # Runtime module dependencies
 ├── test/                  # Test files and examples
-│   ├── test.atom          # Comprehensive test suite
-│   ├── arithmetic.atom    # Arithmetic operations tests
-│   ├── array.atom         # Array operations tests
-│   ├── async.atom         # Async/await functionality tests
-│   ├── class.atom         # Class and inheritance tests
-│   ├── function.atom      # Function tests
-│   ├── object.atom        # Object operations tests
-│   ├── async.js           # JavaScript async comparison
-│   └── async.py           # Python async comparison
+│   ├── test.atom          # Comprehensive test suite (273 lines)
+│   ├── arithmetic.atom    # Basic arithmetic and function calls (26 lines)
+│   ├── array.atom         # Array operations and self-reference (12 lines)
+│   ├── async.atom         # Advanced async/await patterns (368 lines)
+│   ├── class.atom         # Class inheritance and async methods (45 lines)
+│   ├── function.atom      # Recursive functions and factorial (20 lines)
+│   ├── object.atom        # Object freezing and self-reference (24 lines)
+│   ├── async.js           # JavaScript async comparison (440 lines)
+│   └── async.py           # Python async comparison (320 lines)
 ├── go.work                # Go workspace configuration
 ├── go.work.sum            # Go workspace checksums
 ├── atom                   # Compiled binary executable
@@ -885,18 +1086,44 @@ atom/
 
 ## Language Limitations
 
-- Limited array operations (no built-in methods like `push`, `pop`, `length`)
-- No string manipulation functions (`substring`, `split`, `join`, etc.)
-- Limited I/O (basic `print`/`println`/`freeze` only via `atom:std`)
+Based on the test files and implementation analysis, the following limitations are currently present:
+
+### Data Structure Limitations
+- Limited array operations (no built-in methods like `push`, `pop`, `length`, `map`, `filter`)
+- No string manipulation functions (`substring`, `split`, `join`, `replace`, etc.)
+- No built-in data structures beyond arrays and objects (no sets, maps, queues, etc.)
+
+### Control Flow Limitations
+- No `for` loops (only `while` and `do-while` are supported)
+- No `foreach` or iterator-based loops for arrays/objects
+- Limited exception handling beyond catch expressions (no try-catch blocks)
+
+### I/O and System Limitations
+- Limited I/O operations (basic `print`/`println`/`freeze` only via `atom:std`)
+- No file I/O operations (read/write files, directory operations)
+- No network operations or HTTP client functionality
 - No built-in standard library beyond `atom:std`
+
+### Language Feature Limitations
 - No closures (functions cannot capture variables from outer scope)
 - No type annotations or static type checking
-- No `for` loops (only `while` and `do-while` are supported)
-- No exception handling beyond catch expressions
-- No module system beyond basic imports
-- No file I/O operations (read/write files)
-- No built-in data structures beyond arrays and objects
+- No module system beyond basic imports from `atom:std`
+- No generics or template programming
+- No pattern matching beyond switch expressions
+- No operator overloading
+
+### Development and Debugging Limitations
 - Limited debugging tools and profiling support
+- No REPL (Read-Eval-Print Loop) for interactive development
+- No built-in testing framework
+- No code formatting or linting tools
+- Limited error messages and stack traces
+
+### Performance Limitations
+- No JIT compilation or performance optimizations
+- No parallel execution or threading support
+- Basic garbage collection without advanced memory management
+- No code splitting or lazy loading capabilities
 
 ## Future Enhancements
 

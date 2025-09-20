@@ -710,6 +710,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 					c.label(fn, jump)
 				}
 				// Pop condition if match
+				c.emitLine(fn, ast.Position)
 				c.emit(fn, runtime.OpPopTop)
 
 				// value
@@ -1088,11 +1089,13 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 	}
 
 	//============================
+	c.emitLine(fn, ast.Position)
 	c.emitInt(fn, runtime.OpMakeClass, items)
 	c.emitWord(fn, name.Str0)
 
 	if base != nil {
 		c.expression(scope, fn, base)
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, runtime.OpExtendClass)
 	}
 
@@ -1606,8 +1609,10 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
 	if !isLogical {
 		c.expression(scope, fn, ast.Ast0)
+		c.emitLine(fn, ast.Position)
 		toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 		c.statement(scope, fn, ast.Ast1)
+		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpJump)
 		c.label(fn, toElse)
 		if ast.Ast2 != nil {
@@ -1620,6 +1625,7 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 		rhs := ast.Ast0.Ast1
 		if isAnd {
 			c.expression(scope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toEnd0 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.expression(scope, fn, rhs)
 			c.emitLine(fn, ast.Position)
@@ -1635,6 +1641,7 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 			c.label(fn, toEnd2)
 		} else {
 			c.expression(scope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toThen := c.emitJump(fn, runtime.OpPopJumpIfTrue)
 			c.expression(scope, fn, rhs)
 			c.emitLine(fn, ast.Position)

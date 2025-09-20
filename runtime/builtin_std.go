@@ -45,8 +45,18 @@ var std_readLine = NewNativeFunc("readLine", 1, func(interpreter *AtomInterprete
 	frame.Stack.Push(NewAtomValueStr(strings.TrimSpace(text)))
 })
 
-func std_throw_error(err *AtomValue) {
+func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 	fmt.Println(err.String())
+
+	// Stack trace
+	builder := strings.Builder{}
+	for current := frame.Caller; current != nil; current = current.Caller {
+		builder.WriteString(FormatError(current, current.Fn.Value.(*AtomCode).Name))
+		if current.Caller != nil {
+			builder.WriteString("\n")
+		}
+	}
+	fmt.Println(builder.String())
 	os.Exit(1)
 }
 
@@ -60,7 +70,7 @@ var std_throw = NewNativeFunc("throw", 1, func(interpreter *AtomInterpreter, fra
 		frame.Stack.Push(NewAtomValueError("throw expects an error"))
 		return
 	}
-	std_throw_error(frame.Stack.Pop())
+	std_throw_error(frame, frame.Stack.Pop())
 	frame.Stack.Push(interpreter.State.NullValue)
 })
 

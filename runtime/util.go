@@ -108,6 +108,6 @@ func CoerceToBool(value *AtomValue) bool {
 
 func FormatError(frame *AtomCallFrame, message string) string {
 	file := frame.Fn.Value.(*AtomCode).File
-	line := frame.Fn.Value.(*AtomCode).Line[frame.Pc]
+	line := frame.Fn.Value.(*AtomCode).Line[frame.Pc-1]
 	return fmt.Sprintf("[%s:%d]::Error: %s", file, line, message)
 }
