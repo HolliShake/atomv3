@@ -989,9 +989,10 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		case AstTypeLocalStatement:
 			items += len(stmt.Arr0)
 			c.classVariable(classScope, fn, stmt)
-		case AstTypeFunction:
+		case AstTypeFunction,
+			AstTypeAsyncFunction:
 			items += 1
-			c.classFunction(classScope, fn, stmt)
+			c.classFunction(classScope, fn, stmt, stmt.AstType == AstTypeAsyncFunction)
 		default:
 			Error(
 				c.parser.tokenizer.file,
@@ -1051,7 +1052,7 @@ func (c *AtomCompile) classVariable(scope *AtomScope, fn *runtime.AtomValue, ast
 	}
 }
 
-func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
+func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst, async bool) {
 	// Guard
 	if !scope.InSide(AtomScopeTypeClass, false) {
 		Error(
@@ -1064,7 +1065,7 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 	}
 
 	funScope := NewAtomScope(scope, AtomScopeTypeFunction)
-	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, false, len(ast.Arr0))
+	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0))
 
 	params := ast.Arr0
 	//============================
@@ -1088,12 +1089,18 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 		c.emitStr(atomFunc, runtime.OpStoreFast, param.Str0)
 	}
 	body := ast.Arr1
+	visibleReturn := false
 	for _, stmt := range body {
 		c.statement(funScope, atomFunc, stmt)
+		if stmt.AstType == AstTypeReturnStatement {
+			visibleReturn = true
+			break
+		}
 	}
-
-	c.emit(atomFunc, runtime.OpLoadNull)
-	c.emit(atomFunc, runtime.OpReturn)
+	if !visibleReturn {
+		c.emit(atomFunc, runtime.OpLoadNull)
+		c.emit(atomFunc, runtime.OpReturn)
+	}
 }
 
 func (c *AtomCompile) enumStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {

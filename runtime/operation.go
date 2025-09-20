@@ -319,7 +319,7 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, env *
 		// Call the most derived initializer (last in the slice)
 		// The inheritance chain should be handled by the language design,
 		// not by calling multiple initializers
-		DoCallInit(interpreter, frame, env, cls, initializers[len(initializers)-1], this, 1+argc)
+		DoCallInit(interpreter, frame, env, cls, initializers[0], this, 1+argc)
 	}
 }
 

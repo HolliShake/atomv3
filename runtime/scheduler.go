@@ -57,21 +57,42 @@ func (s *AtomScheduler) Await(frame *AtomCallFrame) (suspend bool) {
 }
 
 func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
+	// Handle synchronous functions
 	if !frame.Fn.Value.(*AtomCode).Async {
-		return
-	}
-	frame.State = ExecCompleted
-	defer func() {
+		if frame.Caller != nil {
+			frame.Caller.Stack.Push(
+				frame.Stack.Pop(),
+			)
+		}
 		frame.Stack.Clear()
 		frame.Promise = nil
 		frame.State = ExecIdle
-	}()
+		return
+	}
+
+	// Handle asynchronous functions
+	frame.State = ExecCompleted
+
+	// Get the promise and fulfill it with the return value
 	promise := frame.Promise.Value.(*AtomPromise)
 	promise.State = PromiseStateFulfilled
 	promise.Value = frame.Stack.Pop()
-	frame.Caller.Stack.Push(
-		frame.Promise,
-	)
+
+	// Push the fulfilled promise to caller's stack
+	if frame.Caller != nil && !frame.Caller.Fn.Value.(*AtomCode).Async {
+		frame.Caller.Stack.Push(
+			promise.Value,
+		)
+	} else {
+		frame.Caller.Stack.Push(
+			frame.Promise,
+		)
+	}
+
+	// Clean up frame state
+	frame.Stack.Clear()
+	frame.Promise = nil
+	frame.State = ExecIdle
 }
 
 func (s *AtomScheduler) Run() {

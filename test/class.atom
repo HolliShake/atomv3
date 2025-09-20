@@ -13,12 +13,19 @@ class Animal {
 }
 
 class Dog extends Animal {
-    func init(self, name) {
+    func init(self, name, ageInMonths) {
         self.name = name;
+        self.age = ageInMonths;
+    }
+
+    async func process(self) {
+        return 2;
     }
 }
 
-const dog = new Dog("Buddy");
+const dog = new Dog("Buddy", 12);
 std.println(dog);
 
-std.println(dog.eat("bone"));
+const d = dog.eat("bone");
+
+std.println(">>", d, dog.process());
