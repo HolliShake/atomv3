@@ -1,5 +1,9 @@
 *.exe
 *.js
 *.py
-app/*.exe
+*.exe
+*.run
+*.macos
+*.linux
+*.unknown
 app/atom
