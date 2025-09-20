@@ -1632,6 +1632,7 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 			c.emitStr(fn, runtime.OpStoreModule, normalizedPath)
 		}
 
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpLoadModule1, normalizedPath)
 
 	} else {
@@ -1662,6 +1663,7 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 			)
 			return
 		}
+
 		seenNames[name.Str0] = true
 
 		// Save
