@@ -516,7 +516,7 @@ func DoDivision(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 		a := CoerceToInt(val0)
 		b := CoerceToInt(val1)
 		if b == 0 {
-			message := "Error: division by zero"
+			message := FormatError(frame, "division by zero")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
@@ -536,7 +536,7 @@ func DoDivision(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
 	if rhsValue == 0 {
-		message := "division by zero"
+		message := FormatError(frame, "division by zero")
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}

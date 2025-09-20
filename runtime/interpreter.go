@@ -34,11 +34,13 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 	var forward = func(offset int) {
 		strt += offset
+		frame.Pc += 1
 		frame.Ip += offset
 	}
 
 	var jump = func(offset int) {
 		strt = offset
+		frame.Pc = offset
 		frame.Ip = offset
 	}
 

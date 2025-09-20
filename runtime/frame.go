@@ -4,6 +4,7 @@ type AtomCallFrame struct {
 	Caller  *AtomCallFrame // Caller
 	Fn      *AtomValue     // Function
 	Env     *AtomEnv       // Environment
+	Pc      int            // Basically thesame with Ip, difference is that it only increments 1
 	Ip      int            // Instruction pointer
 	Stack   *AtomStack     // EvaluationStack
 	Promise *AtomValue     // Promise

@@ -102,6 +102,10 @@ func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCod
 	return start
 }
 
+func (c *AtomCompile) emitLine(atomFunc *runtime.AtomValue, pos AtomPosition) {
+	atomFunc.Value.(*runtime.AtomCode).Line = append(atomFunc.Value.(*runtime.AtomCode).Line, pos.LineStart)
+}
+
 func (c *AtomCompile) here(atomFunc *runtime.AtomValue) int {
 	return len(atomFunc.Value.(*runtime.AtomCode).Code)
 }
@@ -129,10 +133,12 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 	switch ast.AstType {
 	case AstTypeIdn:
 		{
+			c.emitLine(fn, ast.Position)
 			c.identifier(fn, ast, runtime.OpLoadName)
 		}
 
 	case AstTypeInt:
+		c.emitLine(fn, ast.Position)
 		intValue, err := strconv.Atoi(ast.Str0)
 		if err != nil {
 			Error(
@@ -149,6 +155,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		)
 
 	case AstTypeNum:
+		c.emitLine(fn, ast.Position)
 		numValue, err := strconv.ParseFloat(ast.Str0, 64)
 		if err != nil {
 			Error(
@@ -161,9 +168,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		c.emitNum(fn, runtime.OpLoadNum, numValue)
 
 	case AstTypeStr:
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpLoadStr, ast.Str0)
 
 	case AstTypeBool:
+		c.emitLine(fn, ast.Position)
 		var boolValue byte
 		if ast.Str0 == "true" {
 			boolValue = 1
@@ -173,6 +182,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		c.emitInt(fn, runtime.OpLoadBool, int(boolValue))
 
 	case AstTypeNull:
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, runtime.OpLoadNull)
 
 	case AstTypeArray:
@@ -181,6 +191,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				element := ast.Arr0[i]
 				c.expression(scope, fn, element)
 			}
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadArray, len(ast.Arr0))
 		}
 
@@ -202,8 +213,10 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				}
 
 				c.expression(scope, fn, v)
+				c.emitLine(fn, ast.Position)
 				c.emitStr(fn, runtime.OpLoadStr, k.Str0)
 			}
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadObject, len(ast.Arr0))
 		}
 
@@ -221,7 +234,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				return
 			}
 			c.expression(scope, fn, obj)
+			c.emitLine(fn, ast.Position)
 			c.emitStr(fn, runtime.OpLoadStr, key.Str0)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpIndex)
 		}
 
@@ -231,6 +246,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			index := ast.Ast1
 			c.expression(scope, fn, obj)
 			c.expression(scope, fn, index)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpIndex)
 		}
 
@@ -242,6 +258,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				c.expression(scope, fn, args[i])
 			}
 			c.expression(scope, fn, funcAst)
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpCall, len(args))
 		}
 
@@ -265,30 +282,35 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			}
 
 			c.expression(scope, fn, constructorAst)
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpCallConstructor, len(args))
 		}
 
 	case AstTypeUnaryNot:
 		{
 			c.expression(scope, fn, ast.Ast0)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpNot)
 		}
 
 	case AstTypeUnaryNeg:
 		{
 			c.expression(scope, fn, ast.Ast0)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpNeg)
 		}
 
 	case AstTypeUnaryPos:
 		{
 			c.expression(scope, fn, ast.Ast0)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpPos)
 		}
 
 	case AstTypeUnaryTypeof:
 		{
 			c.expression(scope, fn, ast.Ast0)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpTypeof)
 		}
 
@@ -315,6 +337,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				return
 			}
 			c.expression(scope, fn, callAst)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpAwait)
 		}
 
@@ -324,6 +347,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpMul)
 		}
 
@@ -333,6 +357,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDiv)
 		}
 
@@ -342,6 +367,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpMod)
 		}
 
@@ -351,6 +377,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpAdd)
 		}
 
@@ -360,6 +387,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpSub)
 		}
 
@@ -369,6 +397,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpShr)
 		}
 
@@ -378,6 +407,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpShl)
 		}
 
@@ -387,6 +417,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpCmpGt)
 		}
 
@@ -396,6 +427,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpCmpGte)
 		}
 
@@ -405,6 +437,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpCmpLt)
 		}
 
@@ -414,6 +447,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpCmpLte)
 		}
 
@@ -423,6 +457,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpCmpEq)
 		}
 
@@ -432,6 +467,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpCmpNe)
 		}
 
@@ -441,6 +477,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpAnd)
 		}
 
@@ -450,6 +487,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpOr)
 		}
 
@@ -459,6 +497,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpXor)
 		}
 
@@ -467,6 +506,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toEnd0 := c.emitJump(fn, runtime.OpJumpIfFalseOrPop)
 			c.expression(scope, fn, rhs)
 			c.label(fn, toEnd0)
@@ -477,6 +517,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toEnd0 := c.emitJump(fn, runtime.OpJumpIfTrueOrPop)
 			c.expression(scope, fn, rhs)
 			c.label(fn, toEnd0)
@@ -487,6 +528,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -497,7 +539,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpMul)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -508,7 +552,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDiv)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -519,7 +565,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpMod)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -530,7 +578,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpAdd)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -541,7 +591,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpSub)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -552,7 +604,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpShl)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -563,7 +617,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpShr)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -574,7 +630,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpAnd)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -585,7 +643,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpOr)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -596,7 +656,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpXor)
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpDupTop)
 			c.assign(scope, fn, lhs)
 		}
@@ -608,8 +670,10 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			elseValue := ast.Ast2
 
 			c.expression(scope, fn, condition)
+			c.emitLine(fn, ast.Position)
 			toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.expression(scope, fn, thenValue)
+			c.emitLine(fn, ast.Position)
 			toEnd := c.emitJump(fn, runtime.OpJump)
 			c.label(fn, toElse)
 			c.expression(scope, fn, elseValue)
@@ -634,9 +698,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				storedJumps := []int{}
 				for _, caseItem := range cases {
 					c.expression(scope, fn, caseItem)
+					c.emitLine(fn, ast.Position)
 					jumpToValue := c.emitJump(fn, runtime.OpPeekJumpIfEqual)
 					storedJumps = append(storedJumps, jumpToValue)
 				}
+				c.emitLine(fn, ast.Position)
 				toNextCase := c.emitJump(fn, runtime.OpJump)
 
 				// value
@@ -648,6 +714,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 				// value
 				c.expression(scope, fn, value)
+				c.emitLine(fn, ast.Position)
 				jumpToEnd := c.emitJump(fn, runtime.OpJump)
 				toEndSwitch = append(toEndSwitch, jumpToEnd)
 
@@ -656,6 +723,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			}
 
 			// Pop condition if default
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpPopTop)
 
 			// Default value
@@ -679,9 +747,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			fnOffset := c.state.SaveFunction(atomFunc)
 
 			c.expression(scope, fn, condition)
+			c.emitLine(fn, ast.Position)
 			toEndCatch := c.emitJump(fn, runtime.OpPopJumpIfNotError)
 
 			// Variable as parameter
+			c.emitLine(fn, ast.Position)
 			c.emitStr(atomFunc, runtime.OpStoreFast, variable.Str0)
 
 			// Body
@@ -694,12 +764,16 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				}
 			}
 			if !visibleReturn {
+				c.emitLine(atomFunc, ast.Position)
 				c.emit(atomFunc, runtime.OpLoadNull)
+				c.emitLine(atomFunc, ast.Position)
 				c.emit(atomFunc, runtime.OpReturn)
 			}
 
 			// Load and call
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadFunction, fnOffset)
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpCall, 1)
 
 			// End Catch
@@ -720,13 +794,16 @@ func (c *AtomCompile) assign(scope *AtomScope, fn *runtime.AtomValue, lhs *AtomA
 	switch lhs.AstType {
 	case AstTypeIdn:
 		{
+			c.emitLine(fn, lhs.Position)
 			c.identifier(fn, lhs, runtime.OpStoreLocal)
 		}
 
 	case AstTypeMember:
 		{
 			c.expression(scope, fn, lhs.Ast0)
+			c.emitLine(fn, lhs.Position)
 			c.emitStr(fn, runtime.OpLoadStr, lhs.Ast1.Str0)
+			c.emitLine(fn, lhs.Position)
 			c.emit(fn, runtime.OpSetIndex)
 		}
 
@@ -734,6 +811,7 @@ func (c *AtomCompile) assign(scope *AtomScope, fn *runtime.AtomValue, lhs *AtomA
 		{
 			c.expression(scope, fn, lhs.Ast0)
 			c.expression(scope, fn, lhs.Ast1)
+			c.emitLine(fn, lhs.Position)
 			c.emit(fn, runtime.OpSetIndex)
 		}
 
@@ -892,6 +970,7 @@ func (c *AtomCompile) breakStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		return
 	}
 	currentLoop := scope.GetCurrentLoop()
+	c.emitLine(fn, ast.Position)
 	currentLoop.AddBreak(
 		c.emitJump(fn, runtime.OpJump),
 	)
@@ -909,6 +988,7 @@ func (c *AtomCompile) continueStatement(scope *AtomScope, fn *runtime.AtomValue,
 		return
 	}
 	currentLoop := scope.GetCurrentLoop()
+	c.emitLine(fn, ast.Position)
 	currentLoop.AddContinue(
 		c.emitJump(fn, runtime.OpAbsoluteJump),
 	)
@@ -928,17 +1008,21 @@ func (c *AtomCompile) returnStatement(scope *AtomScope, fn *runtime.AtomValue, a
 	if ast.Ast0 != nil {
 		c.expression(scope, fn, ast.Ast0)
 	} else {
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, runtime.OpLoadNull)
 	}
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, runtime.OpReturn)
 }
 
-func (c *AtomCompile) emptyStatement(_ *AtomScope, fn *runtime.AtomValue, _ *AtomAst) {
+func (c *AtomCompile) emptyStatement(_ *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, runtime.OpNoOp)
 }
 
 func (c *AtomCompile) expressionStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	c.expression(scope, fn, ast.Ast0)
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, runtime.OpPopTop)
 }
 
@@ -1013,8 +1097,11 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 	}
 
 	// Save
+	c.emitLine(fn, ast.Position)
 	c.emitStr(fn, runtime.OpInitVar, name.Str0)
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 1) // isGlobal is always true here
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 0) // Not constant
 }
 
@@ -1045,9 +1132,10 @@ func (c *AtomCompile) classVariable(scope *AtomScope, fn *runtime.AtomValue, ast
 		if val != nil {
 			c.expression(scope, fn, val)
 		} else {
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpLoadNull)
 		}
-
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpLoadStr, key.Str0)
 	}
 }
@@ -1075,7 +1163,9 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 	params := ast.Arr0
 	//============================
 	fnOffset := c.state.SaveFunction(atomFunc)
+	c.emitLine(fn, ast.Position)
 	c.emitInt(fn, runtime.OpLoadFunction, fnOffset)
+	c.emitLine(fn, ast.Position)
 	c.emitStr(fn, runtime.OpLoadStr, ast.Ast0.Str0)
 	//============================
 
@@ -1091,6 +1181,7 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 		}
 
 		// Save to symbol table
+		c.emitLine(fn, ast.Position)
 		c.emitStr(atomFunc, runtime.OpStoreFast, param.Str0)
 	}
 	body := ast.Arr1
@@ -1103,7 +1194,9 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 		}
 	}
 	if !visibleReturn {
+		c.emitLine(atomFunc, ast.Position)
 		c.emit(atomFunc, runtime.OpLoadNull)
+		c.emitLine(atomFunc, ast.Position)
 		c.emit(atomFunc, runtime.OpReturn)
 	}
 }
@@ -1147,17 +1240,22 @@ func (c *AtomCompile) enumStatement(scope *AtomScope, fn *runtime.AtomValue, ast
 		}
 
 		if value == nil {
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadInt, index)
 		} else {
 			c.expression(scope, fn, value)
 		}
-
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpLoadStr, name.Str0)
 	}
 
+	c.emitLine(fn, ast.Position)
 	c.emitInt(fn, runtime.OpMakeEnum, len(names))
+	c.emitLine(fn, ast.Position)
 	c.emitStr(fn, runtime.OpInitVar, name.Str0)
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 1) // isGlobal is always true here
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 0) // Not constant
 }
 
@@ -1186,9 +1284,13 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 	fnOffset := c.state.SaveFunction(atomFunc)
 
 	// Save to symbol table first to allow captures to reference it
+	c.emitLine(fn, ast.Position)
 	c.emitInt(fn, runtime.OpLoadFunction, fnOffset)
+	c.emitLine(fn, ast.Position)
 	c.emitStr(fn, runtime.OpInitVar, ast.Ast0.Str0)
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 1) // isGlobal is always true here
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 0) // Not constant
 	//============================
 
@@ -1204,6 +1306,7 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 		}
 
 		// Save to symbol table
+		c.emitLine(atomFunc, ast.Position)
 		c.emitStr(atomFunc, runtime.OpStoreFast, param.Str0)
 	}
 	body := ast.Arr1
@@ -1217,17 +1320,21 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 	}
 
 	if !visibleReturn {
+		c.emitLine(atomFunc, ast.Position)
 		c.emit(atomFunc, runtime.OpLoadNull)
+		c.emitLine(atomFunc, ast.Position)
 		c.emit(atomFunc, runtime.OpReturn)
 	}
 }
 
 func (c *AtomCompile) block(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	blockScope := NewAtomScope(scope, AtomScopeTypeBlock)
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, runtime.OpEnterBlock)
 	for _, stmt := range ast.Arr1 {
 		c.statement(blockScope, fn, stmt)
 	}
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, runtime.OpExitBlock)
 }
 
@@ -1268,13 +1375,17 @@ func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 		seenNames[key.Str0] = true
 
 		if val == nil {
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadNull, 0)
 		} else {
 			c.expression(scope, fn, val)
 		}
 
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpInitVar, key.Str0)
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, 1) // isGlobal is always true here
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, 0) // Not constant
 	}
 }
@@ -1308,17 +1419,21 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		seenNames[key.Str0] = true
 
 		if val == nil {
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadNull, 0)
 		} else {
 			c.expression(scope, fn, val)
 		}
 
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpInitVar, key.Str0)
+		c.emitLine(fn, ast.Position)
 		if isGlobal {
 			c.emit(fn, 1)
 		} else {
 			c.emit(fn, 0)
 		}
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, 1) // Constant
 	}
 }
@@ -1359,13 +1474,17 @@ func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		seenNames[key.Str0] = true
 
 		if val == nil {
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadNull, 0)
 		} else {
 			c.expression(scope, fn, val)
 		}
 
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpInitVar, key.Str0)
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, 0) // isGlobal is always true here
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, 0) // Not constant
 	}
 }
@@ -1431,6 +1550,7 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 
 	normalizedPath := cleanNameWithoutExtension(path.Str0)
 
+	c.emitLine(fn, ast.Position)
 	if isBuiltin(path.Str0) {
 		c.emitStr(fn, runtime.OpLoadModule0, normalizedPath)
 	} else {
@@ -1463,15 +1583,22 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 		seenNames[name.Str0] = true
 
 		// Save
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpPluckAttribute, name.Str0)
+		c.emitLine(fn, ast.Position)
 		c.emitStr(fn, runtime.OpInitVar, name.Str0)
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, 1) // isGlobal is always true here
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, 0) // Not constant
 	}
 
 	// Save to table
+	c.emitLine(fn, ast.Position)
 	c.emitStr(fn, runtime.OpInitVar, normalizedPath)
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 1) // isGlobal is always true here
+	c.emitLine(fn, ast.Position)
 	c.emit(fn, 0) // Not constant
 }
 
@@ -1495,8 +1622,10 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 			c.expression(scope, fn, lhs)
 			toEnd0 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.statement(scope, fn, ast.Ast1)
+			c.emitLine(fn, ast.Position)
 			toEnd2 := c.emitJump(fn, runtime.OpJump)
 			c.label(fn, toEnd0)
 			c.label(fn, toEnd1)
@@ -1508,9 +1637,11 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 			c.expression(scope, fn, lhs)
 			toThen := c.emitJump(fn, runtime.OpPopJumpIfTrue)
 			c.expression(scope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.label(fn, toThen)
 			c.statement(scope, fn, ast.Ast1)
+			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpJump)
 			c.label(fn, toElse)
 			if ast.Ast2 != nil {
@@ -1538,9 +1669,11 @@ func (c *AtomCompile) switchStatement(scope *AtomScope, fn *runtime.AtomValue, a
 			storedJumps := []int{}
 			for _, caseItem := range cases {
 				c.expression(scope, fn, caseItem)
+				c.emitLine(fn, ast.Position)
 				jumpToValue := c.emitJump(fn, runtime.OpPeekJumpIfEqual)
 				storedJumps = append(storedJumps, jumpToValue)
 			}
+			c.emitLine(fn, ast.Position)
 			toNextCase := c.emitJump(fn, runtime.OpJump)
 
 			// value
@@ -1548,10 +1681,12 @@ func (c *AtomCompile) switchStatement(scope *AtomScope, fn *runtime.AtomValue, a
 				c.label(fn, jump)
 			}
 			// Pop condition if match
+			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpPopTop)
 
 			// statement
 			c.statement(scope, fn, stmnt)
+			c.emitLine(fn, ast.Position)
 			jumpToEnd := c.emitJump(fn, runtime.OpJump)
 			toEndSwitch = append(toEndSwitch, jumpToEnd)
 
@@ -1560,6 +1695,7 @@ func (c *AtomCompile) switchStatement(scope *AtomScope, fn *runtime.AtomValue, a
 		}
 
 		// Pop condition if default
+		c.emitLine(fn, ast.Position)
 		c.emit(fn, runtime.OpPopTop)
 
 		// Default value
@@ -1578,8 +1714,10 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 	loopStart := c.here(fn)
 	if !isLogical {
 		c.expression(loopScope, fn, ast.Ast0)
+		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 		c.statement(loopScope, fn, ast.Ast1)
+		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 		c.label(fn, toEnd)
 	} else {
@@ -1588,21 +1726,27 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		rhs := ast.Ast0.Ast1
 		if isAnd {
 			c.expression(loopScope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toEnd0 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.expression(loopScope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.statement(loopScope, fn, ast.Ast1)
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd0)
 			c.label(fn, toEnd1)
 		} else {
 			c.expression(loopScope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toThen := c.emitJump(fn, runtime.OpPopJumpIfTrue)
 			c.expression(loopScope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			// Then?
 			c.label(fn, toThen)
 			c.statement(loopScope, fn, ast.Ast1)
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd1)
 		}
@@ -1622,8 +1766,10 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 	loopStart := c.here(fn)
 	if !isLogical {
 		c.expression(loopScope, fn, ast.Ast0)
+		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 		c.statement(loopScope, fn, ast.Ast1)
+		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 		c.label(fn, toEnd)
 	} else {
@@ -1632,21 +1778,27 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 		rhs := ast.Ast0.Ast1
 		if isAnd {
 			c.expression(loopScope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toEnd0 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.expression(loopScope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.statement(loopScope, fn, ast.Ast1)
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd0)
 			c.label(fn, toEnd1)
 		} else {
 			c.expression(loopScope, fn, lhs)
+			c.emitLine(fn, ast.Position)
 			toThen := c.emitJump(fn, runtime.OpPopJumpIfTrue)
 			c.expression(loopScope, fn, rhs)
+			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			// Then?
 			c.label(fn, toThen)
 			c.statement(loopScope, fn, ast.Ast1)
+			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd1)
 		}
@@ -1667,7 +1819,9 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)
 	}
+	c.emitLine(programFunc, ast.Position)
 	c.emit(programFunc, runtime.OpLoadNull)
+	c.emitLine(programFunc, ast.Position)
 	c.emit(programFunc, runtime.OpReturn)
 	return programFunc
 }

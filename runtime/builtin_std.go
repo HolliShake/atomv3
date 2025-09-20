@@ -45,8 +45,28 @@ var std_readLine = NewNativeFunc("readLine", 1, func(interpreter *AtomInterprete
 	frame.Stack.Push(NewAtomValueStr(strings.TrimSpace(text)))
 })
 
+func std_throw_error(err *AtomValue) {
+	fmt.Println(err.String())
+	os.Exit(1)
+}
+
+var std_throw = NewNativeFunc("throw", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		frame.Stack.Push(NewAtomValueError("throw expects 1 argument"))
+		return
+	}
+	if !CheckType(frame.Stack.Peek(), AtomTypeErr) {
+		frame.Stack.Pop()
+		frame.Stack.Push(NewAtomValueError("throw expects an error"))
+		return
+	}
+	std_throw_error(frame.Stack.Pop())
+	frame.Stack.Push(interpreter.State.NullValue)
+})
+
 var EXPORT_STD = map[string]*AtomValue{
 	"println":  NewAtomValueNativeFunc(std_println),
 	"print":    NewAtomValueNativeFunc(std_print),
 	"readLine": NewAtomValueNativeFunc(std_readLine),
+	"throw":    NewAtomValueNativeFunc(std_throw),
 }

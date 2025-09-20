@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
 	"strconv"
 )
@@ -103,4 +104,10 @@ func CoerceToBool(value *AtomValue) bool {
 	default:
 		return true
 	}
+}
+
+func FormatError(frame *AtomCallFrame, message string) string {
+	file := frame.Fn.Value.(*AtomCode).File
+	line := frame.Fn.Value.(*AtomCode).Line[frame.Pc]
+	return fmt.Sprintf("[%s:%d]::Error: %s", file, line, message)
 }
