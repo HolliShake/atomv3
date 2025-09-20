@@ -1645,8 +1645,16 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 			re := regexp.MustCompile(`^atom:([a-zA-Z_][a-zA-Z0-9_]*)$`)
 			name = re.ReplaceAllString(name, "$1")
 		} else if isRelative(name) {
-			name = strings.TrimPrefix(name, "./")
-			name = strings.TrimPrefix(name, "../")
+			// Remove relative path prefixes
+			for strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../") {
+				if strings.HasPrefix(name, "../") {
+					name = strings.TrimPrefix(name, "../")
+				} else {
+					name = strings.TrimPrefix(name, "./")
+				}
+			}
+			segments := strings.Split(name, "/")
+			name = segments[len(segments)-1]
 		}
 
 		re := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\.atom$`)

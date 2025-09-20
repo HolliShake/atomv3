@@ -11,8 +11,10 @@ import (
 func Error(file string, data []rune, message string, position AtomPosition) {
 	pc, _, _, ok := runtime.Caller(1) // 1 = caller frame
 	caller := ""
+	callerLine := 0
 	if ok {
 		caller = runtime.FuncForPC(pc).Name()
+		_, callerLine = runtime.FuncForPC(pc).FileLine(pc)
 	}
 
 	// Split the data into lines
@@ -29,7 +31,7 @@ func Error(file string, data []rune, message string, position AtomPosition) {
 	end := int(math.Min(float64(len(lines)-1), float64(position.LineEnded+padding)))
 
 	// Print error header
-	err_message := fmt.Sprintf("DEBUG(%s)::Error in [%s:%d:%d] %s\n", caller, file, position.LineStart, position.ColmStart, message)
+	err_message := fmt.Sprintf("DEBUG(%s:%d)::Error in [%s:%d:%d] %s\n", caller, callerLine, file, position.LineStart, position.ColmStart, message)
 
 	// Display lines with padding
 	for i := start; i <= end; i++ {

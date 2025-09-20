@@ -65,6 +65,10 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 			)
 		}
 
+		if frame.Fn.Value.(*AtomCode).Name != "script" {
+			frame.Fn.Value.(*AtomCode).ClearLocal()
+		}
+
 		frame.Stack.Clear()
 		frame.Promise = nil
 		frame.State = ExecIdle
@@ -91,6 +95,7 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 	}
 
 	// Clean up frame state
+	frame.Fn.Value.(*AtomCode).ClearLocal()
 	frame.Stack.Clear()
 	frame.Promise = nil
 	frame.State = ExecIdle

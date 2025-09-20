@@ -14,14 +14,12 @@ class Animal {
     func eat(self, food) {
         std.println(self.name + " is eating " + food);
     }
-
 }
 
 func reg() {
     (3 / 0) catch (err) {
         std.println(">>>", err);
-        // std.throw(err);
-    };;
+    };
     return 2;
 }
 

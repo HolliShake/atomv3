@@ -24,6 +24,13 @@ func NewAtomCode(file, name string, async bool, argc int) *AtomCode {
 	}
 }
 
+func (c *AtomCode) ClearLocal() *AtomCode {
+	for _, cell := range c.Locals {
+		cell.Value = nil
+	}
+	return c
+}
+
 func (c *AtomCode) HashValue() int {
 	hash := uint32(0)
 
