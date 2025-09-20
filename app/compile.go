@@ -254,8 +254,10 @@ func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *A
 	if !c.isLocal(scope, ast.Str0) && !c.isLocalToFunction(scope, ast.Str0) {
 		// Save as capture
 		c.emitCapture(fn, scope, opcode, ast)
-	} else {
+	} else if c.isLocal(scope, ast.Str0) {
 		c.emitInt(fn, opcode, c.lookup(scope, ast.Str0).index)
+	} else {
+		panic("Unhandled error!!!")
 	}
 }
 
