@@ -39,7 +39,7 @@ class Dog extends Animal {
     }
 
     async func process(self) {
-        return waitable();
+        return await waitable();
     }
 }
 
