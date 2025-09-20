@@ -28,8 +28,9 @@ Atom is a modern, dynamically-typed programming language with a comprehensive fe
 ### Runtime Features
 - **Stack-based VM**: Efficient bytecode execution with evaluation stack and frame management
 - **Memory Management**: Basic garbage collection with GC roots and memory usage reporting
-- **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`) with colored output
+- **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`, `decompile`, `throw`, `readLine`) with colored output
 - **Error Reporting**: Comprehensive error messages with source location, context display, and debugging information
+- **Module System**: Support for importing from `atom:std`, local modules, and relative imports
 
 ### Startup Experience
 When you run Atom without arguments, it displays an impressive ASCII art banner:
@@ -426,7 +427,7 @@ add(multiply(2, 3), divide(10, 2));
 
 ```atom
 // Import selected symbols from the standard library
-import [ print, println, freeze ] from "atom:std";
+import [ print, println, freeze, decompile, throw, readLine ] from "atom:std";
 
 println("Hello, World!", 1, 2, 3);  // Output in yellow
 print("Wheels on the bus!", std, "\n");  // Output in green
@@ -442,9 +443,68 @@ std.freeze(arr);
 // obj.name = "new name";  // Error: cannot set index on frozen object
 // arr[0] = 999;          // Error: cannot set index on frozen array
 
+// Function decompilation
+func add(a, b) {
+    return a + b;
+}
+println(std.decompile(add));  // Shows bytecode representation
+
+// Error handling
+const result = riskyOperation() catch(err) {
+    std.throw(err);  // Throws error with stack trace
+    return null;
+};
+
+// Interactive input
+const name = std.readLine("Enter your name: ");
+println("Hello, " + name + "!");
+
 const Log = println; // aliasing
 Log("Hello, World!");
 ```
+
+### Standard Library Functions
+
+Atom provides several built-in functions through the `atom:std` module:
+
+- **`print(...)`**: Prints arguments in green color without newline
+- **`println(...)`**: Prints arguments in yellow color with newline
+- **`freeze(obj)`**: Makes objects and arrays immutable
+- **`decompile(func)`**: Returns bytecode representation of a function
+- **`throw(error)`**: Throws an error with full stack trace
+- **`readLine(prompt)`**: Reads a line of input from stdin with optional prompt
+
+### Module System
+
+Atom supports a flexible module system with multiple import patterns:
+
+```atom
+// Import specific functions from standard library
+import [ print, println, freeze ] from "atom:std";
+
+// Import entire standard library
+import "atom:std";
+
+// Import local modules
+import "gui";
+import "hash";
+import "./imports.atom";
+
+// Import object-related functions
+import [ freeze ] from "atom:object";
+
+// Using imported modules
+std.println("Using std module");
+gui.getName();  // Call function from gui module
+hash.someFunction();  // Call function from hash module
+```
+
+The module system supports:
+- **Standard Library**: `atom:std` and `atom:object` modules
+- **Local Modules**: Files in the same directory or subdirectories
+- **Relative Imports**: Using `./` for relative paths
+- **Named Imports**: Import specific functions with destructuring syntax
+- **Default Imports**: Import entire modules
 
 ### Switch and Conditional Expressions
 
@@ -825,6 +885,7 @@ The `test/` directory contains comprehensive test files that demonstrate various
   - Enum declarations and usage
   - Class definitions and inheritance
   - Import statements from `atom:std`
+  - Function decompilation with `std.decompile()`
 
 - **`arithmetic.atom`** (26 lines) - Tests basic arithmetic operations:
   - Function calls with parameters
@@ -854,7 +915,7 @@ The `test/` directory contains comprehensive test files that demonstrate various
   - Array building using async operations
   - Complex nested async structures
 
-- **`class.atom`** (45 lines) - Object-oriented programming features:
+- **`class.atom`** (66 lines) - Object-oriented programming features:
   - Base class definitions with methods
   - Class inheritance using `extends`
   - Constructor methods with parameters
@@ -862,6 +923,8 @@ The `test/` directory contains comprehensive test files that demonstrate various
   - Async methods in classes
   - Error handling with division by zero
   - Class instantiation and method calls
+  - Module imports (`gui`, `hash`, `imports.atom`)
+  - Function decompilation examples
 
 - **`function.atom`** (20 lines) - Function capabilities:
   - Recursive function definitions
@@ -875,12 +938,31 @@ The `test/` directory contains comprehensive test files that demonstrate various
   - Self-referencing objects
   - Property access and modification
 
+- **`imports.atom`** (17 lines) - Module system testing:
+  - Global variable access
+  - Recursive function with error handling
+  - Error throwing and catching
+  - Module import functionality
+
+- **`scope.atom`** (42 lines) - Variable scoping and block scope:
+  - Global variable mutation
+  - Block scope with curly braces
+  - Function scope and variable access
+  - Class instantiation and method chaining
+
+### Library Files
+
+- **`app/lib/hash.atom`** - Simple library module demonstrating module exports
+- **`app/lib/gui/index.atom`** - GUI library module with exported functions
+
 ### Comparison Files
 
 - **`async.js`** (440 lines) - JavaScript equivalent of async.atom for comparison
 - **`async.py`** (320 lines) - Python equivalent of async.atom for comparison
+- **`class.py`** (25 lines) - Python equivalent of class.atom for comparison
+- **`scope.js`** (19 lines) - JavaScript equivalent of scope.atom for comparison
 
-These comparison files demonstrate how Atom's async/await syntax compares to established languages like JavaScript and Python, showing the language's modern async programming capabilities.
+These comparison files demonstrate how Atom's syntax compares to established languages like JavaScript and Python, showing the language's modern programming capabilities.
 
 ### Running Tests
 
@@ -962,17 +1044,18 @@ The async system allows for:
 ### Bytecode Operations
 
 The VM supports the following opcodes:
-- **Load Operations**: `OpLoadInt`, `OpLoadNum`, `OpLoadStr`, `OpLoadBool`, `OpLoadNull`, `OpLoadArray`, `OpLoadObject`, `OpLoadName`, `OpLoadModule0`, `OpLoadModule1`, `OpLoadFunction`
+- **Load Operations**: `OpLoadInt`, `OpLoadNum`, `OpLoadStr`, `OpLoadBool`, `OpLoadNull`, `OpLoadArray`, `OpLoadObject`, `OpLoadName`, `OpLoadCapture`, `OpLoadModule`, `OpLoadFunction`
 - **Arithmetic**: `OpAdd`, `OpSub`, `OpMul`, `OpDiv`, `OpMod`
 - **Bitwise**: `OpAnd`, `OpOr`, `OpXor`, `OpShl`, `OpShr`
 - **Comparison**: `OpCmpLt`, `OpCmpLte`, `OpCmpGt`, `OpCmpGte`, `OpCmpEq`, `OpCmpNe`
 - **Control Flow**: `OpJump`, `OpAbsoluteJump`, `OpJumpIfFalseOrPop`, `OpJumpIfTrueOrPop`, `OpPopJumpIfFalse`, `OpPopJumpIfTrue`, `OpPeekJumpIfEqual`, `OpPopJumpIfNotError`
 - **Function Calls**: `OpCall`, `OpCallConstructor`, `OpReturn`, `OpAwait`
-- **Variable Access**: `OpInitVar`, `OpStoreFast`, `OpStoreLocal`
+- **Variable Access**: `OpStoreModule`, `OpStoreCapture`, `OpStoreLocal`
 - **Object/Array Operations**: `OpIndex`, `OpSetIndex`, `OpPluckAttribute`
 - **Class/Enum Operations**: `OpMakeClass`, `OpExtendClass`, `OpMakeEnum`
-- **Stack Operations**: `OpDupTop`, `OpPopTop`, `OpNoOp`, `OpEnterBlock`, `OpExitBlock`
+- **Stack Operations**: `OpDupTop`, `OpPopTop`, `OpNoOp`
 - **Unary Operations**: `OpNot`, `OpNeg`, `OpPos`, `OpTypeof`
+- **Module Operations**: `OpMakeModule`
 
 ## Building and Running
 
@@ -1039,11 +1122,17 @@ atom/
 │   ├── token.go           # Token definitions and types
 │   ├── position.go        # Source position tracking
 │   ├── scope.go           # Variable scoping and symbol tables
-│   ├── test.js            # JavaScript test file
+│   ├── symbol.go          # Symbol table management
 │   ├── atom.ico           # Application icon
+│   ├── atom.linux         # Linux binary executable
 │   ├── build.sh           # Build script (Linux/macOS)
 │   ├── build.bat          # Build script (Windows)
-│   └── go.mod             # App module dependencies
+│   ├── go.mod             # App module dependencies
+│   ├── go.sum             # App module checksums
+│   └── lib/               # Library modules
+│       ├── gui/
+│       │   └── index.atom # GUI library module
+│       └── hash.atom      # Hash library module
 ├── runtime/               # Runtime system and VM
 │   ├── interpreter.go     # VM implementation and execution
 │   ├── operation.go       # Bytecode operation implementations
@@ -1059,27 +1148,32 @@ atom/
 │   ├── checker.go         # Type checking utilities
 │   ├── util.go            # Utility functions
 │   ├── builtin.go         # Built-in functions
-│   ├── builtin_std.go     # Standard library functions (print, println, freeze)
-│   ├── env.go             # Environment and variable management
+│   ├── builtin_std.go     # Standard library functions (print, println, freeze, decompile, throw, readLine)
+│   ├── builtin_object.go  # Object-related built-in functions
 │   ├── frame.go           # Call frame management
-│   ├── variable.go        # Variable management
 │   ├── scheduler.go       # Async scheduler for promises
 │   ├── promise.go         # Promise implementation
 │   ├── decompile.go       # Bytecode decompilation utilities
-│   └── go.mod             # Runtime module dependencies
+│   ├── cell.go            # Cell implementation for closures
+│   ├── debug.go           # Debug utilities
+│   ├── go.mod             # Runtime module dependencies
+│   └── go.sum             # Runtime module checksums
 ├── test/                  # Test files and examples
 │   ├── test.atom          # Comprehensive test suite (273 lines)
 │   ├── arithmetic.atom    # Basic arithmetic and function calls (26 lines)
 │   ├── array.atom         # Array operations and self-reference (12 lines)
 │   ├── async.atom         # Advanced async/await patterns (368 lines)
-│   ├── class.atom         # Class inheritance and async methods (45 lines)
+│   ├── class.atom         # Class inheritance and async methods (66 lines)
 │   ├── function.atom      # Recursive functions and factorial (20 lines)
 │   ├── object.atom        # Object freezing and self-reference (24 lines)
+│   ├── imports.atom       # Module import testing (17 lines)
+│   ├── scope.atom         # Variable scoping and block scope (42 lines)
 │   ├── async.js           # JavaScript async comparison (440 lines)
-│   └── async.py           # Python async comparison (320 lines)
+│   ├── async.py           # Python async comparison (320 lines)
+│   ├── class.py           # Python class comparison (25 lines)
+│   └── scope.js           # JavaScript scope comparison (19 lines)
 ├── go.work                # Go workspace configuration
 ├── go.work.sum            # Go workspace checksums
-├── atom                   # Compiled binary executable
 ├── readme.MD              # This documentation
 └── LICENSE                # MIT License
 ```
@@ -1099,15 +1193,15 @@ Based on the test files and implementation analysis, the following limitations a
 - Limited exception handling beyond catch expressions (no try-catch blocks)
 
 ### I/O and System Limitations
-- Limited I/O operations (basic `print`/`println`/`freeze` only via `atom:std`)
+- Limited I/O operations (basic `print`/`println`/`freeze`/`decompile`/`throw`/`readLine` via `atom:std`)
 - No file I/O operations (read/write files, directory operations)
 - No network operations or HTTP client functionality
-- No built-in standard library beyond `atom:std`
+- Limited standard library (only `atom:std` and `atom:object` modules)
 
 ### Language Feature Limitations
 - No closures (functions cannot capture variables from outer scope)
 - No type annotations or static type checking
-- No module system beyond basic imports from `atom:std`
+- Limited module system (basic imports from `atom:std`, local modules, and relative imports)
 - No generics or template programming
 - No pattern matching beyond switch expressions
 - No operator overloading
@@ -1117,7 +1211,7 @@ Based on the test files and implementation analysis, the following limitations a
 - No REPL (Read-Eval-Print Loop) for interactive development
 - No built-in testing framework
 - No code formatting or linting tools
-- Limited error messages and stack traces
+- Basic error messages and stack traces (improved with `std.throw`)
 
 ### Performance Limitations
 - No JIT compilation or performance optimizations
@@ -1125,25 +1219,38 @@ Based on the test files and implementation analysis, the following limitations a
 - Basic garbage collection without advanced memory management
 - No code splitting or lazy loading capabilities
 
+### Runtime Limitations
+- No native function binding beyond built-in functions
+- Limited memory management (basic GC with roots)
+- No reflection or introspection capabilities beyond `std.decompile`
+- No serialization/deserialization support
+
 ## Future Enhancements
 
+### High Priority
 - **Control Flow**: `for` loops and enhanced loop constructs
-- **Module System**: Enhanced module system with better import/export and dependency management
 - **Standard Library**: Expanded standard library with common functions and utilities
 - **String Operations**: String manipulation functions (`substring`, `split`, `join`, `replace`, etc.)
 - **Array/Object Methods**: Built-in methods (`push`, `pop`, `length`, `keys`, `values`, `map`, `filter`, etc.)
 - **I/O Operations**: File I/O operations (read/write files, directory operations)
-- **Debugging**: Better error messages, debugging support, and profiling tools
-- **Performance**: Performance optimizations and JIT compilation
 - **REPL**: Interactive Read-Eval-Print Loop for development
+
+### Medium Priority
+- **Module System**: Enhanced module system with better import/export and dependency management
 - **Closures**: Lexical scoping and closure support for functions
-- **Type System**: Type annotations and static type checking
 - **Exception Handling**: Enhanced exception handling beyond catch expressions
+- **Debugging**: Better error messages, debugging support, and profiling tools
+- **Testing**: Built-in testing framework and test runners
+
+### Low Priority
+- **Performance**: Performance optimizations and JIT compilation
+- **Type System**: Type annotations and static type checking
 - **Memory Management**: Improved garbage collection and memory optimization
 - **Pattern Matching**: Enhanced pattern matching capabilities
 - **Generics**: Generic programming support for reusable code
 - **Concurrency**: Enhanced concurrency primitives and parallel execution
-- **Testing**: Built-in testing framework and test runners
+- **Native Binding**: Support for calling native functions and libraries
+- **Serialization**: JSON and other serialization format support
 
 ## Author and License
 
