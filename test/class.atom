@@ -33,3 +33,6 @@ std.println(dog);
 const d = dog.eat("bone");
 
 std.println(">>", d, dog.process());
+
+
+std.println(std.readLine(">>"));

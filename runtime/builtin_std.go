@@ -1,7 +1,10 @@
 package runtime
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -27,7 +30,23 @@ var std_print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpre
 	frame.Stack.Push(interpreter.State.NullValue)
 })
 
+var std_readLine = NewNativeFunc("readLine", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		frame.Stack.Push(NewAtomValueError("readLine expects 1 argument"))
+		return
+	}
+	fmt.Print(color.BlueString(frame.Stack.Pop().String()))
+	reader := bufio.NewReader(os.Stdin)
+	text, err := reader.ReadString('\n')
+	if err != nil {
+		frame.Stack.Push(NewAtomValueError(err.Error()))
+		return
+	}
+	frame.Stack.Push(NewAtomValueStr(strings.TrimSpace(text)))
+})
+
 var EXPORT_STD = map[string]*AtomValue{
-	"println": NewAtomValueNativeFunc(std_println),
-	"print":   NewAtomValueNativeFunc(std_print),
+	"println":  NewAtomValueNativeFunc(std_println),
+	"print":    NewAtomValueNativeFunc(std_print),
+	"readLine": NewAtomValueNativeFunc(std_readLine),
 }

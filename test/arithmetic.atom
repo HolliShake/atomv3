@@ -15,8 +15,6 @@ println("Starting...");
 add(1, 2);
 
 
-
-
 class Dog {
     func init(self, name) {
         self.name = name;
@@ -24,6 +22,5 @@ class Dog {
     }
     
 }
-
 
 println(new Dog("Buddy"));
