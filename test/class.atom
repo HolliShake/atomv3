@@ -16,7 +16,7 @@ func reg() {
     (3 / 0) catch (err) {
         std.println(">>>", err);
 
-       // std.throw(err);
+       std.throw(err);
     };
     return 2;
 }

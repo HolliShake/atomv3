@@ -46,17 +46,22 @@ var std_readLine = NewNativeFunc("readLine", 1, func(interpreter *AtomInterprete
 })
 
 func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
-	fmt.Println(err.String())
-
 	// Stack trace
 	builder := strings.Builder{}
+
+	builder.WriteString(err.String())
+
+	if frame.Caller != nil {
+		builder.WriteString("\n")
+	}
+
 	for current := frame.Caller; current != nil; current = current.Caller {
 		builder.WriteString(FormatError(current, current.Fn.Value.(*AtomCode).Name))
 		if current.Caller != nil {
 			builder.WriteString("\n")
 		}
 	}
-	fmt.Println(builder.String())
+	fmt.Fprintln(os.Stderr, builder.String())
 	os.Exit(1)
 }
 
