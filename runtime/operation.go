@@ -15,10 +15,28 @@ func DoMakeModule(interpreter *AtomInterpreter, frame *AtomCallFrame, size int) 
 	frame.Stack.Push(NewAtomValueObject(elements))
 }
 
-func DoStoreModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
-	module := frame.Stack.Pop()
-	module.Value.(*AtomObject).Set("__name__", NewAtomValueStr(name))
-	interpreter.ModuleTable[name] = module
+func DoLoadInt(frame *AtomCallFrame, value int) {
+	frame.Stack.Push(NewAtomValueInt(value))
+}
+
+func DoLoadNum(frame *AtomCallFrame, value float64) {
+	frame.Stack.Push(NewAtomValueNum(value))
+}
+
+func DoLoadStr(frame *AtomCallFrame, value string) {
+	frame.Stack.Push(NewAtomValueStr(value))
+}
+
+func DoLoadBool(interpreter *AtomInterpreter, frame *AtomCallFrame, value int) {
+	if value != 0 {
+		frame.Stack.Push(interpreter.State.TrueValue)
+	} else {
+		frame.Stack.Push(interpreter.State.FalseValue)
+	}
+}
+
+func DoLoadNull(interpreter *AtomInterpreter, frame *AtomCallFrame) {
+	frame.Stack.Push(interpreter.State.NullValue)
 }
 
 func DoLoadArray(frame *AtomCallFrame, size int) {
@@ -43,13 +61,13 @@ func DoLoadObject(frame *AtomCallFrame, size int) {
 	)
 }
 
-func DoLoadCapture(frame *AtomCallFrame, index int) {
-	cell := frame.Fn.Value.(*AtomCode).CapturedEnv[index]
+func DoLoadName(frame *AtomCallFrame, index int) {
+	cell := frame.Fn.Value.(*AtomCode).Locals[index]
 	frame.Stack.Push(cell.Value)
 }
 
-func DoLoadName(frame *AtomCallFrame, index int) {
-	cell := frame.Fn.Value.(*AtomCode).Locals[index]
+func DoLoadCapture(frame *AtomCallFrame, index int) {
+	cell := frame.Fn.Value.(*AtomCode).CapturedEnv[index]
 	frame.Stack.Push(cell.Value)
 }
 
@@ -61,6 +79,232 @@ func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name strin
 		return
 	}
 	frame.Stack.Push(module)
+}
+
+func DoLoadFunction(interpreter *AtomInterpreter, frame *AtomCallFrame, offset int) {
+	fn := interpreter.State.FunctionTable.Get(offset)
+	frame.Stack.Push(fn)
+}
+
+func DoMakeClass(interpreter *AtomInterpreter, frame *AtomCallFrame, name string, size int) {
+	elements := map[string]*AtomValue{}
+
+	for range size {
+		k := frame.Stack.Pop()
+		v := frame.Stack.Pop()
+		elements[k.Value.(string)] = v
+	}
+
+	frame.Stack.Push(NewAtomValueClass(
+		name,
+		nil,
+		NewAtomValueObject(elements),
+	))
+}
+
+func DoExtendClass(cls *AtomValue, ext *AtomValue) {
+	clsValue := cls.Value.(*AtomClass)
+	clsValue.Base = ext
+}
+
+func DoMakeEnum(frame *AtomCallFrame, size int) {
+	elements := map[string]*AtomValue{}
+	valueHashes := map[int]bool{}
+
+	for range size {
+		k := frame.Stack.Pop()
+		v := frame.Stack.Pop()
+		key := k.Value.(string)
+
+		valueHash := v.HashValue()
+		if valueHashes[valueHash] {
+			elements[key] = NewAtomValueError(fmt.Sprintf("duplicate value in enum (%s)", v.String()))
+		} else {
+			elements[key] = v
+			valueHashes[valueHash] = true
+		}
+	}
+
+	frame.Stack.Push(NewAtomValueEnum(elements))
+}
+
+func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, argc int) {
+	cleanupStack := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+	if !CheckType(cls, AtomTypeClass) {
+		cleanupStack()
+		message := GetTypeString(cls) + " is not a constructor"
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+	atomClass := cls.Value.(*AtomClass)
+
+	// Create the instance object first
+	this := NewAtomValueObject(map[string]*AtomValue{})
+
+	// Walk up the inheritance chain to collect all initializers
+	var initializers []*AtomValue
+	currentClass := atomClass
+
+	for currentClass != nil {
+		properties := currentClass.Proto.Value.(*AtomObject)
+		if initializer := properties.Get("init"); initializer != nil {
+			initializers = append(initializers, initializer)
+		}
+		if currentClass.Base == nil {
+			break
+		}
+		currentClass = currentClass.Base.Value.(*AtomClass)
+	}
+
+	// Call initializers from base to derived (reverse order)
+	if len(initializers) == 0 {
+		frame.Stack.Push(
+			NewAtomValueClassInstance(cls, this),
+		)
+	} else {
+		// Call the most derived initializer (last in the slice)
+		// The inheritance chain should be handled by the language design,
+		// not by calling multiple initializers
+		DoCallInit(interpreter, frame, cls, initializers[0], this, 1+argc)
+	}
+}
+
+func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, argc int) {
+	if CheckType(fn, AtomTypeMethod) {
+		method := fn.Value.(*AtomMethod)
+		frame.Stack.Push(method.This)
+		fn = method.Fn
+		argc++
+	}
+
+	cleanupStack := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
+	if CheckType(fn, AtomTypeFunc) {
+		code := fn.Value.(*AtomCode)
+		if argc != code.Argc {
+			cleanupStack()
+			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		// Create a frame for the function
+		newFrame := NewAtomCallFrame(frame, fn, 0)
+		newFrame.Stack.Copy(frame.Stack, argc)
+		cleanupStack()
+		interpreter.ExecuteFrame(newFrame)
+
+		// For async functions, the frame will push a promise to the stack
+		// For non-async functions, the frame will push the return value to the stack
+
+	} else if CheckType(fn, AtomTypeNativeFunc) {
+		nativeFunc := fn.Value.(NativeFunc)
+		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
+			cleanupStack()
+			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeFunc.Paramc, argc)
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		nativeFunc.Callable(interpreter, frame, argc)
+
+	} else {
+		cleanupStack()
+		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
+		frame.Stack.Push(NewAtomValueError(message))
+	}
+}
+
+func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, fn *AtomValue, this *AtomValue, argc int) {
+	cleanupStack := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
+	// Push this
+	frame.Stack.Push(this)
+
+	if CheckType(fn, AtomTypeFunc) {
+		code := fn.Value.(*AtomCode)
+		if argc != code.Argc {
+			cleanupStack()
+			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		newFrame := NewAtomCallFrame(frame, fn, 0)
+		newFrame.Stack.Copy(frame.Stack, argc)
+		cleanupStack()
+		interpreter.ExecuteFrame(newFrame)
+
+		// Pop return
+		frame.Stack.Pop()
+		frame.Stack.Push(
+			NewAtomValueClassInstance(cls, this),
+		)
+
+	} else if CheckType(fn, AtomTypeNativeFunc) {
+		nativeFunc := fn.Value.(NativeFunc)
+		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
+			cleanupStack()
+			message := "Error: argument count mismatch"
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		nativeFunc.Callable(interpreter, frame, argc)
+
+		// Pop return
+		frame.Stack.Pop()
+		frame.Stack.Push(
+			NewAtomValueClassInstance(cls, this),
+		)
+
+	} else {
+		cleanupStack()
+		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
+		frame.Stack.Push(NewAtomValueError(message))
+	}
+}
+
+func DoNot(interpreter *AtomInterpreter, frame *AtomCallFrame, val *AtomValue) {
+	if !CoerceToBool(val) {
+		frame.Stack.Push(interpreter.State.TrueValue)
+		return
+	}
+	frame.Stack.Push(interpreter.State.FalseValue)
+}
+
+func DoNeg(frame *AtomCallFrame, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := fmt.Sprintf("Error: cannot negate type: %s", GetTypeString(val))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+	frame.Stack.Push(NewAtomValueNum(-CoerceToNum(val)))
+}
+
+func DoPos(frame *AtomCallFrame, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := fmt.Sprintf("Error: cannot pos type: %s", GetTypeString(val))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+	frame.Stack.Push(NewAtomValueNum(CoerceToNum(val)))
+}
+
+func DoTypeof(frame *AtomCallFrame, val *AtomValue) {
+	frame.Stack.Push(NewAtomValueStr(GetTypeString(val)))
 }
 
 func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue, index *AtomValue) {
@@ -192,322 +436,26 @@ func DoPluckAttribute(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *A
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
-func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue, index *AtomValue) {
-	cleanupStack := func(size int) {
-		for range size {
-			frame.Stack.Pop()
-		}
-	}
-	if CheckType(obj, AtomTypeArray) {
-		if !IsNumberType(index) {
-			cleanupStack(1)
-			message := fmt.Sprintf("cannot set index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-		array := obj.Value.(*AtomArray)
-		indexValue := CoerceToLong(index)
-
-		if array.Freeze {
-			cleanupStack(2)
-			message := "cannot set index on frozen array"
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-
-		if !array.ValidIndex(int(indexValue)) {
-			cleanupStack(2)
-			message := fmt.Sprintf("index out of bounds: %d", indexValue)
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-
-		array.Set(int(indexValue), frame.Stack.Pop())
-		return
-
-	} else if CheckType(obj, AtomTypeObj) {
-		if obj.Value.(*AtomObject).Freeze {
-			cleanupStack(2) // includes duplicate obj
-			message := "cannot set index on frozen object"
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-
-		objValue := obj.Value.(*AtomObject)
-		indexValue := index.String()
-		objValue.Set(indexValue, frame.Stack.Pop())
-		return
-
-	} else {
-		cleanupStack(2)
-		message := fmt.Sprintf("cannot set index type: %s", GetTypeString(obj))
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-}
-
-func DoLoadFunction(interpreter *AtomInterpreter, frame *AtomCallFrame, offset int) {
-	fn := interpreter.State.FunctionTable.Get(offset)
-	frame.Stack.Push(fn)
-}
-
-func DoMakeClass(interpreter *AtomInterpreter, frame *AtomCallFrame, name string, size int) {
-	elements := map[string]*AtomValue{}
-
-	for range size {
-		k := frame.Stack.Pop()
-		v := frame.Stack.Pop()
-		elements[k.Value.(string)] = v
-	}
-
-	frame.Stack.Push(NewAtomValueClass(
-		name,
-		nil,
-		NewAtomValueObject(elements),
-	))
-}
-
-func DoExtendClass(cls *AtomValue, ext *AtomValue) {
-	clsValue := cls.Value.(*AtomClass)
-	clsValue.Base = ext
-}
-
-func DoMakeEnum(frame *AtomCallFrame, size int) {
-	elements := map[string]*AtomValue{}
-	valueHashes := map[int]bool{}
-
-	for range size {
-		k := frame.Stack.Pop()
-		v := frame.Stack.Pop()
-		key := k.Value.(string)
-
-		valueHash := v.HashValue()
-		if valueHashes[valueHash] {
-			elements[key] = NewAtomValueError(fmt.Sprintf("duplicate value in enum (%s)", v.String()))
-		} else {
-			elements[key] = v
-			valueHashes[valueHash] = true
-		}
-	}
-
-	frame.Stack.Push(NewAtomValueEnum(elements))
-}
-
-func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, argc int) {
-	cleanupStack := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-	if !CheckType(cls, AtomTypeClass) {
-		cleanupStack()
-		message := GetTypeString(cls) + " is not a constructor"
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-	atomClass := cls.Value.(*AtomClass)
-
-	// Create the instance object first
-	this := NewAtomValueObject(map[string]*AtomValue{})
-
-	// Walk up the inheritance chain to collect all initializers
-	var initializers []*AtomValue
-	currentClass := atomClass
-
-	for currentClass != nil {
-		properties := currentClass.Proto.Value.(*AtomObject)
-		if initializer := properties.Get("init"); initializer != nil {
-			initializers = append(initializers, initializer)
-		}
-		if currentClass.Base == nil {
-			break
-		}
-		currentClass = currentClass.Base.Value.(*AtomClass)
-	}
-
-	// Call initializers from base to derived (reverse order)
-	if len(initializers) == 0 {
-		frame.Stack.Push(
-			NewAtomValueClassInstance(cls, this),
-		)
-	} else {
-		// Call the most derived initializer (last in the slice)
-		// The inheritance chain should be handled by the language design,
-		// not by calling multiple initializers
-		DoCallInit(interpreter, frame, cls, initializers[0], this, 1+argc)
-	}
-}
-
-func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, fn *AtomValue, this *AtomValue, argc int) {
-	cleanupStack := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
-	// Push this
-	frame.Stack.Push(this)
-
-	if CheckType(fn, AtomTypeFunc) {
-		code := fn.Value.(*AtomCode)
-		if argc != code.Argc {
-			cleanupStack()
-			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-
-		newFrame := NewAtomCallFrame(frame, fn, 0)
-		newFrame.Stack.Copy(frame.Stack, argc)
-		cleanupStack()
-		interpreter.ExecuteFrame(newFrame)
-
-		// Pop return
-		frame.Stack.Pop()
-		frame.Stack.Push(
-			NewAtomValueClassInstance(cls, this),
-		)
-
-	} else if CheckType(fn, AtomTypeNativeFunc) {
-		nativeFunc := fn.Value.(NativeFunc)
-		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
-			cleanupStack()
-			message := "Error: argument count mismatch"
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-
-		nativeFunc.Callable(interpreter, frame, argc)
-
-		// Pop return
-		frame.Stack.Pop()
-		frame.Stack.Push(
-			NewAtomValueClassInstance(cls, this),
-		)
-
-	} else {
-		cleanupStack()
-		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
-		frame.Stack.Push(NewAtomValueError(message))
-	}
-}
-
-func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, argc int) {
-	if CheckType(fn, AtomTypeMethod) {
-		method := fn.Value.(*AtomMethod)
-		frame.Stack.Push(method.This)
-		fn = method.Fn
-		argc++
-	}
-
-	cleanupStack := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
-	if CheckType(fn, AtomTypeFunc) {
-		code := fn.Value.(*AtomCode)
-		if argc != code.Argc {
-			cleanupStack()
-			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc)
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-
-		// Create a frame for the function
-		newFrame := NewAtomCallFrame(frame, fn, 0)
-		newFrame.Stack.Copy(frame.Stack, argc)
-		cleanupStack()
-		interpreter.ExecuteFrame(newFrame)
-
-		// For async functions, the frame will push a promise to the stack
-		// For non-async functions, the frame will push the return value to the stack
-
-	} else if CheckType(fn, AtomTypeNativeFunc) {
-		nativeFunc := fn.Value.(NativeFunc)
-		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
-			cleanupStack()
-			message := fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeFunc.Paramc, argc)
-			frame.Stack.Push(NewAtomValueError(message))
-			return
-		}
-
-		nativeFunc.Callable(interpreter, frame, argc)
-
-	} else {
-		cleanupStack()
-		message := fmt.Sprintf("Error: %s is not a function", GetTypeString(fn))
-		frame.Stack.Push(NewAtomValueError(message))
-	}
-}
-
-func DoNeg(frame *AtomCallFrame, val *AtomValue) {
-	if !IsNumberType(val) {
-		message := fmt.Sprintf("Error: cannot negate type: %s", GetTypeString(val))
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-	frame.Stack.Push(NewAtomValueNum(-CoerceToNum(val)))
-}
-
-func DoNot(interpreter *AtomInterpreter, frame *AtomCallFrame, val *AtomValue) {
-	if !CoerceToBool(val) {
-		frame.Stack.Push(interpreter.State.TrueValue)
-		return
-	}
-	frame.Stack.Push(interpreter.State.FalseValue)
-}
-
-func DoPos(frame *AtomCallFrame, val *AtomValue) {
-	if !IsNumberType(val) {
-		message := fmt.Sprintf("Error: cannot pos type: %s", GetTypeString(val))
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-	frame.Stack.Push(NewAtomValueNum(CoerceToNum(val)))
-}
-
-func DoTypeof(frame *AtomCallFrame, val *AtomValue) {
-	frame.Stack.Push(NewAtomValueStr(GetTypeString(val)))
-}
-
-func DoAddition(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+func DoMultiplication(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		// Use XOR trick to detect overflow
-		a := CoerceToInt(val0)
-		b := CoerceToInt(val1)
-		sum := a + b
-		if ((a ^ sum) & (b ^ sum)) < 0 {
-			// Overflow occurred, promote to double
-			frame.Stack.Push(NewAtomValueNum(float64(a) + float64(b)))
+		lhs := CoerceToInt(val0)
+		rhs := CoerceToInt(val1)
+
+		// Check for overflow using int64 arithmetic
+		result := int64(lhs) * int64(rhs)
+		if result >= math.MinInt32 && result <= math.MaxInt32 {
+			frame.Stack.Push(NewAtomValueInt(int(result)))
 			return
 		}
-		frame.Stack.Push(NewAtomValueInt(int(sum)))
-		return
-	}
-
-	// Fast path for strings
-	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
-		lhs := val0.Value.(string)
-		rhs := val1.Value.(string)
-		result := lhs + rhs
-		frame.Stack.Push(NewAtomValueStr(result))
-		return
-	}
-
-	if CheckType(val0, AtomTypeStr) || CheckType(val1, AtomTypeStr) {
-		lhs := val0.String()
-		rhs := val1.String()
-		result := lhs + rhs
-		frame.Stack.Push(NewAtomValueStr(result))
+		// Overflow occurred, promote to float64
+		frame.Stack.Push(NewAtomValueNum(float64(result)))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -515,7 +463,7 @@ func DoAddition(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
-	result := lhsValue + rhsValue
+	result := lhsValue * rhsValue
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
@@ -605,26 +553,42 @@ func DoModulus(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	frame.Stack.Push(NewAtomValueNum(result))
 }
 
-func DoMultiplication(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+func DoAddition(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		lhs := CoerceToInt(val0)
-		rhs := CoerceToInt(val1)
-
-		// Check for overflow using int64 arithmetic
-		result := int64(lhs) * int64(rhs)
-		if result >= math.MinInt32 && result <= math.MaxInt32 {
-			frame.Stack.Push(NewAtomValueInt(int(result)))
+		// Use XOR trick to detect overflow
+		a := CoerceToInt(val0)
+		b := CoerceToInt(val1)
+		sum := a + b
+		if ((a ^ sum) & (b ^ sum)) < 0 {
+			// Overflow occurred, promote to double
+			frame.Stack.Push(NewAtomValueNum(float64(a) + float64(b)))
 			return
 		}
-		// Overflow occurred, promote to float64
-		frame.Stack.Push(NewAtomValueNum(float64(result)))
+		frame.Stack.Push(NewAtomValueInt(int(sum)))
+		return
+	}
+
+	// Fast path for strings
+	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
+		lhs := val0.Value.(string)
+		rhs := val1.Value.(string)
+		result := lhs + rhs
+		frame.Stack.Push(NewAtomValueStr(result))
+		return
+	}
+
+	if CheckType(val0, AtomTypeStr) || CheckType(val1, AtomTypeStr) {
+		lhs := val0.String()
+		rhs := val1.String()
+		result := lhs + rhs
+		frame.Stack.Push(NewAtomValueStr(result))
 		return
 	}
 
 	// Check if both values are numbers (int or float)
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot multiply types: %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot add types: %s and %s", GetTypeString(val0), GetTypeString(val1))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
@@ -632,7 +596,7 @@ func DoMultiplication(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
-	result := lhsValue * rhsValue
+	result := lhsValue + rhsValue
 
 	// Try to preserve integer types if possible
 	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
@@ -675,62 +639,6 @@ func DoSubtraction(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 		return
 	}
 	frame.Stack.Push(NewAtomValueNum(result))
-}
-
-func DoAnd(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
-	// Fast path for integers
-	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
-		result := a & b
-		frame.Stack.Push(NewAtomValueInt(int(result)))
-		return
-	}
-
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
-	result := lhsValue & rhsValue
-
-	// Check if result can be represented as an int
-	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		frame.Stack.Push(NewAtomValueInt(int(result)))
-	} else {
-		frame.Stack.Push(NewAtomValueNum(float64(result)))
-	}
-}
-
-func DoOr(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
-	// Fast path for integers
-	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
-		result := a | b
-		frame.Stack.Push(NewAtomValueInt(int(result)))
-		return
-	}
-
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
-	result := lhsValue | rhsValue
-
-	// Check if result can be represented as an int
-	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		frame.Stack.Push(NewAtomValueInt(int(result)))
-	} else {
-		frame.Stack.Push(NewAtomValueNum(float64(result)))
-	}
 }
 
 func DoShiftLeft(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
@@ -793,68 +701,41 @@ func DoShiftRight(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	frame.Stack.Push(NewAtomValueNum(float64(result)))
 }
 
-func DoXor(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
-	// Fast path for integers
-	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
-		result := a ^ b
-		frame.Stack.Push(NewAtomValueInt(int(result)))
-		return
-	}
-
+func DoCmpLt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		message := fmt.Sprintf("Error: cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
 
+	// Coerce to long to avoid floating point comparisons
 	lhsValue := CoerceToLong(val0)
 	rhsValue := CoerceToLong(val1)
-	result := lhsValue ^ rhsValue
 
-	// Check if result can be represented as an int
-	if result >= math.MinInt32 && result <= math.MaxInt32 {
-		frame.Stack.Push(NewAtomValueInt(int(result)))
-	} else {
-		frame.Stack.Push(NewAtomValueNum(float64(result)))
+	// Compare the long values
+	if lhsValue < rhsValue {
+		frame.Stack.Push(interpreter.State.TrueValue)
+		return
 	}
+	frame.Stack.Push(interpreter.State.FalseValue)
 }
 
-func DoCmpEq(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
-	if IsNumberType(val0) && IsNumberType(val1) {
-		lhsValue := CoerceToLong(val0)
-		rhsValue := CoerceToLong(val1)
-		if lhsValue == rhsValue {
-			frame.Stack.Push(interpreter.State.TrueValue)
-			return
-		}
-		frame.Stack.Push(interpreter.State.FalseValue)
+func DoCmpLte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("Error: cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
 
-	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
-		lhsStr := val0.Value.(string)
-		rhsStr := val1.Value.(string)
-		if lhsStr == rhsStr {
-			frame.Stack.Push(interpreter.State.TrueValue)
-			return
-		}
-		frame.Stack.Push(interpreter.State.FalseValue)
-		return
-	}
+	// Coerce to long to avoid floating point comparisons
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
 
-	if CheckType(val0, AtomTypeNull) && CheckType(val1, AtomTypeNull) {
+	// Compare the long values
+	if lhsValue <= rhsValue {
 		frame.Stack.Push(interpreter.State.TrueValue)
 		return
 	}
-
-	// For other types, use simple reference equality for now
-	if val0.HashValue() == val1.HashValue() || val0 == val1 {
-		frame.Stack.Push(interpreter.State.TrueValue)
-		return
-	}
-
 	frame.Stack.Push(interpreter.State.FalseValue)
 }
 
@@ -896,41 +777,40 @@ func DoCmpGte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValu
 	frame.Stack.Push(interpreter.State.FalseValue)
 }
 
-func DoCmpLt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		frame.Stack.Push(NewAtomValueError(message))
+func DoCmpEq(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	if IsNumberType(val0) && IsNumberType(val1) {
+		lhsValue := CoerceToLong(val0)
+		rhsValue := CoerceToLong(val1)
+		if lhsValue == rhsValue {
+			frame.Stack.Push(interpreter.State.TrueValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.FalseValue)
 		return
 	}
 
-	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
+	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
+		lhsStr := val0.Value.(string)
+		rhsStr := val1.Value.(string)
+		if lhsStr == rhsStr {
+			frame.Stack.Push(interpreter.State.TrueValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.FalseValue)
+		return
+	}
 
-	// Compare the long values
-	if lhsValue < rhsValue {
+	if CheckType(val0, AtomTypeNull) && CheckType(val1, AtomTypeNull) {
 		frame.Stack.Push(interpreter.State.TrueValue)
 		return
 	}
-	frame.Stack.Push(interpreter.State.FalseValue)
-}
 
-func DoCmpLte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
-	if !IsNumberType(val0) || !IsNumberType(val1) {
-		message := fmt.Sprintf("Error: cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-
-	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
-
-	// Compare the long values
-	if lhsValue <= rhsValue {
+	// For other types, use simple reference equality for now
+	if val0.HashValue() == val1.HashValue() || val0 == val1 {
 		frame.Stack.Push(interpreter.State.TrueValue)
 		return
 	}
+
 	frame.Stack.Push(interpreter.State.FalseValue)
 }
 
@@ -975,4 +855,148 @@ func DoCmpNe(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 	}
 
 	frame.Stack.Push(interpreter.State.FalseValue)
+}
+
+func DoAnd(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a & b
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("Error: cannot bitwise and type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue & rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+	} else {
+		frame.Stack.Push(NewAtomValueNum(float64(result)))
+	}
+}
+
+func DoOr(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a | b
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("Error: cannot bitwise or type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue | rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+	} else {
+		frame.Stack.Push(NewAtomValueNum(float64(result)))
+	}
+}
+
+func DoXor(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Fast path for integers
+	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
+		a := val0.Value.(int32)
+		b := val1.Value.(int32)
+		result := a ^ b
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+		return
+	}
+
+	if !IsNumberType(val0) || !IsNumberType(val1) {
+		message := fmt.Sprintf("Error: cannot bitwise xor type(s) %s and %s", GetTypeString(val0), GetTypeString(val1))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	lhsValue := CoerceToLong(val0)
+	rhsValue := CoerceToLong(val1)
+	result := lhsValue ^ rhsValue
+
+	// Check if result can be represented as an int
+	if result >= math.MinInt32 && result <= math.MaxInt32 {
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+	} else {
+		frame.Stack.Push(NewAtomValueNum(float64(result)))
+	}
+}
+
+func DoStoreModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
+	module := frame.Stack.Pop()
+	module.Value.(*AtomObject).Set("__name__", NewAtomValueStr(name))
+	interpreter.ModuleTable[name] = module
+}
+
+func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue, index *AtomValue) {
+	cleanupStack := func(size int) {
+		for range size {
+			frame.Stack.Pop()
+		}
+	}
+	if CheckType(obj, AtomTypeArray) {
+		if !IsNumberType(index) {
+			cleanupStack(1)
+			message := fmt.Sprintf("cannot set index type: %s with type: %s", GetTypeString(obj), GetTypeString(index))
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+		array := obj.Value.(*AtomArray)
+		indexValue := CoerceToLong(index)
+
+		if array.Freeze {
+			cleanupStack(2)
+			message := "cannot set index on frozen array"
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		if !array.ValidIndex(int(indexValue)) {
+			cleanupStack(2)
+			message := fmt.Sprintf("index out of bounds: %d", indexValue)
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		array.Set(int(indexValue), frame.Stack.Pop())
+		return
+
+	} else if CheckType(obj, AtomTypeObj) {
+		if obj.Value.(*AtomObject).Freeze {
+			cleanupStack(2) // includes duplicate obj
+			message := "cannot set index on frozen object"
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		objValue := obj.Value.(*AtomObject)
+		indexValue := index.String()
+		objValue.Set(indexValue, frame.Stack.Pop())
+		return
+
+	} else {
+		cleanupStack(2)
+		message := fmt.Sprintf("cannot set index type: %s", GetTypeString(obj))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
 }

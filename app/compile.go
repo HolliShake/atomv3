@@ -202,6 +202,15 @@ func (c *AtomCompile) lookup(scope *AtomScope, symbol string) *AtomSymbol {
 	panic(fmt.Sprintf("symbol '%s' not found in scope", symbol))
 }
 
+func (c *AtomCompile) isDefined(scope *AtomScope, symbol string) bool {
+	for current := scope; current != nil; current = current.Parent {
+		if _, exists := current.Names[symbol]; exists {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *AtomCompile) isLocal(scope *AtomScope, symbol string) bool {
 	_, exists := scope.Names[symbol]
 	return exists
@@ -234,6 +243,14 @@ func (c *AtomCompile) isLocalToFunction(scope *AtomScope, symbol string) bool {
 }
 
 func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *AtomAst, opcode runtime.OpCode) {
+	if !c.isDefined(scope, ast.Str0) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			fmt.Sprintf("Identifier %s is not defined", ast.Str0),
+			ast.Position,
+		)
+	}
 	if !c.isLocal(scope, ast.Str0) && !c.isLocalToFunction(scope, ast.Str0) {
 		// Save as capture
 		c.emitCapture(fn, scope, opcode, ast)
