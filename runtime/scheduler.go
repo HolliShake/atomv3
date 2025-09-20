@@ -37,11 +37,16 @@ func (s *AtomScheduler) MoveNextEvent(frame *AtomCallFrame) {
 
 	case ExecAwaiting:
 		// From awaiting to running
-		// frame.Stack.Push(frame.Promise)
+		frame.State = ExecRunning
 
 	case ExecRunning:
 		// From running to completed
 		frame.State = ExecCompleted
+
+	case ExecCompleted:
+		// From completed to idle
+		frame.State = ExecIdle
+		frame.Promise = nil
 
 	default:
 		panic(fmt.Sprintf("Unknown execution state: %d", frame.State))
@@ -52,10 +57,12 @@ func (s *AtomScheduler) Await(frame *AtomCallFrame) (suspend bool) {
 	t := frame.Stack.Pop()
 	p := t.Value.(*AtomPromise)
 	if p.State == PromiseStateFulfilled {
+		frame.State = ExecRunning
 		// push the awaited value to the current frame's Stack
 		frame.Stack.Push(p.Value)
 		return false
 	} else {
+		frame.State = ExecAwaiting
 		// Push the current frame's promise to it's caller
 		frame.Caller.Stack.Push(
 			frame.Promise,
