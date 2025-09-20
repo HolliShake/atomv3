@@ -55,3 +55,12 @@ std.println(gui.getName());
 std.println(gui, hash, imports.factorial(5));
 
 println(cat);
+
+async func add(a, b) {
+    return a + b;
+}
+
+println("+------------------+");
+println("| Decompiled Code  |");
+println("+------------------+");
+println(std.decompile( add ), "\n=", add(60, 9));

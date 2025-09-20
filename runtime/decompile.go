@@ -16,9 +16,14 @@ func Decompile(code *AtomCode) string {
 	for pc < len(code.Code) {
 		opcode := code.Code[pc]
 		pc++
-		builder.WriteString(fmt.Sprintf("%04d: ", pc))
+		builder.WriteString(fmt.Sprintf("%08d: ", pc-1))
 
 		switch opcode {
+		case OpMakeModule:
+			size := ReadInt(code.Code, pc)
+			builder.WriteString(fmt.Sprintf("MAKE_MODULE %d\n", size))
+			pc += 4
+
 		case OpLoadInt:
 			value := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_INT %d\n", value))
@@ -53,18 +58,23 @@ func Decompile(code *AtomCode) string {
 			pc += 4
 
 		case OpLoadName:
-			name := ReadStr(code.Code, pc)
-			builder.WriteString(fmt.Sprintf("LOAD_NAME \"%s\"\n", name))
-			pc += len(name) + 1
+			index := ReadInt(code.Code, pc)
+			builder.WriteString(fmt.Sprintf("LOAD_NAME %d\n", index))
+			pc += 4
+
+		case OpLoadCapture:
+			index := ReadInt(code.Code, pc)
+			builder.WriteString(fmt.Sprintf("LOAD_CAPTURE %d\n", index))
+			pc += 4
 
 		case OpLoadModule:
 			name := ReadStr(code.Code, pc)
-			builder.WriteString(fmt.Sprintf("LOAD_MODULE0 \"%s\"\n", name))
+			builder.WriteString(fmt.Sprintf("LOAD_MODULE \"%s\"\n", name))
 			pc += len(name) + 1
 
 		case OpLoadFunction:
-			index := ReadInt(code.Code, pc)
-			builder.WriteString(fmt.Sprintf("LOAD_FUNCTION %d\n", index))
+			offset := ReadInt(code.Code, pc)
+			builder.WriteString(fmt.Sprintf("LOAD_FUNCTION %d\n", offset))
 			pc += 4
 
 		case OpMakeClass:
@@ -92,7 +102,7 @@ func Decompile(code *AtomCode) string {
 			pc += 4
 
 		case OpAwait:
-			builder.WriteString("Await\n")
+			builder.WriteString("AWAIT\n")
 
 		case OpNot:
 			builder.WriteString("NOT\n")
@@ -162,10 +172,20 @@ func Decompile(code *AtomCode) string {
 		case OpXor:
 			builder.WriteString("XOR\n")
 
-		case OpStoreLocal:
+		case OpStoreModule:
 			name := ReadStr(code.Code, pc)
-			builder.WriteString(fmt.Sprintf("STORE_LOCAL \"%s\"\n", name))
+			builder.WriteString(fmt.Sprintf("STORE_MODULE \"%s\"\n", name))
 			pc += len(name) + 1
+
+		case OpStoreCapture:
+			index := ReadInt(code.Code, pc)
+			builder.WriteString(fmt.Sprintf("STORE_CAPTURE %d\n", index))
+			pc += 4
+
+		case OpStoreLocal:
+			index := ReadInt(code.Code, pc)
+			builder.WriteString(fmt.Sprintf("STORE_LOCAL %d\n", index))
+			pc += 4
 
 		case OpSetIndex:
 			builder.WriteString("SET_INDEX\n")
@@ -223,9 +243,9 @@ func Decompile(code *AtomCode) string {
 			builder.WriteString("RETURN\n")
 
 		default:
-			panic(fmt.Sprintf("UNKNOWN_OPCODE %d\n", opcode))
+			builder.WriteString(fmt.Sprintf("UNKNOWN_OPCODE %d\n", opcode))
 		}
 	}
 
-	return builder.String()
+	return strings.TrimSpace(builder.String())
 }

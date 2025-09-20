@@ -6,6 +6,7 @@ func factorial(n) {
     if (n <= 1) {
         return 1;
     }
+    std;
     global = n;
     std.println(global);
     return n * (factorial(n - 1) catch (err) {
