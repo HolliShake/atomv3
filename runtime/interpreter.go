@@ -30,11 +30,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 	var env0 = frame.Env
 	var strt = frame.Ip
 
-	i.Scheduler.MoveNextEvent(frame)
-
-	defer func() {
-		i.Scheduler.MoveNextEvent(frame)
-	}()
+	i.Scheduler.Running(frame)
 
 	var forward = func(offset int) {
 		strt += offset

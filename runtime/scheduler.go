@@ -1,7 +1,5 @@
 package runtime
 
-import "fmt"
-
 type ExecutionState int
 
 const (
@@ -23,35 +21,16 @@ func NewAtomScheduler(interpreter *AtomInterpreter) *AtomScheduler {
 	}
 }
 
-func (s *AtomScheduler) MoveNextEvent(frame *AtomCallFrame) {
+func (s *AtomScheduler) Running(frame *AtomCallFrame) {
 	if !frame.Fn.Value.(*AtomCode).Async {
 		return
 	}
-	switch frame.State {
-	case ExecIdle:
+	if frame.State == ExecIdle {
 		// From idle to running
 		frame.State = ExecRunning
 		// Create a promise if ever the function meets an await,
 		// notice func (s *AtomScheduler) Await(frame *AtomCallFrame);
 		frame.Promise = NewAtomValuePromise(PromiseStatePending, nil)
-
-	case ExecAwaiting:
-		// From awaiting to running
-		frame.State = ExecRunning
-
-	case ExecRunning:
-		// From running to completed
-		if frame.Ip >= len(frame.Fn.Value.(*AtomCode).Code) {
-			frame.State = ExecCompleted
-		}
-
-	case ExecCompleted:
-		// From completed to idle
-		frame.State = ExecIdle
-		frame.Promise = nil
-
-	default:
-		panic(fmt.Sprintf("Unknown execution state: %d", frame.State))
 	}
 }
 
