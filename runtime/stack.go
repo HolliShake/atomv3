@@ -22,6 +22,10 @@ func (s *AtomStack) Copy(Stack *AtomStack, size int) {
 	}
 }
 
+func (s *AtomStack) Clear() {
+	s.Stack = make([]*AtomValue, 0, 8)
+}
+
 func (s *AtomStack) Push(obj *AtomValue) {
 	s.Stack = append(s.Stack, obj)
 }

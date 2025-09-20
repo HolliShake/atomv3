@@ -62,8 +62,9 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 	}
 	frame.State = ExecCompleted
 	defer func() {
-		frame.State = ExecIdle
+		frame.Stack.Clear()
 		frame.Promise = nil
+		frame.State = ExecIdle
 	}()
 	promise := frame.Promise.Value.(*AtomPromise)
 	promise.State = PromiseStateFulfilled
