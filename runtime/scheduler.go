@@ -41,7 +41,9 @@ func (s *AtomScheduler) MoveNextEvent(frame *AtomCallFrame) {
 
 	case ExecRunning:
 		// From running to completed
-		frame.State = ExecCompleted
+		if frame.Ip >= len(frame.Fn.Value.(*AtomCode).Code) {
+			frame.State = ExecCompleted
+		}
 
 	case ExecCompleted:
 		// From completed to idle
@@ -59,7 +61,9 @@ func (s *AtomScheduler) Await(frame *AtomCallFrame) (suspend bool) {
 	if p.State == PromiseStateFulfilled {
 		frame.State = ExecRunning
 		// push the awaited value to the current frame's Stack
-		frame.Stack.Push(p.Value)
+		frame.Stack.Push(
+			p.Value,
+		)
 		return false
 	} else {
 		frame.State = ExecAwaiting
@@ -78,9 +82,16 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 		return
 	}
 	frame.State = ExecCompleted
-	frame.Promise.Value.(*AtomPromise).State = PromiseStateFulfilled
-	frame.Promise.Value.(*AtomPromise).Value = frame.Stack.Pop()
-	frame.Caller.Stack.Push(frame.Promise)
+	defer func() {
+		frame.State = ExecIdle
+		frame.Promise = nil
+	}()
+	promise := frame.Promise.Value.(*AtomPromise)
+	promise.State = PromiseStateFulfilled
+	promise.Value = frame.Stack.Pop()
+	frame.Caller.Stack.Push(
+		frame.Promise,
+	)
 }
 
 func (s *AtomScheduler) Run() {
