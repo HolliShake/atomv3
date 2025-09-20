@@ -344,6 +344,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv
 
 		newFrame := NewAtomCallFrame(frame, fn, NewAtomEnv(env), 0)
 		newFrame.Stack.Copy(frame.Stack, argc)
+		cleanupStack()
 		interpreter.ExecuteFrame(newFrame)
 
 		// Pop return
@@ -377,17 +378,17 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv
 }
 
 func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv, fn *AtomValue, argc int) {
-	cleanupStack := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	if CheckType(fn, AtomTypeMethod) {
 		method := fn.Value.(*AtomMethod)
 		frame.Stack.Push(method.This)
 		fn = method.Fn
 		argc++
+	}
+
+	cleanupStack := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
 	}
 
 	if CheckType(fn, AtomTypeFunc) {
@@ -402,6 +403,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv, fn
 		// Create a frame for the function
 		newFrame := NewAtomCallFrame(frame, fn, NewAtomEnv(env), 0)
 		newFrame.Stack.Copy(frame.Stack, argc)
+		cleanupStack()
 		interpreter.ExecuteFrame(newFrame)
 
 		// For async functions, the frame will push a promise to the stack

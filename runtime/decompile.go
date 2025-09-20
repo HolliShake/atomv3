@@ -246,8 +246,7 @@ func Decompile(code *AtomCode) string {
 			builder.WriteString("RETURN\n")
 
 		default:
-			builder.WriteString(fmt.Sprintf("UNKNOWN_OPCODE %d\n", opcode))
-
+			panic(fmt.Sprintf("UNKNOWN_OPCODE %d\n", opcode))
 		}
 	}
 
