@@ -358,6 +358,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "std", EXPORT_STD)
+	DefineModule(i, "object", EXPORT_OBJECT)
 
 	// Run while the frame is not empty
 	i.ExecuteFrame(NewAtomCallFrame(nil, atomFunc, NewAtomEnv(nil), 0))

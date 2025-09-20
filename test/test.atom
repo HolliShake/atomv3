@@ -1,4 +1,5 @@
 import [print, println] from "atom:std";
+import * from "atom:object";
 
 var x = 1;
 
@@ -58,7 +59,7 @@ xh = 100;
 
 '2';;
 
-std.freeze(obj);
+object.freeze(obj);
 
 println("error", obj.getName = "Hello World");
 obj;
@@ -67,7 +68,7 @@ const arr = [
     1,2,3,4,5,6,7,8,9,10
 ];
 
-std.freeze(arr);
+object.freeze(arr);
 println("error arr freeze>>", arr[0] = 2);
 
 

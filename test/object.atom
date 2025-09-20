@@ -1,4 +1,5 @@
-import [ freeze, println ] from "atom:std";
+import [ println ] from "atom:std";
+import [ freeze ] from "atom:object";
 
 const obj = {
     name: "John",
