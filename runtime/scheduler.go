@@ -64,6 +64,7 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 				frame.Stack.Pop(),
 			)
 		}
+		frame.Env.Clear()
 		frame.Stack.Clear()
 		frame.Promise = nil
 		frame.State = ExecIdle
@@ -90,6 +91,7 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 	}
 
 	// Clean up frame state
+	frame.Env.Clear()
 	frame.Stack.Clear()
 	frame.Promise = nil
 	frame.State = ExecIdle

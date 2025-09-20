@@ -14,6 +14,10 @@ func NewAtomEnv(parent *AtomEnv) *AtomEnv {
 	}
 }
 
+func (e *AtomEnv) Clear() {
+	e.Locals = map[string]*Variable{}
+}
+
 func (e *AtomEnv) Has(name string) bool {
 	for current := e; current != nil; current = current.Parent {
 		if _, exists := current.Locals[name]; exists {
