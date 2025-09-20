@@ -57,15 +57,10 @@ func Decompile(code *AtomCode) string {
 			builder.WriteString(fmt.Sprintf("LOAD_NAME \"%s\"\n", name))
 			pc += len(name) + 1
 
-		case OpLoadModule0:
+		case OpLoadModule:
 			name := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("LOAD_MODULE0 \"%s\"\n", name))
 			pc += len(name) + 1
-
-		case OpLoadModule1:
-			path := ReadStr(code.Code, pc)
-			builder.WriteString(fmt.Sprintf("LOAD_MODULE1 \"%s\"\n", path))
-			pc += len(path) + 1
 
 		case OpLoadFunction:
 			index := ReadInt(code.Code, pc)
@@ -167,18 +162,6 @@ func Decompile(code *AtomCode) string {
 		case OpXor:
 			builder.WriteString("XOR\n")
 
-		case OpInitVar:
-			name := ReadStr(code.Code, pc)
-			isGlobal := ReadInt(code.Code, pc+len(name)+1)
-			isConstant := ReadInt(code.Code, pc+len(name)+2)
-			builder.WriteString(fmt.Sprintf("INIT_VAR \"%s\" %t %t\n", name, isGlobal != 0, isConstant != 0))
-			pc += len(name) + 1 + 1 + 1
-
-		case OpStoreFast:
-			name := ReadStr(code.Code, pc)
-			builder.WriteString(fmt.Sprintf("STORE_FAST \"%s\"\n", name))
-			pc += len(name) + 1
-
 		case OpStoreLocal:
 			name := ReadStr(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("STORE_LOCAL \"%s\"\n", name))
@@ -226,12 +209,6 @@ func Decompile(code *AtomCode) string {
 			offset := ReadInt(code.Code, pc)
 			builder.WriteString(fmt.Sprintf("ABSOLUTE_JUMP %d\n", offset))
 			pc += 4
-
-		case OpEnterBlock:
-			builder.WriteString("ENTER_BLOCK\n")
-
-		case OpExitBlock:
-			builder.WriteString("EXIT_BLOCK\n")
 
 		case OpDupTop:
 			builder.WriteString("DUP_TOP\n")

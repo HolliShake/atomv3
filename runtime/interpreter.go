@@ -27,7 +27,6 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 	// Frame here is a function
 	var code = frame.Fn.Value.(*AtomCode)
 	var size = len(code.Code)
-	var env0 = frame.Env
 	var strt = frame.Ip
 
 	i.Scheduler.Running(frame)
@@ -92,20 +91,20 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			DoLoadObject(frame, size)
 			forwardIp(4)
 
+		case OpLoadCapture:
+			index := ReadInt(code.Code, strt)
+			DoLoadCapture(frame, index)
+			forwardIp(4)
+
 		case OpLoadName:
-			name := ReadStr(code.Code, strt)
-			DoLoadName(frame, env0, name)
-			forwardIp(len(name) + 1)
+			index := ReadInt(code.Code, strt)
+			DoLoadName(frame, index)
+			forwardIp(4)
 
-		case OpLoadModule0:
+		case OpLoadModule:
 			name := ReadStr(code.Code, strt)
-			DoLoadModule0(i, frame, name)
+			DoLoadModule(i, frame, name)
 			forwardIp(len(name) + 1)
-
-		case OpLoadModule1:
-			path := ReadStr(code.Code, strt)
-			DoLoadModule1(i, frame, path)
-			forwardIp(len(path) + 1)
 
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, strt)
@@ -125,19 +124,19 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 		case OpMakeEnum:
 			size := ReadInt(code.Code, strt)
-			DoMakeEnum(frame, env0, size)
+			DoMakeEnum(frame, size)
 			forwardIp(4)
 
 		case OpCallConstructor:
 			argc := ReadInt(code.Code, strt)
 			call := frame.Stack.Pop()
-			DoCallConstructor(i, frame, env0, call, argc)
+			DoCallConstructor(i, frame, call, argc)
 			forwardIp(4)
 
 		case OpCall:
 			argc := ReadInt(code.Code, strt)
 			call := frame.Stack.Pop()
-			DoCall(i, frame, env0, call, argc)
+			DoCall(i, frame, call, argc)
 			forwardIp(4)
 
 		case OpAwait:
@@ -260,28 +259,17 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			DoStoreModule(i, frame, name)
 			forwardIp(len(name) + 1)
 
-		case OpInitVar:
-			v := ReadStr(code.Code, strt)
-			g := code.Code[strt+len(v)+1] == 1
-			c := code.Code[strt+len(v)+2] == 1
+		case OpStoreCapture:
+			index := ReadInt(code.Code, strt)
 			value := frame.Stack.Pop()
-			err := env0.New(v, g, c, value)
-			if err != nil {
-				panic(err)
-			}
-			forwardIp(len(v) + 1 + 1 + 1)
-
-		case OpStoreFast:
-			param := ReadStr(code.Code, strt)
-			value := frame.Stack.Pop()
-			env0.New(param, false, false, value)
-			forwardIp(len(param) + 1)
+			code.CapturedEnv[index].Value = value
+			forwardIp(4)
 
 		case OpStoreLocal:
-			index := ReadStr(code.Code, strt)
+			index := ReadInt(code.Code, strt)
 			value := frame.Stack.Pop()
-			env0.Store(index, value)
-			forwardIp(len(index) + 1)
+			code.Locals[index].Value = value
+			forwardIp(4)
 
 		case OpSetIndex:
 			idx := frame.Stack.Pop()
@@ -352,12 +340,6 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forwardIp(4)
 			jump(offset)
 
-		case OpEnterBlock:
-			env0 = NewAtomEnv(env0)
-
-		case OpExitBlock:
-			env0 = env0.Parent
-
 		case OpDupTop:
 			frame.Stack.Push(frame.Stack.Peek())
 
@@ -383,7 +365,7 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "object", EXPORT_OBJECT)
 
 	// Run while the frame is not empty
-	i.ExecuteFrame(NewAtomCallFrame(nil, atomFunc, NewAtomEnv(nil), 0))
+	i.ExecuteFrame(NewAtomCallFrame(nil, atomFunc, 0))
 
 	i.Scheduler.Run()
 }

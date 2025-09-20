@@ -7,9 +7,9 @@ import (
 
 func DoExportGlobal(interpreter *AtomInterpreter, frame *AtomCallFrame) {
 	elements := map[string]*AtomValue{}
-	for k, v := range frame.Env.Locals {
-		elements[k] = v.Value
-	}
+	// for k, v := range frame.Env.Locals {
+	// 	elements[k] = v.Value
+	// }
 	frame.Stack.Push(NewAtomValueObject(elements))
 }
 
@@ -41,28 +41,17 @@ func DoLoadObject(frame *AtomCallFrame, size int) {
 	)
 }
 
-func DoLoadName(frame *AtomCallFrame, env *AtomEnv, name string) {
-	value, err := env.Lookup(name)
-	if err != nil {
-		frame.Stack.Push(
-			NewAtomValueError(err.Error()),
-		)
-	} else {
-		frame.Stack.Push(value)
-	}
+func DoLoadCapture(frame *AtomCallFrame, index int) {
+	cell := frame.Fn.Value.(*AtomCode).CapturedEnv[index]
+	frame.Stack.Push(cell.Value)
 }
 
-func DoLoadModule0(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
-	module := interpreter.ModuleTable[name]
-	if module == nil {
-		message := fmt.Sprintf("module %s not found", name)
-		frame.Stack.Push(NewAtomValueError(message))
-		return
-	}
-	frame.Stack.Push(module)
+func DoLoadName(frame *AtomCallFrame, index int) {
+	cell := frame.Fn.Value.(*AtomCode).Locals[index]
+	frame.Stack.Push(cell.Value)
 }
 
-func DoLoadModule1(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
+func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
 	module := interpreter.ModuleTable[name]
 	if module == nil {
 		message := fmt.Sprintf("module %s not found", name)
@@ -281,7 +270,7 @@ func DoExtendClass(cls *AtomValue, ext *AtomValue) {
 	clsValue.Base = ext
 }
 
-func DoMakeEnum(frame *AtomCallFrame, env *AtomEnv, size int) {
+func DoMakeEnum(frame *AtomCallFrame, size int) {
 	elements := map[string]*AtomValue{}
 	valueHashes := map[int]bool{}
 
@@ -302,7 +291,7 @@ func DoMakeEnum(frame *AtomCallFrame, env *AtomEnv, size int) {
 	frame.Stack.Push(NewAtomValueEnum(elements))
 }
 
-func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv, cls *AtomValue, argc int) {
+func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
 			frame.Stack.Pop()
@@ -343,11 +332,11 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, env *
 		// Call the most derived initializer (last in the slice)
 		// The inheritance chain should be handled by the language design,
 		// not by calling multiple initializers
-		DoCallInit(interpreter, frame, env, cls, initializers[0], this, 1+argc)
+		DoCallInit(interpreter, frame, cls, initializers[0], this, 1+argc)
 	}
 }
 
-func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv, cls *AtomValue, fn *AtomValue, this *AtomValue, argc int) {
+func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, fn *AtomValue, this *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
 			frame.Stack.Pop()
@@ -366,7 +355,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv
 			return
 		}
 
-		newFrame := NewAtomCallFrame(frame, fn, NewAtomEnv(env), 0)
+		newFrame := NewAtomCallFrame(frame, fn, 0)
 		newFrame.Stack.Copy(frame.Stack, argc)
 		cleanupStack()
 		interpreter.ExecuteFrame(newFrame)
@@ -401,7 +390,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv
 	}
 }
 
-func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv, fn *AtomValue, argc int) {
+func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, argc int) {
 	if CheckType(fn, AtomTypeMethod) {
 		method := fn.Value.(*AtomMethod)
 		frame.Stack.Push(method.This)
@@ -425,7 +414,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, env *AtomEnv, fn
 		}
 
 		// Create a frame for the function
-		newFrame := NewAtomCallFrame(frame, fn, NewAtomEnv(env), 0)
+		newFrame := NewAtomCallFrame(frame, fn, 0)
 		newFrame.Stack.Copy(frame.Stack, argc)
 		cleanupStack()
 		interpreter.ExecuteFrame(newFrame)

@@ -108,6 +108,28 @@ func CoerceToBool(value *AtomValue) bool {
 
 func FormatError(frame *AtomCallFrame, message string) string {
 	file := frame.Fn.Value.(*AtomCode).File
-	line := frame.Fn.Value.(*AtomCode).Line[frame.Pc-1]
+
+	ip := frame.Ip
+
+	// binary search the line
+	line := binarySearch(frame.Fn.Value.(*AtomCode).Line, ip)
+
 	return fmt.Sprintf("[%s:%d]::Error: %s", file, line, message)
+}
+
+func binarySearch(lines []AtomDebugLine, ip int) int {
+	left, right := 0, len(lines)-1
+	result := -1
+
+	for left <= right {
+		mid := (left + right) / 2
+		if lines[mid].Address <= ip {
+			result = lines[mid].Line
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	return result
 }

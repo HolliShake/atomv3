@@ -3,7 +3,7 @@ package runtime
 type OpCode byte
 
 const (
-	OpExportGlobal OpCode = iota
+	OpExportGlobal OpCode = iota + 69
 	OpLoadInt
 	OpLoadNum           //
 	OpLoadStr           // With N bytes argument
@@ -12,8 +12,8 @@ const (
 	OpLoadArray         // with 4 bytes argument
 	OpLoadObject        // with 4 bytes argument
 	OpLoadName          // with 4 bytes argument
-	OpLoadModule0       // With N bytes argument // name -> builtin
-	OpLoadModule1       // With N bytes argument // path -> lib
+	OpLoadCapture       // with 4 bytes argument
+	OpLoadModule        // With N bytes argument
 	OpLoadFunction      // with 4 bytes argument
 	OpMakeClass         // with 4 bytes argument
 	OpExtendClass       //
@@ -43,10 +43,9 @@ const (
 	OpAnd               //
 	OpOr                //
 	OpXor               //
-	OpStoreModule       //
-	OpInitVar           // with (N + 1 + 1) bytes argument
-	OpStoreFast         // with N bytes argument
-	OpStoreLocal        // with N bytes argument
+	OpStoreModule       // with N bytes argument
+	OpStoreCapture      // with 4 bytes argument
+	OpStoreLocal        // with 4 bytes argument
 	OpSetIndex          //
 	OpJumpIfFalseOrPop  // with 4 bytes argument a.k.a jump offset
 	OpJumpIfTrueOrPop   // with 4 bytes argument a.k.a jump offset
@@ -56,10 +55,9 @@ const (
 	OpPopJumpIfNotError // with 4 bytes argument a.k.a jump offset
 	OpJump              // with 4 bytes argument a.k.a jump offset
 	OpAbsoluteJump      // with 4 bytes argument a.k.a jump offset
-	OpEnterBlock        //
-	OpExitBlock         //
 	OpDupTop            //
 	OpNoOp              //
 	OpPopTop            //
 	OpReturn            //
+	// max 255
 )

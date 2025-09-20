@@ -75,7 +75,7 @@ var std_throw = NewNativeFunc("throw", 1, func(interpreter *AtomInterpreter, fra
 		frame.Stack.Push(NewAtomValueError("throw expects an error"))
 		return
 	}
-	std_throw_error(frame, frame.Stack.Pop())
+	std_throw_error(frame.Caller, frame.Stack.Pop())
 	frame.Stack.Push(interpreter.State.NullValue)
 })
 

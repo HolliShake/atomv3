@@ -1,22 +1,26 @@
 package runtime
 
 type AtomCode struct {
-	File  string
-	Name  string
-	Async bool
-	Argc  int
-	Line  []int
-	Code  []OpCode // Instructions
+	File        string
+	Name        string
+	Async       bool
+	Argc        int
+	Line        []AtomDebugLine
+	Code        []OpCode // Instructions
+	Locals      []*AtomCell
+	CapturedEnv []*AtomCell
 }
 
 func NewAtomCode(file, name string, async bool, argc int) *AtomCode {
 	return &AtomCode{
-		File:  file,
-		Name:  name,
-		Async: async,
-		Argc:  argc,
-		Line:  []int{},
-		Code:  []OpCode{},
+		File:        file,
+		Name:        name,
+		Async:       async,
+		Argc:        argc,
+		Line:        []AtomDebugLine{},
+		Code:        []OpCode{},
+		Locals:      []*AtomCell{},
+		CapturedEnv: []*AtomCell{},
 	}
 }
 
@@ -45,7 +49,8 @@ func (c *AtomCode) HashValue() int {
 
 	// Hash the line numbers
 	for _, line := range c.Line {
-		hash = hash*31 + uint32(line)
+		hash = hash*31 + uint32(line.Line)
+		hash = hash*31 + uint32(line.Address)
 	}
 
 	// Hash the code
