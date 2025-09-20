@@ -1064,7 +1064,12 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 		return
 	}
 
-	funScope := NewAtomScope(scope, AtomScopeTypeFunction)
+	scopeType := AtomScopeTypeFunction
+	if async {
+		scopeType = AtomScopeTypeAsyncFunction
+	}
+
+	funScope := NewAtomScope(scope, scopeType)
 	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0))
 
 	params := ast.Arr0

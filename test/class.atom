@@ -12,6 +12,10 @@ class Animal {
 
 }
 
+async func waitable() {
+    return 2 + 23;
+}
+
 class Dog extends Animal {
     func init(self, name, ageInMonths) {
         self.name = name;
@@ -19,7 +23,7 @@ class Dog extends Animal {
     }
 
     async func process(self) {
-        return 2;
+        return waitable();
     }
 }
 
