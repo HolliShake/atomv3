@@ -1,4 +1,4 @@
-import * from "atom:std";
+import "atom:std";
 
 
 std.println("Hello, World!");

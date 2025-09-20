@@ -1084,6 +1084,7 @@ func (p *AtomParser) importStatement() *AtomAst {
 	p.acceptV(KeyImport)
 
 	names := []*AtomAst{}
+	var path *AtomAst = nil
 
 	if p.checkT(TokenTypeSym) && p.checkV("[") {
 		p.acceptV("[")
@@ -1113,14 +1114,12 @@ func (p *AtomParser) importStatement() *AtomAst {
 			names = append(names, nameN)
 		}
 		p.acceptV("]")
-	} else {
-		// all ?
-		p.acceptV("*")
+
+		p.acceptV(KeyFrom)
+
 	}
 
-	p.acceptV(KeyFrom)
-
-	path := p.terminal()
+	path = p.terminal()
 
 	ended = p.lookahead.Position
 	p.acceptV(";")

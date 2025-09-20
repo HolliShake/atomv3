@@ -1,5 +1,5 @@
 import [print, println] from "atom:std";
-import * from "atom:object";
+import "atom:object";
 
 var x = 1;
 

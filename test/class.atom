@@ -1,6 +1,7 @@
-import * from "atom:std";
-import * from "gui";
-import * from "hash";
+import "atom:std";
+import "gui";
+import "hash";
+import "./import.atom";
 
 class Animal {
     func init(self, name) {
