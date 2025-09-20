@@ -1,0 +1,11 @@
+import * from "atom:std";
+
+
+
+std.println("imported");
+
+
+
+func getName() {
+    return "DoyDoy";
+}

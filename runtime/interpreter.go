@@ -53,6 +53,9 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 		forwardIp(1)
 
 		switch opCode {
+		case OpExportGlobal:
+			DoExportGlobal(i, frame)
+
 		case OpLoadInt:
 			value := ReadInt(code.Code, strt)
 			frame.Stack.Push(NewAtomValueInt(value))
@@ -98,6 +101,11 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			name := ReadStr(code.Code, strt)
 			DoLoadModule0(i, frame, name)
 			forwardIp(len(name) + 1)
+
+		case OpLoadModule1:
+			path := ReadStr(code.Code, strt)
+			DoLoadModule1(i, frame, path)
+			forwardIp(len(path) + 1)
 
 		case OpLoadFunction:
 			offset := ReadInt(code.Code, strt)
@@ -247,6 +255,11 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			lhs := frame.Stack.Pop()
 			DoXor(frame, lhs, rhs)
 
+		case OpStoreModule:
+			name := ReadStr(code.Code, strt)
+			DoStoreModule(i, frame, name)
+			forwardIp(len(name) + 1)
+
 		case OpInitVar:
 			v := ReadStr(code.Code, strt)
 			g := code.Code[strt+len(v)+1] == 1
@@ -359,7 +372,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			return
 
 		default:
-			fmt.Println(Decompile(code))
+			// fmt.Println(Decompile(code))
 			panic(fmt.Sprintf("%s:: Unknown opcode: %d at %d", frame.Fn.Value.(*AtomCode).Name, opCode, strt))
 		}
 	}

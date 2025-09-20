@@ -5,6 +5,20 @@ import (
 	"math"
 )
 
+func DoExportGlobal(interpreter *AtomInterpreter, frame *AtomCallFrame) {
+	elements := map[string]*AtomValue{}
+	for k, v := range frame.Env.Locals {
+		elements[k] = v.Value
+	}
+	frame.Stack.Push(NewAtomValueObject(elements))
+}
+
+func DoStoreModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
+	module := frame.Stack.Pop()
+	module.Value.(*AtomObject).Set("__name__", NewAtomValueStr(name))
+	interpreter.ModuleTable[name] = module
+}
+
 func DoLoadArray(frame *AtomCallFrame, size int) {
 	elements := []*AtomValue{}
 	for range size {
@@ -39,6 +53,16 @@ func DoLoadName(frame *AtomCallFrame, env *AtomEnv, name string) {
 }
 
 func DoLoadModule0(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
+	module := interpreter.ModuleTable[name]
+	if module == nil {
+		message := fmt.Sprintf("module %s not found", name)
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+	frame.Stack.Push(module)
+}
+
+func DoLoadModule1(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
 	module := interpreter.ModuleTable[name]
 	if module == nil {
 		message := fmt.Sprintf("module %s not found", name)

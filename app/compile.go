@@ -4,8 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	runtime "dev.runtime"
 )
@@ -1521,6 +1524,10 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 		return re.MatchString(name)
 	}
 
+	isRelative := func(name string) bool {
+		return strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../")
+	}
+
 	validIdentifier := func(name string) bool {
 		re := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 		return re.MatchString(name)
@@ -1531,6 +1538,9 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 		if isBuiltin(name) {
 			re := regexp.MustCompile(`^atom:([a-zA-Z_][a-zA-Z0-9_]*)$`)
 			name = re.ReplaceAllString(name, "$1")
+		} else if isRelative(name) {
+			name = strings.TrimPrefix(name, "./")
+			name = strings.TrimPrefix(name, "../")
 		}
 
 		re := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\.atom$`)
@@ -1556,7 +1566,76 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 	c.emitLine(fn, ast.Position)
 	if isBuiltin(path.Str0) {
 		c.emitStr(fn, runtime.OpLoadModule0, normalizedPath)
+	} else if !isRelative(path.Str0) {
+		// Absolute path
+		exec, error := os.Executable()
+		if error != nil {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Failed to get executable path",
+				ast.Position,
+			)
+		}
+		absPath := filepath.Join(filepath.Dir(exec), "lib", normalizedPath)
+		// Check if is dir
+		if stat, error := os.Stat(absPath); error == nil && stat.IsDir() {
+			absPath = filepath.Join(absPath, "index.atom")
+			// Check if exists
+			if _, error := os.Stat(absPath); os.IsNotExist(error) {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					fmt.Sprintf("Module %s not found", absPath),
+					ast.Position,
+				)
+			}
+		} else {
+			// Check if exists
+			absPath += ".atom"
+		}
+
+		// Check if exists
+		if _, error := os.Stat(absPath); os.IsNotExist(error) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Module %s not found", absPath),
+				ast.Position,
+			)
+		}
+
+		// Readable?
+		if _, error := os.Stat(absPath); error != nil {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Module %s is not readable", absPath),
+				ast.Position,
+			)
+		}
+
+		if exists := c.state.SaveModule(normalizedPath); !exists {
+			// Not exists, compile and export
+			t := NewAtomTokenizer(absPath, readFile(absPath))
+			p := NewAtomParser(t)
+			c := NewAtomCompile(p, c.state)
+			i := c.Export()
+
+			c.emitLine(fn, ast.Position)
+			c.emitInt(fn, runtime.OpLoadFunction, i)
+			c.emitLine(fn, ast.Position)
+			c.emitInt(fn, runtime.OpCall, 0)
+
+			// Save to table
+			c.emitLine(fn, ast.Position)
+			c.emitStr(fn, runtime.OpStoreModule, normalizedPath)
+		}
+
+		c.emitStr(fn, runtime.OpLoadModule1, normalizedPath)
+
 	} else {
+		// Relative path or path with step?
 		c.emitStr(fn, runtime.OpLoadModule1, path.Str0)
 	}
 
@@ -1831,6 +1910,24 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	c.emitLine(programFunc, ast.Position)
 	c.emit(programFunc, runtime.OpReturn)
 	return programFunc
+}
+
+func (c *AtomCompile) Export() int {
+	ast := c.parser.Parse()
+	if exists := c.state.SaveModule(c.parser.tokenizer.file); exists {
+		panic("Already exists (not handled properly)!")
+	}
+	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
+	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "script", false, 0)
+	body := ast.Arr1
+	for _, stmt := range body {
+		c.statement(globalScope, programFunc, stmt)
+	}
+	c.emitLine(programFunc, ast.Position)
+	c.emit(programFunc, runtime.OpExportGlobal)
+	c.emitLine(programFunc, ast.Position)
+	c.emit(programFunc, runtime.OpReturn)
+	return c.state.SaveFunction(programFunc)
 }
 
 func (c *AtomCompile) Compile() *runtime.AtomValue {

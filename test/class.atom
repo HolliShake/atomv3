@@ -1,4 +1,6 @@
 import * from "atom:std";
+import * from "gui";
+import * from "hash";
 
 class Animal {
     func init(self, name) {
@@ -15,8 +17,6 @@ class Animal {
 func reg() {
     (3 / 0) catch (err) {
         std.println(">>>", err);
-
-       std.throw(err);
     };
     return 2;
 }
@@ -43,4 +43,6 @@ const d = dog.eat("bone");
 
 std.println(">>", d, dog.process());
 
-std.println(std.readLine(">>"));
+std.println(gui.getName());
+
+std.println(std.readLine(">>"), gui, hash);

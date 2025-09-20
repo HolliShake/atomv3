@@ -64,7 +64,9 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 				frame.Stack.Pop(),
 			)
 		}
-		frame.Env.Clear()
+		if frame.Fn.Value.(*AtomCode).Name != "script" {
+			frame.Env.Clear()
+		}
 		frame.Stack.Clear()
 		frame.Promise = nil
 		frame.State = ExecIdle
