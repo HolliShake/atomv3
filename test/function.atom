@@ -8,5 +8,12 @@ func fact(n) {
     return n * fact(n - 1);
 }
 
-std.println(fact(5));
+func fib(n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
 
+std.println(fact(5));
+std.println(fib(10));

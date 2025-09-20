@@ -12,8 +12,12 @@ class Animal {
 
 }
 
+func reg() {
+    return 2;
+}
+
 async func waitable() {
-    return 2 + 23;
+    return await reg() + 23;
 }
 
 class Dog extends Animal {

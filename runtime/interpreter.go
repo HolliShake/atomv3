@@ -127,6 +127,9 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forward(4)
 
 		case OpAwait:
+			if !CheckType(frame.Stack.Peek(), AtomTypePromise) {
+				continue
+			}
 			if i.Scheduler.Await(frame) {
 				return
 			}
