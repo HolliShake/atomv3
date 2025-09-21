@@ -371,16 +371,18 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		classInstance := obj.Value.(*AtomClassInstance)
 		property := classInstance.Property
 
+		// Direct property?
 		if property.Value.(*AtomObject).Get(index.String()) != nil {
 			frame.Stack.Push(property.Value.(*AtomObject).Get(index.String()))
 			return
 		}
-		// Is proto
+
+		// Is proto?
 		current := classInstance.Prototype.Value.(*AtomClass)
 		for current != nil {
 			if attribute := current.Proto.Value.(*AtomObject).Get(index.String()); attribute != nil {
 				if CheckType(attribute, AtomTypeFunc) || CheckType(attribute, AtomTypeNativeFunc) {
-					frame.Stack.Push(NewAtomValueMethod(property, attribute))
+					frame.Stack.Push(NewAtomValueMethod(obj, attribute))
 					return
 				}
 				frame.Stack.Push(attribute)

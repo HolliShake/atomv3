@@ -35,9 +35,12 @@ class Dog extends Animal {
         println("cat", cat);
         self.name = name;
         self.age = ageInMonths;
+
+        println("constructor->self >>", self);
     }
 
     async func process(self) {
+        println("process->self >>", self);
         return await waitable();
     }
 }
