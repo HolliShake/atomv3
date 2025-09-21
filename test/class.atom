@@ -134,4 +134,4 @@ println(object.values({
     H: 200
 }));
 
-println('2' + math.rand(1000));
+println('2' + math.rand(1000), math.sqrt(4), math.pow(2, 5));
