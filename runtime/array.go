@@ -66,13 +66,13 @@ func ArrayAll(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
-	if this.Type != AtomTypeArray {
+	if !CheckType(this, AtomTypeArray) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "all expects array"),
 		))
 		return
 	}
-	if callback.Type != AtomTypeFunc {
+	if !CheckType(callback, AtomTypeFunc) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "all expects function"),
 		))
@@ -111,7 +111,7 @@ func ArrayLength(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
-	if this.Type != AtomTypeArray {
+	if !CheckType(this, AtomTypeArray) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "length expects array"),
 		))
@@ -131,13 +131,13 @@ func ArrayWhere(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
-	if this.Type != AtomTypeArray {
+	if !CheckType(this, AtomTypeArray) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "where expects array"),
 		))
 		return
 	}
-	if callback.Type != AtomTypeFunc {
+	if !CheckType(callback, AtomTypeFunc) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "where expects function"),
 		))
@@ -169,7 +169,7 @@ func ArrayPush(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
-	if this.Type != AtomTypeArray {
+	if !CheckType(this, AtomTypeArray) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "push expects array"),
 		))
@@ -191,13 +191,13 @@ func ArraySelect(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
-	if this.Type != AtomTypeArray {
+	if !CheckType(this, AtomTypeArray) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "select expects array"),
 		))
 		return
 	}
-	if callback.Type != AtomTypeFunc {
+	if !CheckType(callback, AtomTypeFunc) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "select expects function"),
 		))
@@ -230,13 +230,13 @@ func ArrayEach(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
-	if this.Type != AtomTypeArray {
+	if !CheckType(this, AtomTypeArray) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "each expects array"),
 		))
 		return
 	}
-	if callback.Type != AtomTypeFunc {
+	if !CheckType(callback, AtomTypeFunc) {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "each expects function"),
 		))

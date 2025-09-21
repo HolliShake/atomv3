@@ -111,9 +111,9 @@ println("|>>", array
     .push(7)
     .push(8)
     .select(func(n, index) {
-        return index;
+        return n;
     })
     .where(func(n) {
-        return n == 5;
+        return n > 5;
     }));
 
