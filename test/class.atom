@@ -62,3 +62,12 @@ println("+------------------+");
 println("| Decompiled Code  |");
 println("+------------------+");
 println(std.decompile( add ), "\n=", add(60, 9));
+
+
+const call = func(n) {
+    cat += 2;
+    println("call", n, cat);
+    return 2;
+};
+
+call(1000+cat);

@@ -178,6 +178,49 @@ func (p *AtomParser) primary() *AtomAst {
 		ended = p.lookahead.Position
 		p.acceptV("}")
 		return NewObject(elements, start.Merge(ended))
+	} else if p.checkT(TokenTypeKey) && (p.checkV(KeyAsync) || p.checkV(KeyFunc)) {
+		async := p.checkV(KeyAsync)
+		start := p.lookahead.Position
+		ended := start
+
+		astType := AstTypeFunctionExpression
+		if async {
+			astType = AstTypeAsyncFunctionExpression
+			p.acceptV(KeyAsync)
+		}
+		p.acceptV(KeyFunc)
+		p.acceptV("(")
+		// Parameters
+		params := []*AtomAst{}
+		param := p.terminal()
+		if param != nil {
+			params = append(params, param)
+			for p.checkT(TokenTypeSym) && p.checkV(",") {
+				p.acceptV(",")
+				param = p.terminal()
+				params = append(params, param)
+			}
+		}
+		p.acceptV(")")
+		p.acceptV("{")
+		// Body
+		body := []*AtomAst{}
+		stmt := p.statement()
+		if stmt != nil {
+			for stmt != nil {
+				body = append(body, stmt)
+				stmt = p.statement()
+			}
+		}
+		ended = p.lookahead.Position
+		p.acceptV("}")
+
+		return NewFunctionExpression(
+			astType,
+			params,
+			body,
+			start.Merge(ended),
+		)
 	}
 	return p.terminal()
 }

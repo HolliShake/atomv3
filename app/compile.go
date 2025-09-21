@@ -171,6 +171,15 @@ func (c *AtomCompile) emitCapture(atomFunc *runtime.AtomValue, scope *AtomScope,
 		panic("invalid opcode")
 	}
 
+	if symb.constant && (op == runtime.OpStoreLocal || op == runtime.OpStoreCapture) {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Cannot store to constant",
+			ast.Position,
+		)
+	}
+
 	c.emitInt(atomFunc, op, indx)
 }
 
@@ -255,7 +264,16 @@ func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *A
 		// Save as capture
 		c.emitCapture(fn, scope, opcode, ast)
 	} else if c.isLocal(scope, ast.Str0) {
-		c.emitInt(fn, opcode, c.lookup(scope, ast.Str0).index)
+		symbol := c.lookup(scope, ast.Str0)
+		if symbol.constant && (opcode == runtime.OpStoreLocal || opcode == runtime.OpStoreCapture) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Cannot reassign constant",
+				ast.Position,
+			)
+		}
+		c.emitInt(fn, opcode, symbol.index)
 	} else {
 		panic("Unhandled error!!!")
 	}
@@ -350,6 +368,59 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			}
 			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpLoadObject, len(ast.Arr0))
+		}
+
+	case AstTypeAsyncFunctionExpression,
+		AstTypeFunctionExpression:
+		{
+			async := ast.AstType == AstTypeAsyncFunctionExpression
+			scopeType := AtomScopeTypeFunction
+			if async {
+				scopeType = AtomScopeTypeAsyncFunction
+			}
+
+			funScope := NewAtomScope(scope, scopeType)
+			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "anonymous", async, len(ast.Arr0))
+
+			params := ast.Arr0
+			//============================
+			fnOffset := c.state.SaveFunction(atomFunc)
+
+			// Save to symbol table first to allow captures to reference it
+			c.emitLine(fn, ast.Position)
+			c.emitInt(fn, runtime.OpLoadFunction, fnOffset)
+			//============================
+
+			for _, param := range params {
+				if param.AstType != AstTypeIdn {
+					Error(
+						c.parser.tokenizer.file,
+						c.parser.tokenizer.data,
+						"Expected identifier",
+						param.Position,
+					)
+					return
+				}
+
+				// Save to symbol table
+				c.emitVar(atomFunc, funScope, param, false, false)
+			}
+			body := ast.Arr1
+			visibleReturn := false
+			for _, stmt := range body {
+				c.statement(funScope, atomFunc, stmt)
+				if stmt.AstType == AstTypeReturnStatement {
+					visibleReturn = true
+					break
+				}
+			}
+
+			if !visibleReturn {
+				c.emitLine(atomFunc, ast.Position)
+				c.emit(atomFunc, runtime.OpLoadNull)
+				c.emitLine(atomFunc, ast.Position)
+				c.emit(atomFunc, runtime.OpReturn)
+			}
 		}
 
 	case AstTypeMember:
@@ -916,7 +987,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
-			"Expected expression",
+			fmt.Sprintf("Expected expression, got %d", ast.AstType),
 			ast.Position,
 		)
 	}

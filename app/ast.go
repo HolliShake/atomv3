@@ -28,6 +28,8 @@ const (
 	AstTypeArray
 	AstTypeObject
 	AstTypeKeyValue
+	AstTypeAsyncFunctionExpression
+	AstTypeFunctionExpression
 	AstTypeCall
 	AstTypeIndex
 	AstTypeMember
@@ -202,6 +204,13 @@ func NewKeyValue(key *AtomAst, val *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeKeyValue, position)
 	ast.Ast0 = key
 	ast.Ast1 = val
+	return ast
+}
+
+func NewFunctionExpression(astType AtomAstType, params []*AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(astType, position)
+	ast.Arr0 = params
+	ast.Arr1 = body
 	return ast
 }
 
