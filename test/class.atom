@@ -28,6 +28,7 @@ async func waitable() {
 }
 
 class Dog extends Animal {
+    local x = 2;
     func init(self, name, ageInMonths) {
         println("cat", cat);
         cat = 1000;
