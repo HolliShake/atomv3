@@ -1,4 +1,5 @@
 import [ println ] from "atom:std";
+import "atom:object";
 import "gui";
 import "hash";
 import "./imports.atom";
@@ -123,4 +124,12 @@ println("|>>", array
         return n == "asdasdasd";
     })
     .any());
+
+println(object.keys({
+    H: 200
+}));
+
+println(object.values({
+    H: 200
+}));
 
