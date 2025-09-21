@@ -79,7 +79,7 @@ const call = func(n) {
 call(1000+cat);
 
 func ret() {
-    const  g = 2;
+    const g = 2;
     return func() {
         println(">>", g);
     };
