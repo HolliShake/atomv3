@@ -179,6 +179,9 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		frame.Stack.Push(method.This)
 		fn = method.Fn
 		argc++
+	} else if CheckType(fn, AtomTypeNativeMethod) {
+		frame.Stack.Push(fn.Value.(*AtomNativeMethod).This)
+		argc++
 	}
 
 	cleanupStack := func() {
@@ -215,6 +218,16 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		}
 
 		nativeFunc.Callable(interpreter, frame, argc)
+
+	} else if CheckType(fn, AtomTypeNativeMethod) {
+		nativeMethod := fn.Value.(*AtomNativeMethod)
+		if nativeMethod.Paramc != argc && nativeMethod.Paramc != Variadict {
+			cleanupStack()
+			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeMethod.Paramc, argc))
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+		nativeMethod.Callable(interpreter, frame, argc)
 
 	} else {
 		cleanupStack()
@@ -327,6 +340,12 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		return
 
 	} else if CheckType(obj, AtomTypeArray) {
+		if method := index.String(); CheckType(index, AtomTypeStr) && IsArrayMethod(method) {
+			frame.Stack.Push(
+				NewAtomValueNativeMethod(ArrayGetMethod(obj, method)),
+			)
+			return
+		}
 		if !IsNumberType(index) {
 			message := FormatError(frame, fmt.Sprintf("cannot index type: %s with type: %s", GetTypeString(obj), GetTypeString(index)))
 			frame.Stack.Push(NewAtomValueError(message))
@@ -377,11 +396,11 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 			return
 		}
 
-		// Is proto?
+		// Is prototype?
 		current := classInstance.Prototype.Value.(*AtomClass)
 		for current != nil {
 			if attribute := current.Proto.Value.(*AtomObject).Get(index.String()); attribute != nil {
-				if CheckType(attribute, AtomTypeFunc) || CheckType(attribute, AtomTypeNativeFunc) {
+				if CheckType(attribute, AtomTypeFunc) {
 					frame.Stack.Push(NewAtomValueMethod(obj, attribute))
 					return
 				}

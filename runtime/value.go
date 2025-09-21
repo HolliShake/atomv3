@@ -24,6 +24,7 @@ const (
 	AtomTypeObj
 	AtomTypeArray
 	AtomTypeMethod
+	AtomTypeNativeMethod
 	AtomTypeFunc
 	AtomTypeNativeFunc
 	AtomTypeErr
@@ -136,7 +137,13 @@ func NewAtomValueMethod(this *AtomValue, fn *AtomValue) *AtomValue {
 	return obj
 }
 
-func NewAtomValueFunction(file, name string, async bool, argc int) *AtomValue {
+func NewAtomValueNativeMethod(nativeMethod *AtomNativeMethod) *AtomValue {
+	obj := NewAtomValue(AtomTypeNativeMethod)
+	obj.Value = nativeMethod
+	return obj
+}
+
+func NewAtomValueFunction(async bool, file, name string, argc int) *AtomValue {
 	obj := NewAtomValue(AtomTypeFunc)
 	obj.Value = NewAtomCode(file, name, async, argc)
 	return obj
@@ -398,6 +405,31 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 		}
 		return "bound method"
 
+	case AtomTypeNativeMethod:
+		nativeMethod := v.Value.(*AtomNativeMethod)
+		return BuildString(func(b *strings.Builder) {
+			b.WriteString("bound native method ")
+			b.WriteString(nativeMethod.Name)
+			b.WriteByte('(')
+
+			switch nativeMethod.Paramc {
+			case Variadict:
+				b.WriteString("...")
+			case 0:
+				// No parameters
+			default:
+				// Build parameters efficiently
+				for i := 0; i < nativeMethod.Paramc; i++ {
+					if i > 0 {
+						b.WriteString(", ")
+					}
+					b.WriteByte('$')
+					b.WriteString(strconv.Itoa(i))
+				}
+			}
+			b.WriteString("){}")
+		})
+
 	case AtomTypeFunc:
 		// Optimized: avoid fmt.Sprintf, use helper function
 		atomCode := v.Value.(*AtomCode)
@@ -425,6 +457,7 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 		// Optimized: use helper function
 		nativeFunc := v.Value.(NativeFunc)
 		return BuildString(func(b *strings.Builder) {
+			b.WriteString("native function ")
 			b.WriteString(nativeFunc.Name)
 			b.WriteByte('(')
 
@@ -528,6 +561,14 @@ func (v *AtomValue) HashValue() int {
 		}
 		return hash
 
+	case AtomTypeMethod:
+		nfn := v.Value.(*AtomMethod).Fn
+		return nfn.Value.(*AtomCode).HashValue()
+
+	case AtomTypeNativeMethod:
+		fn := v.Value.(*AtomNativeMethod)
+		return int(reflect.ValueOf(fn.Callable).Pointer())
+
 	case AtomTypeFunc:
 		return v.Value.(*AtomCode).HashValue()
 
@@ -582,6 +623,8 @@ func GetTypeString(value *AtomValue) string {
 		return "array"
 	case AtomTypeMethod:
 		return "method"
+	case AtomTypeNativeMethod:
+		return "native method"
 	case AtomTypeFunc:
 		return "function"
 	case AtomTypeNativeFunc:

@@ -393,7 +393,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			}
 
 			funScope := NewAtomScope(scope, scopeType)
-			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "anonymous", async, len(ast.Arr0))
+			atomFunc := runtime.NewAtomValueFunction(async, c.parser.tokenizer.file, "anonymous", len(ast.Arr0))
 
 			params := ast.Arr0
 			//============================
@@ -959,7 +959,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			body := ast.Arr0
 
 			//==========================
-			atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "catch", false, 1)
+			atomFunc := runtime.NewAtomValueFunction(false, c.parser.tokenizer.file, "catch", 1)
 			funScope := NewAtomScope(scope, AtomScopeTypeFunction)
 			fnOffset := c.state.SaveFunction(atomFunc)
 
@@ -1378,7 +1378,7 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 	}
 
 	funScope := NewAtomScope(scope, scopeType)
-	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0))
+	atomFunc := runtime.NewAtomValueFunction(async, c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
 
 	params := ast.Arr0
 	//============================
@@ -1491,7 +1491,7 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 	}
 
 	funScope := NewAtomScope(scope, scopeType)
-	atomFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0))
+	atomFunc := runtime.NewAtomValueFunction(async, c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
 
 	params := ast.Arr0
 	//============================
@@ -2209,24 +2209,61 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 	}
 
 	loopStart := c.here(fn)
-	jump := 0
+	jump0 := 0
+	jump1 := 0
+	jump2 := 0
+	isLogical := condition != nil && (condition.AstType == AstTypeLogicalAnd || condition.AstType == AstTypeLogicalOr)
 	if condition != nil {
-		c.expression(localScope, fn, condition)
-		jump = c.emitJump(fn, runtime.OpPopJumpIfFalse)
+		if !isLogical {
+			c.expression(localScope, fn, condition)
+			c.emitLine(fn, ast.Position)
+			jump0 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
+		} else {
+			isAnd := condition.AstType == AstTypeLogicalAnd
+			lhs := condition.Ast0
+			rhs := condition.Ast1
+			if isAnd {
+				c.expression(localScope, fn, lhs)
+				c.emitLine(fn, ast.Position)
+				jump0 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
+				c.expression(localScope, fn, rhs)
+				c.emitLine(fn, ast.Position)
+				jump1 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
+			} else {
+				c.expression(localScope, fn, lhs)
+				c.emitLine(fn, ast.Position)
+				jump2 = c.emitJump(fn, runtime.OpPopJumpIfTrue)
+				c.expression(localScope, fn, rhs)
+				c.emitLine(fn, ast.Position)
+				jump1 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
+			}
+		}
 	}
+
+	if isLogical {
+		c.label(fn, jump2)
+	}
+
 	// body
 	c.statement(localScope, fn, body)
 
 	// Updater
 	if updater != nil {
 		c.expression(localScope, fn, updater)
+		c.emitLine(fn, updater.Position)
+		c.emit(fn, runtime.OpPopTop)
 	}
 
 	// Loop
+	c.emitLine(fn, ast.Position)
 	c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 
+	// End loop
 	if condition != nil {
-		c.label(fn, jump)
+		c.label(fn, jump0)
+		if isLogical {
+			c.label(fn, jump1)
+		}
 	}
 
 	for _, breakAddress := range loopScope.Breaks {
@@ -2239,7 +2276,7 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
-	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "script", false, 0)
+	programFunc := runtime.NewAtomValueFunction(false, c.parser.tokenizer.file, "script", 0)
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)
@@ -2257,7 +2294,7 @@ func (c *AtomCompile) Export() int {
 		panic("Already exists (not handled properly)!")
 	}
 	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
-	programFunc := runtime.NewAtomValueFunction(c.parser.tokenizer.file, "script", false, 0)
+	programFunc := runtime.NewAtomValueFunction(false, c.parser.tokenizer.file, "script", 0)
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)

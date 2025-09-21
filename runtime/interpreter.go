@@ -346,6 +346,9 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			frame.Stack.Pop()
 
 		case OpReturn:
+			if frame.Stack.Len() != 1 {
+				panic(fmt.Sprintf("%s: Return with more than 1 value on the stack %d", frame.Fn.Value.(*AtomCode).Name, frame.Stack.Len()))
+			}
 			i.Scheduler.Resolve(frame)
 			return
 
