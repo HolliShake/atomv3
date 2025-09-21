@@ -89,6 +89,7 @@ const (
 	AstTypeSwitchStatement
 	AstTypeWhileStatement
 	AstTypeDoWhileStatement
+	AstTypeForStatement
 	AstTypeProgram
 	AstInvalid
 )
@@ -392,6 +393,15 @@ func NewDoWhileStatement(body *AtomAst, condition *AtomAst, position AtomPositio
 	ast := NewAtomAst(AstTypeDoWhileStatement, position)
 	ast.Ast0 = condition
 	ast.Ast1 = body
+	return ast
+}
+
+func NewForStatement(initializer *AtomAst, condition *AtomAst, updater *AtomAst, body *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeForStatement, position)
+	ast.Ast0 = initializer
+	ast.Ast1 = condition
+	ast.Ast2 = updater
+	ast.Ast3 = body
 	return ast
 }
 

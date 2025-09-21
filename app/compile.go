@@ -263,7 +263,7 @@ func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *A
 	if !c.isLocal(scope, ast.Str0) && !c.isLocalToFunction(scope, ast.Str0) {
 		// Save as capture
 		c.emitCapture(fn, scope, opcode, ast)
-	} else if c.isLocal(scope, ast.Str0) {
+	} else {
 		symbol := c.lookup(scope, ast.Str0)
 		if symbol.constant && (opcode == runtime.OpStoreLocal || opcode == runtime.OpStoreCapture) {
 			Error(
@@ -274,8 +274,6 @@ func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *A
 			)
 		}
 		c.emitInt(fn, opcode, symbol.index)
-	} else {
-		panic("Unhandled error!!!")
 	}
 }
 
@@ -1161,6 +1159,13 @@ func (c *AtomCompile) statement(scope *AtomScope, fn *runtime.AtomValue, ast *At
 
 	case AstTypeDoWhileStatement:
 		c.doWhileStatement(
+			scope,
+			fn,
+			ast,
+		)
+
+	case AstTypeForStatement:
+		c.forStatement(
 			scope,
 			fn,
 			ast,
@@ -2180,6 +2185,48 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd1)
 		}
+	}
+
+	for _, breakAddress := range loopScope.Breaks {
+		c.label(fn, breakAddress)
+	}
+	for _, continueAddress := range loopScope.Continues {
+		c.labelContinue(fn, continueAddress, loopStart)
+	}
+}
+
+func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
+	loopScope := NewAtomScope(scope, AtomScopeTypeLoop)
+	localScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
+
+	initializer := ast.Ast0
+	condition := ast.Ast1
+	updater := ast.Ast2
+	body := ast.Ast3
+
+	if initializer != nil {
+		c.statement(localScope, fn, initializer)
+	}
+
+	loopStart := c.here(fn)
+	jump := 0
+	if condition != nil {
+		c.expression(localScope, fn, condition)
+		jump = c.emitJump(fn, runtime.OpPopJumpIfFalse)
+	}
+	// body
+	c.statement(localScope, fn, body)
+
+	// Updater
+	if updater != nil {
+		c.expression(localScope, fn, updater)
+	}
+
+	// Loop
+	c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+	if condition != nil {
+		c.label(fn, jump)
 	}
 
 	for _, breakAddress := range loopScope.Breaks {

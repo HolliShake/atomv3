@@ -921,6 +921,8 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.whileStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyDo) {
 		return p.doWhileStatement()
+	} else if p.checkT(TokenTypeKey) && p.checkV(KeyFor) {
+		return p.forStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyBreak) {
 		return p.breakStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyContinue) {
@@ -1552,6 +1554,53 @@ func (p *AtomParser) doWhileStatement() *AtomAst {
 		condition,
 		start.Merge(ended),
 	)
+}
+
+func (p *AtomParser) forStatement() *AtomAst {
+	start := p.lookahead.Position
+	ended := start
+	p.acceptV(KeyFor)
+	p.acceptV("(")
+	initializer := p.forInitializer()
+	//
+	condition := p.expression()
+	p.acceptV(";")
+	//
+	updater := p.expression()
+	p.acceptV(")")
+	body := p.statement()
+	if body == nil {
+		Error(
+			p.tokenizer.file,
+			p.tokenizer.data,
+			"Expected statement",
+			p.lookahead.Position,
+		)
+		return nil
+	}
+
+	ended = body.Position
+
+	return NewForStatement(
+		initializer,
+		condition,
+		updater,
+		body,
+		start.Merge(ended),
+	)
+}
+
+func (p *AtomParser) forInitializer() *AtomAst {
+	if p.checkT(TokenTypeKey) && (p.checkV(KeyVar) || p.checkV(KeyConst) || p.checkV(KeyLocal)) {
+		return p.statement()
+	} else {
+		expression := p.expression()
+		p.acceptV(";")
+		return NewExpressionStatement(
+			expression,
+			expression.Position,
+		)
+	}
 }
 
 func (p *AtomParser) breakStatement() *AtomAst {

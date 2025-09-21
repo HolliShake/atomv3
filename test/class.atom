@@ -5,6 +5,10 @@ import "./imports.atom";
 
 var cat = 20;
 
+(async func() {
+    println("Hello World");
+})();
+
 class Animal {
     func init(self, name) {
         self.name = name;
@@ -86,3 +90,11 @@ func ret() {
 }
 
 ret()();
+
+var x = 0;
+
+for (x = 0; x < 10; x += 2) {
+    println(">>", x);
+}
+
+println(x);
