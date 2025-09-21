@@ -115,5 +115,12 @@ println("|>>", array
     })
     .where(func(n) {
         return n > 5;
-    }));
+    })
+    .select(func(n, index) {
+        return n * 2;
+    })
+    .where(func(n) {
+        return n == "asdasdasd";
+    })
+    .any());
 
