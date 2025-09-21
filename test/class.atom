@@ -1,5 +1,6 @@
 import [ println ] from "atom:std";
 import "atom:object";
+import "atom:math";
 import "gui";
 import "hash";
 import "./imports.atom";
@@ -133,3 +134,4 @@ println(object.values({
     H: 200
 }));
 
+println('2' + math.rand(1000));
