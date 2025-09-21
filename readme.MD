@@ -19,18 +19,25 @@ Atom is a modern, dynamically-typed programming language with a comprehensive fe
 - **Error Handling**: Catch expressions with error propagation and comprehensive error reporting
 - **Arithmetic Operations**: Full set of mathematical, bitwise, and logical operations with proper precedence
 - **Assignment Operators**: Compound assignment operators (`+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`)
+- **For Loops**: For loop support with local variable scoping and increment operations
+- **Closures**: Basic closure support with variable capture from outer scopes
+- **Number Literals**: Support for hexadecimal (`0xFF`), binary (`0b1010`), and octal (`0o2`) number formats
 
 ### Data Structures
 - **Array Support**: Array literals, indexing, element access, and freezing for immutability
+- **Array Methods**: Built-in array methods including `push`, `select`, `where`, `any`, `all`, and `length`
 - **Object Support**: Object literals with key-value pairs, property access, method calls, and freezing
+- **Object Methods**: Built-in object methods including `keys` and `values` from `atom:object`
 - **Self-Reference**: Support for circular references in arrays and objects
 
 ### Runtime Features
 - **Stack-based VM**: Efficient bytecode execution with evaluation stack and frame management
 - **Memory Management**: Basic garbage collection with GC roots and memory usage reporting
 - **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`, `decompile`, `throw`, `readLine`) with colored output
+- **Math Module**: Import from `atom:math` (e.g., `rand`, `sqrt`, `pow`) for mathematical operations
+- **Object Module**: Import from `atom:object` (e.g., `keys`, `values`) for object manipulation
 - **Error Reporting**: Comprehensive error messages with source location, context display, and debugging information
-- **Module System**: Support for importing from `atom:std`, local modules, and relative imports
+- **Module System**: Support for importing from `atom:std`, `atom:math`, `atom:object`, local modules, and relative imports
 
 ### Startup Experience
 When you run Atom without arguments, it displays an impressive ASCII art banner:
@@ -64,6 +71,11 @@ When you run Atom without arguments, it displays an impressive ASCII art banner:
 Atom supports the following primitive and complex types:
 - **Integers**: `42`, `-17`, `0` (32-bit signed integers)
 - **Floats**: `3.14`, `-2.5`, `0.0` (64-bit floating point numbers)
+- **Number Literals**: Support for different number formats:
+  - Decimal: `42`, `-17`, `0`
+  - Hexadecimal: `0xFF`, `0x1A`, `0x0`
+  - Binary: `0b1010`, `0b1111`, `0b0`
+  - Octal: `0o2`, `0o777`, `0o0`
 - **Strings**: `"hello"`, `"world"` (Unicode strings with escape sequences `\n`, `\t`, `\r`, `\uXXXX`)
 - **Booleans**: `true`, `false`
 - **Null**: `null`
@@ -181,6 +193,12 @@ var diff = 10 - 4;      // 6
 var product = 3 * 4;    // 12
 var quotient = 15 / 3;  // 5
 var remainder = 17 % 5; // 2
+
+// Number literals in different formats
+var decimal = 42;       // Decimal
+var hex = 0xFF;         // Hexadecimal (255)
+var binary = 0b1010;    // Binary (10)
+var octal = 0o2;        // Octal (2)
 
 // Bitwise operations
 var and = 5 & 3;        // 1
@@ -465,14 +483,25 @@ Log("Hello, World!");
 
 ### Standard Library Functions
 
-Atom provides several built-in functions through the `atom:std` module:
+Atom provides several built-in functions through multiple modules:
 
+#### `atom:std` Module
 - **`print(...)`**: Prints arguments in green color without newline
 - **`println(...)`**: Prints arguments in yellow color with newline
 - **`freeze(obj)`**: Makes objects and arrays immutable
 - **`decompile(func)`**: Returns bytecode representation of a function
 - **`throw(error)`**: Throws an error with full stack trace
 - **`readLine(prompt)`**: Reads a line of input from stdin with optional prompt
+
+#### `atom:math` Module
+- **`rand(max)`**: Generates random numbers up to the specified maximum
+- **`sqrt(num)`**: Calculates square root of a number
+- **`pow(base, exponent)`**: Raises base to the power of exponent
+
+#### `atom:object` Module
+- **`keys(obj)`**: Returns array of object property keys
+- **`values(obj)`**: Returns array of object property values
+- **`freeze(obj)`**: Makes objects immutable (alternative to std.freeze)
 
 ### Module System
 
@@ -485,22 +514,29 @@ import [ print, println, freeze ] from "atom:std";
 // Import entire standard library
 import "atom:std";
 
+// Import math functions
+import [ rand, sqrt, pow ] from "atom:math";
+
+// Import object functions
+import [ keys, values ] from "atom:object";
+
 // Import local modules
 import "gui";
 import "hash";
 import "./imports.atom";
 
-// Import object-related functions
-import [ freeze ] from "atom:object";
-
 // Using imported modules
 std.println("Using std module");
+math.rand(1000);  // Generate random number
+math.sqrt(4);     // Calculate square root
+math.pow(2, 5);   // Calculate power
+object.keys({H: 200});  // Get object keys
 gui.getName();  // Call function from gui module
 hash.someFunction();  // Call function from hash module
 ```
 
 The module system supports:
-- **Standard Library**: `atom:std` and `atom:object` modules
+- **Standard Library**: `atom:std`, `atom:math`, and `atom:object` modules
 - **Local Modules**: Files in the same directory or subdirectories
 - **Relative Imports**: Using `./` for relative paths
 - **Named Imports**: Import specific functions with destructuring syntax
@@ -531,19 +567,26 @@ const cond =
 println(cond);
 ```
 
-### Loops: while and do-while
+### Loops: while, do-while, and for
 
 ```atom
+// While loop
 var i = 0;
 while (1 && i < 10) {
     println(i);
     i += 1;
 }
 
+// Do-while loop
 do {
     println(i);
     i += 1;
 } while (i < 20);
+
+// For loop with local variable scoping
+for (local x = 0; x <= 10; x += 1) {
+    println(">>", x);
+}
 ```
 
 ## Example Programs
@@ -680,26 +723,51 @@ println("Status result:", result);
 println("Status values:", Status.OK, Status.BAD, Status.PENDING);
 ```
 
-### Arrays and Objects
+### Arrays and Objects with Built-in Methods
 ```atom
 import [println, freeze] from "atom:std";
+import [keys, values] from "atom:object";
+import [rand, sqrt, pow] from "atom:math";
 
-// Array operations
+// Array operations with built-in methods
 const numbers = [1, 2, 3, 4, 5];
-numbers[1] = 42;
-println("Modified array:", numbers);
+numbers.push(6).push(7).push(8);
+println("Array after push:", numbers);
 
-// Object operations
+// Array filtering and mapping
+const filtered = numbers.where(function(n) {
+    return n > 5;
+});
+println("Filtered array:", filtered);
+
+const mapped = numbers.select(function(n, index) {
+    return n * 2;
+});
+println("Mapped array:", mapped);
+
+// Array testing methods
+println("All > 0:", numbers.all(function(x) { return x > 0; }));
+println("Any > 10:", numbers.any(function(x) { return x > 10; }));
+println("Array length:", numbers.length());
+
+// Object operations with built-in methods
 const person = {
     name: "Alice",
     age: 30,
+    city: "New York",
     greet: function() {
         return "Hello, I'm " + this.name;
     }
 };
 
-println("Person:", person);
+println("Object keys:", keys(person));
+println("Object values:", values(person));
 println("Greeting:", person.greet());
+
+// Math operations
+println("Random number:", rand(100));
+println("Square root of 16:", sqrt(16));
+println("2 to the power of 8:", pow(2, 8));
 
 // Freezing objects and arrays
 freeze(person);
@@ -884,71 +952,81 @@ The `test/` directory contains comprehensive test files that demonstrate various
   - Error handling with catch expressions
   - Enum declarations and usage
   - Class definitions and inheritance
-  - Import statements from `atom:std`
+  - Import statements from `atom:std` and `atom:object`
   - Function decompilation with `std.decompile()`
+  - Unicode string handling with emoji characters
+  - Method binding and chaining
 
 - **`arithmetic.atom`** (26 lines) - Tests basic arithmetic operations:
-  - Function calls with parameters
-  - Addition operations
+  - Function calls with parameters and return values
+  - Addition operations with formatted output
   - Class instantiation with constructors
-  - Basic object creation
+  - Basic object creation and property access
 
 - **`array.atom`** (12 lines) - Demonstrates array features:
   - Array literals with multiple elements
   - Array self-reference (circular reference)
   - Array indexing and modification
+  - Array printing and display
 
 - **`async.atom`** (368 lines) - Comprehensive async/await testing:
-  - Basic async function chains
-  - Multiple concurrent async calls
-  - Error handling in async functions
-  - Sequential async processing
-  - Different return types from async functions
-  - Nested async calls (3+ levels deep)
+  - Basic async function chains and sequential execution
+  - Multiple concurrent async calls with different return types
+  - Error handling in async functions with null returns
+  - Sequential async processing with message building
+  - Different return types from async functions (numbers, arrays, objects)
+  - Nested async calls (3+ levels deep with level1/level2/level3)
   - Async functions with parameters and calculations
-  - Async operations within while loops
-  - Async operations within do-while loops
-  - Nested while loops with async calls
-  - Conditional logic in async loops
-  - Accumulation patterns with async
-  - String building with async operations
-  - Array building using async operations
-  - Complex nested async structures
+  - Async operations within while loops with counter management
+  - Async operations within do-while loops with accumulation
+  - Nested while loops with async calls and result collection
+  - Conditional logic in async loops with success/failure patterns
+  - Accumulation patterns with async (sum, product, string building)
+  - String building with async operations and delimiter handling
+  - Array building using async operations with mixed data types
+  - Complex nested async structures with multi-level processing
 
-- **`class.atom`** (66 lines) - Object-oriented programming features:
-  - Base class definitions with methods
-  - Class inheritance using `extends`
-  - Constructor methods with parameters
-  - Method overriding in derived classes
-  - Async methods in classes
-  - Error handling with division by zero
-  - Class instantiation and method calls
-  - Module imports (`gui`, `hash`, `imports.atom`)
-  - Function decompilation examples
+- **`class.atom`** (137 lines) - Advanced object-oriented programming features:
+  - Base class definitions with methods and constructors
+  - Class inheritance using `extends` with method overriding
+  - Constructor methods with parameters and global variable access
+  - Async methods in classes with await support
+  - Error handling with division by zero and catch expressions
+  - Class instantiation and method calls with chaining
+  - Module imports (`gui`, `hash`, `imports.atom`, `atom:math`)
+  - Function decompilation examples with bytecode display
+  - For loops with local variable scoping
+  - Array methods (push, select, where, any, all, length)
+  - Object methods (keys, values) from `atom:object`
+  - Math functions (rand, sqrt, pow) from `atom:math`
+  - Closure support with variable capture
+  - Hexadecimal, binary, and octal number literals
 
 - **`function.atom`** (20 lines) - Function capabilities:
-  - Recursive function definitions
-  - Factorial calculation
+  - Recursive function definitions with base cases
+  - Factorial calculation with proper recursion
   - Fibonacci sequence calculation
-  - Function calls with return values
+  - Function calls with return values and std module usage
 
 - **`object.atom`** (24 lines) - Object manipulation:
-  - Object literals with properties
-  - Object freezing functionality
-  - Self-referencing objects
-  - Property access and modification
+  - Object literals with properties and method definitions
+  - Object freezing functionality with immutability
+  - Self-referencing objects with circular references
+  - Property access and modification with bracket notation
+  - Object comparison and equality testing
 
 - **`imports.atom`** (17 lines) - Module system testing:
-  - Global variable access
-  - Recursive function with error handling
-  - Error throwing and catching
-  - Module import functionality
+  - Global variable access and mutation
+  - Recursive function with error handling and catch expressions
+  - Error throwing and catching with std.throw()
+  - Module import functionality and std module usage
 
 - **`scope.atom`** (42 lines) - Variable scoping and block scope:
-  - Global variable mutation
-  - Block scope with curly braces
-  - Function scope and variable access
-  - Class instantiation and method chaining
+  - Global variable mutation across function boundaries
+  - Block scope with curly braces and local variable isolation
+  - Function scope and variable access patterns
+  - Class instantiation and method chaining with return values
+  - Recursive function calls with proper scoping
 
 ### Library Files
 
@@ -1183,74 +1261,83 @@ atom/
 Based on the test files and implementation analysis, the following limitations are currently present:
 
 ### Data Structure Limitations
-- Limited array operations (no built-in methods like `push`, `pop`, `length`, `map`, `filter`)
-- No string manipulation functions (`substring`, `split`, `join`, `replace`, etc.)
-- No built-in data structures beyond arrays and objects (no sets, maps, queues, etc.)
+- **Array Methods**: While some array methods exist (`push`, `select`, `where`, `any`, `all`, `length`), the full set of common array operations is incomplete (no `pop`, `shift`, `unshift`, `slice`, `splice`, `indexOf`, etc.)
+- **String Operations**: No string manipulation functions (`substring`, `split`, `join`, `replace`, `trim`, `toUpperCase`, `toLowerCase`, etc.)
+- **Advanced Data Structures**: No built-in data structures beyond arrays and objects (no sets, maps, queues, stacks, trees, etc.)
 
 ### Control Flow Limitations
-- No `for` loops (only `while` and `do-while` are supported)
-- No `foreach` or iterator-based loops for arrays/objects
-- Limited exception handling beyond catch expressions (no try-catch blocks)
+- **For Loops**: While `for` loops are supported in `class.atom`, they may have limited functionality compared to traditional for loops
+- **Iterator Support**: No `foreach` or iterator-based loops for arrays/objects
+- **Exception Handling**: Limited exception handling beyond catch expressions (no try-catch blocks or comprehensive error recovery)
 
 ### I/O and System Limitations
-- Limited I/O operations (basic `print`/`println`/`freeze`/`decompile`/`throw`/`readLine` via `atom:std`)
-- No file I/O operations (read/write files, directory operations)
-- No network operations or HTTP client functionality
-- Limited standard library (only `atom:std` and `atom:object` modules)
+- **Basic I/O**: Limited I/O operations (basic `print`/`println`/`freeze`/`decompile`/`throw`/`readLine` via `atom:std`)
+- **File Operations**: No file I/O operations (read/write files, directory operations, file system access)
+- **Network Operations**: No network operations or HTTP client functionality
+- **Standard Library**: Limited standard library (only `atom:std`, `atom:object`, and `atom:math` modules)
 
 ### Language Feature Limitations
-- No closures (functions cannot capture variables from outer scope)
-- No type annotations or static type checking
-- Limited module system (basic imports from `atom:std`, local modules, and relative imports)
-- No generics or template programming
-- No pattern matching beyond switch expressions
-- No operator overloading
+- **Closures**: Limited closure support (some variable capture exists but may not be fully implemented)
+- **Type System**: No type annotations or static type checking
+- **Module System**: Basic module system (imports from `atom:std`, local modules, and relative imports)
+- **Generics**: No generics or template programming
+- **Pattern Matching**: Limited pattern matching beyond switch expressions
+- **Operator Overloading**: No operator overloading for custom types
 
 ### Development and Debugging Limitations
-- Limited debugging tools and profiling support
-- No REPL (Read-Eval-Print Loop) for interactive development
-- No built-in testing framework
-- No code formatting or linting tools
-- Basic error messages and stack traces (improved with `std.throw`)
+- **Debugging Tools**: Limited debugging tools and profiling support
+- **REPL**: No REPL (Read-Eval-Print Loop) for interactive development
+- **Testing Framework**: No built-in testing framework
+- **Code Quality**: No code formatting or linting tools
+- **Error Reporting**: Basic error messages and stack traces (improved with `std.throw`)
 
 ### Performance Limitations
-- No JIT compilation or performance optimizations
-- No parallel execution or threading support
-- Basic garbage collection without advanced memory management
-- No code splitting or lazy loading capabilities
+- **Compilation**: No JIT compilation or performance optimizations
+- **Concurrency**: No parallel execution or threading support
+- **Memory Management**: Basic garbage collection without advanced memory management
+- **Code Organization**: No code splitting or lazy loading capabilities
 
 ### Runtime Limitations
-- No native function binding beyond built-in functions
-- Limited memory management (basic GC with roots)
-- No reflection or introspection capabilities beyond `std.decompile`
-- No serialization/deserialization support
+- **Native Binding**: No native function binding beyond built-in functions
+- **Memory Management**: Limited memory management (basic GC with roots)
+- **Reflection**: Limited reflection or introspection capabilities beyond `std.decompile`
+- **Serialization**: No serialization/deserialization support (JSON, binary formats, etc.)
+
+### Advanced Features Missing
+- **Regular Expressions**: No regex support for string pattern matching
+- **Date/Time**: No built-in date and time handling
+- **Random Numbers**: Basic random number generation exists but may be limited
+- **Mathematical Functions**: Limited mathematical functions beyond basic operations
+- **Unicode Support**: Basic Unicode support exists but may be incomplete for complex operations
 
 ## Future Enhancements
 
 ### High Priority
-- **Control Flow**: `for` loops and enhanced loop constructs
-- **Standard Library**: Expanded standard library with common functions and utilities
-- **String Operations**: String manipulation functions (`substring`, `split`, `join`, `replace`, etc.)
-- **Array/Object Methods**: Built-in methods (`push`, `pop`, `length`, `keys`, `values`, `map`, `filter`, etc.)
-- **I/O Operations**: File I/O operations (read/write files, directory operations)
+- **String Operations**: String manipulation functions (`substring`, `split`, `join`, `replace`, `trim`, `toUpperCase`, `toLowerCase`, etc.)
+- **Array Methods**: Complete array method set (`pop`, `shift`, `unshift`, `slice`, `splice`, `indexOf`, `lastIndexOf`, etc.)
+- **I/O Operations**: File I/O operations (read/write files, directory operations, file system access)
 - **REPL**: Interactive Read-Eval-Print Loop for development
+- **Error Handling**: Enhanced exception handling with try-catch blocks and comprehensive error recovery
 
 ### Medium Priority
 - **Module System**: Enhanced module system with better import/export and dependency management
-- **Closures**: Lexical scoping and closure support for functions
-- **Exception Handling**: Enhanced exception handling beyond catch expressions
+- **Closures**: Full lexical scoping and closure support for functions
 - **Debugging**: Better error messages, debugging support, and profiling tools
 - **Testing**: Built-in testing framework and test runners
+- **Advanced Data Structures**: Sets, maps, queues, stacks, and other data structures
+- **Regular Expressions**: Regex support for string pattern matching
 
 ### Low Priority
 - **Performance**: Performance optimizations and JIT compilation
 - **Type System**: Type annotations and static type checking
 - **Memory Management**: Improved garbage collection and memory optimization
-- **Pattern Matching**: Enhanced pattern matching capabilities
+- **Pattern Matching**: Enhanced pattern matching capabilities beyond switch expressions
 - **Generics**: Generic programming support for reusable code
 - **Concurrency**: Enhanced concurrency primitives and parallel execution
 - **Native Binding**: Support for calling native functions and libraries
 - **Serialization**: JSON and other serialization format support
+- **Date/Time**: Built-in date and time handling
+- **Network Operations**: HTTP client functionality and network operations
 
 ## Author and License
 
