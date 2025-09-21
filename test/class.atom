@@ -65,7 +65,7 @@ async func add(a, b) {
 println("+------------------+");
 println("| Decompiled Code  |");
 println("+------------------+");
-println(std.decompile( add ), "\n=", add(60, 9));
+println(std.decompile(add), "\n=", add(60, 9));
 
 
 const call = func(n) {
@@ -79,9 +79,9 @@ const call = func(n) {
 call(1000+cat);
 
 func ret() {
-    const g = 2;
+    local g = 2;
     return func() {
-        println(">>", g);
+        println(">>", g+=2, 0xff);
     };
 }
 

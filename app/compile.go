@@ -290,6 +290,21 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 	case AstTypeInt:
 		c.emitLine(fn, ast.Position)
 		intValue, err := strconv.Atoi(ast.Str0)
+
+		if after, ok := strings.CutPrefix(ast.Str0, "0x"); ok {
+			_intValue, _err := strconv.ParseInt(after, 16, 32)
+			intValue = int(_intValue)
+			err = _err
+		} else if after, ok := strings.CutPrefix(ast.Str0, "0o"); ok {
+			_intValue, _err := strconv.ParseInt(after, 8, 32)
+			intValue = int(_intValue)
+			err = _err
+		} else if after, ok := strings.CutPrefix(ast.Str0, "0b"); ok {
+			_intValue, _err := strconv.ParseInt(after, 2, 32)
+			intValue = int(_intValue)
+			err = _err
+		}
+
 		if err != nil {
 			Error(
 				c.parser.tokenizer.file,
