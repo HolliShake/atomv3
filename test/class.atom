@@ -81,7 +81,7 @@ call(1000+cat);
 func ret() {
     local g = 2;
     return func() {
-        println(">>", g+=2, 0xff);
+        println(">>", g += 2, 0xff, 0b1010, 0o2);
     };
 }
 

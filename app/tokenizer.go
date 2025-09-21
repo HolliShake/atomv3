@@ -53,6 +53,16 @@ func (t *AtomTokenizer) isHexDigit(r rune) bool {
 	return unicode.IsDigit(r) || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
 }
 
+// isBinaryDigit checks if a rune is a binary digit
+func (t *AtomTokenizer) isBinaryDigit(r rune) bool {
+	return r == '0' || r == '1'
+}
+
+// isOctalDigit checks if a rune is an octal digit
+func (t *AtomTokenizer) isOctalDigit(r rune) bool {
+	return r >= '0' && r <= '7'
+}
+
 // isWhitespace checks if a rune is whitespace
 func (t *AtomTokenizer) isWhitespace(r rune) bool {
 	return unicode.IsSpace(r)
@@ -202,17 +212,48 @@ func (t *AtomTokenizer) readString() (string, error) {
 func (t *AtomTokenizer) readNumber() string {
 	var result []rune
 
-	// Handle hexadecimal
-	if t.current() == '0' && (t.peek() == 'x' || t.peek() == 'X') {
-		result = append(result, t.current())
-		t.advance()
-		result = append(result, t.current())
-		t.advance()
-		for t.pos < len(t.data) && t.isHexDigit(t.current()) {
+	// Handle special number formats starting with 0
+	if t.current() == '0' && t.pos+1 < len(t.data) {
+		next := t.peek()
+
+		// Handle hexadecimal (0x or 0X)
+		if next == 'x' || next == 'X' {
 			result = append(result, t.current())
 			t.advance()
+			result = append(result, t.current())
+			t.advance()
+			for t.pos < len(t.data) && t.isHexDigit(t.current()) {
+				result = append(result, t.current())
+				t.advance()
+			}
+			return string(result)
 		}
-		return string(result)
+
+		// Handle binary (0b or 0B)
+		if next == 'b' || next == 'B' {
+			result = append(result, t.current())
+			t.advance()
+			result = append(result, t.current())
+			t.advance()
+			for t.pos < len(t.data) && t.isBinaryDigit(t.current()) {
+				result = append(result, t.current())
+				t.advance()
+			}
+			return string(result)
+		}
+
+		// Handle octal (0o or 0O)
+		if next == 'o' || next == 'O' {
+			result = append(result, t.current())
+			t.advance()
+			result = append(result, t.current())
+			t.advance()
+			for t.pos < len(t.data) && t.isOctalDigit(t.current()) {
+				result = append(result, t.current())
+				t.advance()
+			}
+			return string(result)
+		}
 	}
 
 	// Handle decimal numbers
