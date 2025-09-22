@@ -226,7 +226,6 @@ class Dog extends Animal {
     }
 }
 
-g = 2;
 
 println(Dog, (3 / 0.00) catch(err) {
     println("ERR:", err);
@@ -271,3 +270,27 @@ monkey.eat();
 println(monkey);
 
 Monkey.printName(monkey);
+
+import "date";
+
+println(date.now());
+
+func incTest() {
+    local inc = {
+        value: 2
+    };
+    local a = (2 + inc['value']++ + 2 * ++inc['value']) 
+    
+        catch (err) {
+            std.throw(err);
+        };
+    return [inc.value, a];
+}
+
+println(incTest());
+
+var l = 0;
+for (l = 0; l < 10; ++l) {
+    println(l);
+}
+println(l);

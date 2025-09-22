@@ -21,6 +21,8 @@ const (
 	OpCallConstructor   // with 4 bytes argument
 	OpCall              // with 4 bytes argument
 	OpAwait             //
+	OpInc               //
+	OpDec               //
 	OpNot               //
 	OpNeg               //
 	OpPos               //
@@ -56,8 +58,12 @@ const (
 	OpJump              // with 4 bytes argument a.k.a jump offset
 	OpAbsoluteJump      // with 4 bytes argument a.k.a jump offset
 	OpDupTop            //
+	OpDupTop2           //
 	OpNoOp              //
 	OpPopTop            //
+	OpRot2              //
+	OpRot3              //
+	OpRot4              //
 	OpReturn            //
 	// max 255
 )

@@ -155,6 +155,14 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			val := frame.Stack.Pop()
 			DoPos(frame, val)
 
+		case OpInc:
+			val := frame.Stack.Pop()
+			DoInc(frame, val)
+
+		case OpDec:
+			val := frame.Stack.Pop()
+			DoDec(frame, val)
+
 		case OpTypeof:
 			val := frame.Stack.Pop()
 			DoTypeof(frame, val)
@@ -339,11 +347,28 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 		case OpDupTop:
 			frame.Stack.Push(frame.Stack.Peek())
 
+		case OpDupTop2:
+			a := frame.Stack.Pop()
+			b := frame.Stack.Pop()
+			frame.Stack.Push(b)
+			frame.Stack.Push(a)
+			frame.Stack.Push(b)
+			frame.Stack.Push(a)
+
 		case OpNoOp:
 			forwardIp(0)
 
 		case OpPopTop:
 			frame.Stack.Pop()
+
+		case OpRot2:
+			DoRot2(frame)
+
+		case OpRot3:
+			DoRot3(frame)
+
+		case OpRot4:
+			DoRot4(frame)
 
 		case OpReturn:
 			if frame.Stack.Len() != 1 {

@@ -322,8 +322,45 @@ func (p *AtomParser) allocation() *AtomAst {
 	)
 }
 
+func (p *AtomParser) postfix() *AtomAst {
+	ast := p.allocation()
+	if ast == nil {
+		return nil
+	}
+
+	if p.checkT(TokenTypeSym) && (p.checkV("++") || p.checkV("--")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+		return NewPostfix(
+			opt,
+			ast,
+			ast.Position.Merge(p.lookahead.Position),
+		)
+	}
+
+	return ast
+}
+
 func (p *AtomParser) unary() *AtomAst {
 	if p.checkT(TokenTypeSym) && (p.checkV("!") || p.checkV("+") || p.checkV("-")) {
+		opt := p.lookahead
+		p.acceptV(opt.Value)
+		rhs := p.allocation()
+		if rhs == nil {
+			Error(
+				p.tokenizer.file,
+				p.tokenizer.data,
+				fmt.Sprintf("Expected expression after %s, got %s", opt.Value, p.lookahead.Type.String()),
+				p.lookahead.Position,
+			)
+			return nil
+		}
+		return NewUnary(
+			opt,
+			rhs,
+			rhs.Position.Merge(p.lookahead.Position),
+		)
+	} else if p.checkT(TokenTypeSym) && (p.checkV("++") || p.checkV("--")) {
 		opt := p.lookahead
 		p.acceptV(opt.Value)
 		rhs := p.allocation()
@@ -378,7 +415,7 @@ func (p *AtomParser) unary() *AtomAst {
 			rhs.Position.Merge(p.lookahead.Position),
 		)
 	}
-	return p.allocation()
+	return p.postfix()
 }
 
 func (p *AtomParser) multiplicative() *AtomAst {

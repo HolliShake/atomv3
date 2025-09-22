@@ -113,6 +113,12 @@ func Decompile(code *AtomCode) string {
 		case OpPos:
 			builder.WriteString("POS\n")
 
+		case OpInc:
+			builder.WriteString("INC\n")
+
+		case OpDec:
+			builder.WriteString("DEC\n")
+
 		case OpTypeof:
 			builder.WriteString("TYPEOF\n")
 
@@ -238,6 +244,15 @@ func Decompile(code *AtomCode) string {
 
 		case OpPopTop:
 			builder.WriteString("POP_TOP\n")
+
+		case OpRot2:
+			builder.WriteString("ROT2\n")
+
+		case OpRot3:
+			builder.WriteString("ROT3\n")
+
+		case OpRot4:
+			builder.WriteString("ROT4\n")
 
 		case OpReturn:
 			builder.WriteString("RETURN\n")

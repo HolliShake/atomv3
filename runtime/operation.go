@@ -1038,3 +1038,99 @@ func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomVal
 		return
 	}
 }
+
+func DoInc(frame *AtomCallFrame, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := FormatError(frame, fmt.Sprintf("Error: cannot increment type: %s", GetTypeString(val)))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	if CheckType(val, AtomTypeInt) {
+		// Fast path for integers
+		a := CoerceToInt(val)
+		result := a + 1
+		// Check for overflow
+		if (a > 0 && result < 0) || (a < 0 && result > 0) {
+			// Overflow occurred, promote to double
+			frame.Stack.Push(NewAtomValueNum(float64(a) + 1))
+			return
+		}
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+		return
+	}
+
+	// Fallback path using coercion
+	numValue := CoerceToNum(val)
+	result := numValue + 1
+
+	// Try to preserve integer types if possible
+	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+		return
+	}
+	frame.Stack.Push(NewAtomValueNum(result))
+}
+
+func DoDec(frame *AtomCallFrame, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := FormatError(frame, fmt.Sprintf("Error: cannot decrement type: %s", GetTypeString(val)))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	if CheckType(val, AtomTypeInt) {
+		// Fast path for integers
+		a := CoerceToInt(val)
+		result := a - 1
+		// Check for overflow
+		if (a > 0 && result < 0) || (a < 0 && result > 0) {
+			// Overflow occurred, promote to double
+			frame.Stack.Push(NewAtomValueNum(float64(a) - 1))
+			return
+		}
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+		return
+	}
+
+	// Fallback path using coercion
+	numValue := CoerceToNum(val)
+	result := numValue - 1
+
+	// Try to preserve integer types if possible
+	if IsInteger(result) && result <= math.MaxInt32 && result >= math.MinInt32 {
+		frame.Stack.Push(NewAtomValueInt(int(result)))
+		return
+	}
+	frame.Stack.Push(NewAtomValueNum(result))
+}
+
+func DoRot2(frame *AtomCallFrame) {
+	// [A, B] -> [B, A]
+	A := frame.Stack.Pop()
+	B := frame.Stack.Pop()
+	frame.Stack.Push(A)
+	frame.Stack.Push(B)
+}
+
+func DoRot3(frame *AtomCallFrame) {
+	// [A, B, C] -> [C, A, B]
+	C := frame.Stack.Pop()
+	B := frame.Stack.Pop()
+	A := frame.Stack.Pop()
+	frame.Stack.Push(C)
+	frame.Stack.Push(A)
+	frame.Stack.Push(B)
+}
+
+func DoRot4(frame *AtomCallFrame) {
+	// [A, B, C, D] -> [D, A, B, C]
+	D := frame.Stack.Pop()
+	C := frame.Stack.Pop()
+	B := frame.Stack.Pop()
+	A := frame.Stack.Pop()
+	frame.Stack.Push(D)
+	frame.Stack.Push(A)
+	frame.Stack.Push(B)
+	frame.Stack.Push(C)
+}

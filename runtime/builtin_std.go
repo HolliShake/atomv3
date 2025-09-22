@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -109,10 +110,15 @@ var std_throw = NewNativeFunc("throw", 1, func(interpreter *AtomInterpreter, fra
 	frame.Stack.Push(interpreter.State.NullValue)
 })
 
+var std_epoch = NewNativeFunc("epoch", 0, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	frame.Stack.Push(NewAtomValueNum(float64(time.Now().Unix())))
+})
+
 var EXPORT_STD = map[string]*AtomValue{
 	"decompile": NewAtomValueNativeFunc(std_decompile),
 	"println":   NewAtomValueNativeFunc(std_println),
 	"print":     NewAtomValueNativeFunc(std_print),
 	"readLine":  NewAtomValueNativeFunc(std_readLine),
 	"throw":     NewAtomValueNativeFunc(std_throw),
+	"epoch":     NewAtomValueNativeFunc(std_epoch),
 }

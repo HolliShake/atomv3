@@ -34,9 +34,13 @@ const (
 	AstTypeIndex
 	AstTypeMember
 	AstTypeAllocation
+	AstTypePostfixInc
+	AstTypePostfixDec
 	AstTypeUnaryNot
 	AstTypeUnaryNeg
 	AstTypeUnaryPos
+	AstTypeUnaryInc
+	AstTypeUnaryDec
 	AstTypeUnaryTypeof
 	AstTypeUnaryAwait
 	AstTypeBinaryMul
@@ -101,6 +105,17 @@ func NewAtomAst(astType AtomAstType, position AtomPosition) *AtomAst {
 	}
 }
 
+func getPostfixAstType(op AtomToken) AtomAstType {
+	switch op.Value {
+	case "++":
+		return AstTypePostfixInc
+	case "--":
+		return AstTypePostfixDec
+	default:
+		return AstInvalid
+	}
+}
+
 func getUnaryAstType(op AtomToken) AtomAstType {
 	switch op.Value {
 	case "!":
@@ -109,6 +124,10 @@ func getUnaryAstType(op AtomToken) AtomAstType {
 		return AstTypeUnaryNeg
 	case "+":
 		return AstTypeUnaryPos
+	case "++":
+		return AstTypeUnaryInc
+	case "--":
+		return AstTypeUnaryDec
 	case "typeof":
 		return AstTypeUnaryTypeof
 	case "await":
@@ -238,6 +257,12 @@ func NewCall(ast0 *AtomAst, args []*AtomAst, position AtomPosition) *AtomAst {
 
 func NewAllocation(ast0 *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeAllocation, position)
+	ast.Ast0 = ast0
+	return ast
+}
+
+func NewPostfix(op AtomToken, ast0 *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(getPostfixAstType(op), position)
 	ast.Ast0 = ast0
 	return ast
 }

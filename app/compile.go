@@ -460,9 +460,9 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 	case AstTypeIndex:
 		{
 			obj := ast.Ast0
-			index := ast.Ast1
+			key := ast.Ast1
 			c.expression(scope, fn, obj)
-			c.expression(scope, fn, index)
+			c.expression(scope, fn, key)
 			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpIndex)
 		}
@@ -503,6 +503,22 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.emitInt(fn, runtime.OpCallConstructor, len(args))
 		}
 
+	case AstTypePostfixInc:
+		{
+			c.assignOp0(scope, fn, ast.Ast0, true)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpInc)
+			c.assignOp1(scope, fn, ast.Ast0, true)
+		}
+
+	case AstTypePostfixDec:
+		{
+			c.assignOp0(scope, fn, ast.Ast0, true)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpDec)
+			c.assignOp1(scope, fn, ast.Ast0, true)
+		}
+
 	case AstTypeUnaryNot:
 		{
 			c.expression(scope, fn, ast.Ast0)
@@ -522,6 +538,22 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.expression(scope, fn, ast.Ast0)
 			c.emitLine(fn, ast.Position)
 			c.emit(fn, runtime.OpPos)
+		}
+
+	case AstTypeUnaryInc:
+		{
+			c.assignOp0(scope, fn, ast.Ast0, false)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpInc)
+			c.assignOp1(scope, fn, ast.Ast0, false)
+		}
+
+	case AstTypeUnaryDec:
+		{
+			c.assignOp0(scope, fn, ast.Ast0, false)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpDec)
+			c.assignOp1(scope, fn, ast.Ast0, false)
 		}
 
 	case AstTypeUnaryTypeof:
@@ -1002,6 +1034,116 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
 			fmt.Sprintf("Expected expression, got %d", ast.AstType),
+			ast.Position,
+		)
+	}
+}
+
+func (c *AtomCompile) assignOp0(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst, postfix bool) {
+	switch ast.AstType {
+	case AstTypeIdn:
+		{
+			c.emitLine(fn, ast.Position)
+			c.identifier(fn, scope, ast, runtime.OpLoadName)
+
+			if postfix {
+				c.emit(fn, runtime.OpDupTop)
+			}
+		}
+	case AstTypeMember:
+		{
+			obj := ast.Ast0
+			key := ast.Ast1
+			c.expression(scope, fn, obj)
+			c.emitLine(fn, ast.Position)
+			c.emitStr(fn, runtime.OpLoadStr, key.Str0)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpDupTop2)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpIndex)
+
+			if postfix {
+				c.emit(fn, runtime.OpDupTop)
+			}
+		}
+	case AstTypeIndex:
+		{
+			obj := ast.Ast0
+			key := ast.Ast1
+			c.expression(scope, fn, obj)
+			c.expression(scope, fn, key)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpDupTop2)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpIndex)
+
+			if postfix {
+				c.emit(fn, runtime.OpDupTop)
+			}
+		}
+	default:
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Expected identifier or member expression",
+			ast.Position,
+		)
+	}
+}
+
+func (c *AtomCompile) assignOp1(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst, postfix bool) {
+	switch ast.AstType {
+	case AstTypeIdn:
+		{
+			c.emit(fn, runtime.OpDupTop)
+
+			if postfix {
+				c.emit(fn, runtime.OpRot2)
+				c.emit(fn, runtime.OpPopTop)
+			}
+
+			c.emitLine(fn, ast.Position)
+			c.identifier(fn, scope, ast, runtime.OpStoreLocal)
+		}
+	case AstTypeMember,
+		AstTypeIndex:
+		{
+			/*
+				unary order
+				var A = { B: 2 };
+				++A.B;
+				==>
+				ROT4    :    => [B, A, 3, 3]
+				DUP_TOP :    => [A, B, 3, 3]
+				INC     :	 => [A, B, 3]
+				INDEX   :	 => [A, B, 2]
+				DUP_TOP2 :   => [A, B, A, B]
+				LOAD_STR: B  => [A, A, B]
+				DUP_TOP : 	 => [A, A]
+				LOAD_OBJ: A  => [A, ]
+			*/
+
+			c.emit(fn, runtime.OpDupTop)
+
+			if postfix {
+				c.emit(fn, runtime.OpRot2)
+				c.emit(fn, runtime.OpPopTop)
+			}
+
+			// [A, B, 3, 3] -> [3, A, B, 3]
+			c.emit(fn, runtime.OpRot4)
+			// [3, A, B, 3] -> [3, 3, A, B]
+			c.emit(fn, runtime.OpRot4)
+
+			// SET_INDEX
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpSetIndex)
+		}
+	default:
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Expected identifier or member expression",
 			ast.Position,
 		)
 	}

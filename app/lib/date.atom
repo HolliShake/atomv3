@@ -1,0 +1,17 @@
+import [epoch] from "atom:std";
+
+
+class Date {
+    func init(self) {
+        self.epoch = epoch();
+        self.month = 0;
+        self.day   = 0;
+        self.year  = 0;
+    }
+}
+
+
+func now() {
+    return new Date();
+}
+
