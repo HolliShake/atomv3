@@ -11,7 +11,8 @@ import (
 func readFile(file string) string {
 	content, err := os.ReadFile(file)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 	return string(content)
 }

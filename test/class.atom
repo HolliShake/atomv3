@@ -3,7 +3,7 @@ import "atom:object";
 import "atom:math";
 import "gui";
 import "hash";
-import "./imports.atom";
+import "../test/imports.atom";
 
 var cat = 20;
 
@@ -134,4 +134,4 @@ println(object.values({
     H: 200
 }));
 
-println('2' + math.rand(1000), math.sqrt(4), math.pow(2, 5));
+println('2' + math.rand(1000), math.sqrt(4), math.pow(2, 5), imports.factorial(5));

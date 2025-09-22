@@ -1861,7 +1861,6 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 			absPath = newPath
 		} else if strings.HasPrefix(path.Str0, "../") {
 			// subtract currentPath for 1 dir
-			currentPath = filepath.Dir(currentPath)
 			absPath = filepath.Join(currentPath, path.Str0)
 			newPath, err := filepath.Abs(absPath)
 			if err != nil {
