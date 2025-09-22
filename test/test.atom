@@ -289,8 +289,7 @@ func incTest() {
 
 println(incTest());
 
-var l = 0;
-for (l = 0; l < 10; ++l) {
+for (local l = 0; l < 10; ++l) {
     println(l);
+    local hj = 2;
 }
-println(l);

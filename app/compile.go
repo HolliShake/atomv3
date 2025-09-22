@@ -1739,6 +1739,19 @@ func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 }
 
 func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
+	if scope.InSide(AtomScopeTypeSingle, false) {
+		// error, not allowed in single scope
+		// if (true)
+		// 	const x = 2;
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Const statement must be in block scope",
+			ast.Position,
+		)
+		return
+	}
+
 	isGlobal := scope.InSide(AtomScopeTypeGlobal, false)
 
 	seenNames := map[string]bool{}
@@ -1784,7 +1797,10 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 }
 
 func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
-	if !scope.InSide(AtomScopeTypeBlock, false) && !(scope.InSide(AtomScopeTypeFunction, false) || scope.InSide(AtomScopeTypeAsyncFunction, false)) {
+	if scope.InSide(AtomScopeTypeSingle, false) || !scope.InSide(AtomScopeTypeBlock, false) && !(scope.InSide(AtomScopeTypeFunction, false) || scope.InSide(AtomScopeTypeAsyncFunction, false) || scope.InSide(AtomScopeTypeLoop, false)) {
+		// error, not allowed in single scope
+		// if (true)
+		// 	local x = 2;
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
@@ -2129,12 +2145,14 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 		c.expression(scope, fn, ast.Ast0)
 		c.emitLine(fn, ast.Position)
 		toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-		c.statement(scope, fn, ast.Ast1)
+		single := NewAtomScope(scope, AtomScopeTypeSingle)
+		c.statement(single, fn, ast.Ast1)
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpJump)
 		c.label(fn, toElse)
 		if ast.Ast2 != nil {
-			c.statement(scope, fn, ast.Ast2)
+			single := NewAtomScope(scope, AtomScopeTypeSingle)
+			c.statement(single, fn, ast.Ast2)
 		}
 		c.label(fn, toEnd)
 	} else {
@@ -2148,13 +2166,15 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 			c.expression(scope, fn, rhs)
 			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			c.statement(scope, fn, ast.Ast1)
+			single := NewAtomScope(scope, AtomScopeTypeSingle)
+			c.statement(single, fn, ast.Ast1)
 			c.emitLine(fn, ast.Position)
 			toEnd2 := c.emitJump(fn, runtime.OpJump)
 			c.label(fn, toEnd0)
 			c.label(fn, toEnd1)
 			if ast.Ast2 != nil {
-				c.statement(scope, fn, ast.Ast2)
+				single := NewAtomScope(scope, AtomScopeTypeSingle)
+				c.statement(single, fn, ast.Ast2)
 			}
 			c.label(fn, toEnd2)
 		} else {
@@ -2165,12 +2185,14 @@ func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *
 			c.emitLine(fn, ast.Position)
 			toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			c.label(fn, toThen)
-			c.statement(scope, fn, ast.Ast1)
+			single := NewAtomScope(scope, AtomScopeTypeSingle)
+			c.statement(single, fn, ast.Ast1)
 			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpJump)
 			c.label(fn, toElse)
 			if ast.Ast2 != nil {
-				c.statement(scope, fn, ast.Ast2)
+				single := NewAtomScope(scope, AtomScopeTypeSingle)
+				c.statement(single, fn, ast.Ast2)
 			}
 			c.label(fn, toEnd1)
 		}
@@ -2210,7 +2232,8 @@ func (c *AtomCompile) switchStatement(scope *AtomScope, fn *runtime.AtomValue, a
 			c.emit(fn, runtime.OpPopTop)
 
 			// statement
-			c.statement(scope, fn, stmnt)
+			single := NewAtomScope(scope, AtomScopeTypeSingle)
+			c.statement(single, fn, stmnt)
 			c.emitLine(fn, ast.Position)
 			jumpToEnd := c.emitJump(fn, runtime.OpJump)
 			toEndSwitch = append(toEndSwitch, jumpToEnd)
@@ -2224,7 +2247,8 @@ func (c *AtomCompile) switchStatement(scope *AtomScope, fn *runtime.AtomValue, a
 		c.emit(fn, runtime.OpPopTop)
 
 		// Default value
-		c.statement(scope, fn, defaultValue)
+		single := NewAtomScope(scope, AtomScopeTypeSingle)
+		c.statement(single, fn, defaultValue)
 
 		// End?
 		for _, jump := range toEndSwitch {
@@ -2241,7 +2265,8 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		c.expression(loopScope, fn, ast.Ast0)
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-		c.statement(loopScope, fn, ast.Ast1)
+		single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+		c.statement(single, fn, ast.Ast1)
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 		c.label(fn, toEnd)
@@ -2256,7 +2281,8 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 			c.expression(loopScope, fn, rhs)
 			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			c.statement(loopScope, fn, ast.Ast1)
+			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+			c.statement(single, fn, ast.Ast1)
 			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd0)
@@ -2270,7 +2296,8 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			// Then?
 			c.label(fn, toThen)
-			c.statement(loopScope, fn, ast.Ast1)
+			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+			c.statement(single, fn, ast.Ast1)
 			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd1)
@@ -2293,7 +2320,8 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 		c.expression(loopScope, fn, ast.Ast0)
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-		c.statement(loopScope, fn, ast.Ast1)
+		single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+		c.statement(single, fn, ast.Ast1)
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 		c.label(fn, toEnd)
@@ -2308,7 +2336,8 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 			c.expression(loopScope, fn, rhs)
 			c.emitLine(fn, ast.Position)
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			c.statement(loopScope, fn, ast.Ast1)
+			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+			c.statement(single, fn, ast.Ast1)
 			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd0)
@@ -2322,7 +2351,8 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			// Then?
 			c.label(fn, toThen)
-			c.statement(loopScope, fn, ast.Ast1)
+			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+			c.statement(single, fn, ast.Ast1)
 			c.emitLine(fn, ast.Position)
 			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 			c.label(fn, toEnd1)
@@ -2339,7 +2369,6 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 
 func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	loopScope := NewAtomScope(scope, AtomScopeTypeLoop)
-	localScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
 
 	initializer := ast.Ast0
 	condition := ast.Ast1
@@ -2347,7 +2376,7 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 	body := ast.Ast3
 
 	if initializer != nil {
-		c.statement(localScope, fn, initializer)
+		c.statement(loopScope, fn, initializer)
 	}
 
 	loopStart := c.here(fn)
@@ -2357,7 +2386,7 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 	isLogical := condition != nil && (condition.AstType == AstTypeLogicalAnd || condition.AstType == AstTypeLogicalOr)
 	if condition != nil {
 		if !isLogical {
-			c.expression(localScope, fn, condition)
+			c.expression(loopScope, fn, condition)
 			c.emitLine(fn, ast.Position)
 			jump0 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
 		} else {
@@ -2365,17 +2394,17 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 			lhs := condition.Ast0
 			rhs := condition.Ast1
 			if isAnd {
-				c.expression(localScope, fn, lhs)
+				c.expression(loopScope, fn, lhs)
 				c.emitLine(fn, ast.Position)
 				jump0 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
-				c.expression(localScope, fn, rhs)
+				c.expression(loopScope, fn, rhs)
 				c.emitLine(fn, ast.Position)
 				jump1 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			} else {
-				c.expression(localScope, fn, lhs)
+				c.expression(loopScope, fn, lhs)
 				c.emitLine(fn, ast.Position)
 				jump2 = c.emitJump(fn, runtime.OpPopJumpIfTrue)
-				c.expression(localScope, fn, rhs)
+				c.expression(loopScope, fn, rhs)
 				c.emitLine(fn, ast.Position)
 				jump1 = c.emitJump(fn, runtime.OpPopJumpIfFalse)
 			}
@@ -2387,11 +2416,12 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 	}
 
 	// body
-	c.statement(localScope, fn, body)
+	single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+	c.statement(single, fn, body)
 
 	// Updater
 	if updater != nil {
-		c.expression(localScope, fn, updater)
+		c.expression(loopScope, fn, updater)
 		c.emitLine(fn, updater.Position)
 		c.emit(fn, runtime.OpPopTop)
 	}

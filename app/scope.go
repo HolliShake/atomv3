@@ -9,6 +9,7 @@ const (
 	AtomScopeTypeAsyncFunction
 	AtomScopeTypeBlock
 	AtomScopeTypeLoop
+	AtomScopeTypeSingle
 )
 
 type AtomScope struct {
