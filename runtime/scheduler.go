@@ -57,6 +57,14 @@ func (s *AtomScheduler) Await(frame *AtomCallFrame) (suspend bool) {
 }
 
 func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
+	defer func() {
+		for _, cell := range frame.Fn.Value.(*AtomCode).Locals {
+			if !cell.Captured {
+				cell.Value = nil
+			}
+		}
+	}()
+
 	// Handle synchronous functions
 	if !frame.Fn.Value.(*AtomCode).Async {
 		if frame.Caller != nil {

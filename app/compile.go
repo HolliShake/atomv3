@@ -127,7 +127,7 @@ func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast
 	// Increment code locals
 	code := atomFunc.Value.(*runtime.AtomCode)
 	indx := len(code.Locals)
-	cell := runtime.NewAtomCell(nil)
+	cell := runtime.NewAtomCell(false, nil)
 	code.Locals = append(code.Locals, cell)
 
 	// Save to symbol table
@@ -150,6 +150,7 @@ func (c *AtomCompile) emitCapture(atomFunc *runtime.AtomValue, scope *AtomScope,
 
 	exists := slices.Contains(code.CapturedEnv, symb.cell)
 	if !exists {
+		symb.cell.Captured = true
 		code.CapturedEnv = append(code.CapturedEnv, symb.cell)
 	} else {
 		// Find the existing index of the captured cell

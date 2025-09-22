@@ -1,11 +1,13 @@
 package runtime
 
 type AtomCell struct {
-	Value *AtomValue
+	Captured bool
+	Value    *AtomValue
 }
 
-func NewAtomCell(value *AtomValue) *AtomCell {
+func NewAtomCell(captured bool, value *AtomValue) *AtomCell {
 	return &AtomCell{
-		Value: value,
+		Captured: captured,
+		Value:    value,
 	}
 }
