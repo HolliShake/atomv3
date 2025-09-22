@@ -51,12 +51,16 @@ class Dog extends Animal {
     }
 }
 
+Dog.fooc = func(self) {
+    println("fooc->self >>", self);
+};
+
 const dog = new Dog("Buddy", 12);
 std.println(dog);
 
 const d = dog.eat("bone");
 
-std.println(">>", d, dog.process());
+std.println("d>>", d, dog.process());
 
 std.println(gui.getName());
 
@@ -135,3 +139,7 @@ println(object.values({
 }));
 
 println('2' + math.rand(1000), math.sqrt(4), math.pow(2, 5), imports.factorial(5));
+
+dog.getNames = 2;
+
+println(dog.fooc(), dog, Dog);

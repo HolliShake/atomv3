@@ -140,10 +140,11 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
+
 	atomClass := cls.Value.(*AtomClass)
 
-	// Create the instance object first
-	this := NewAtomValueObject(map[string]*AtomValue{})
+	// Create this
+	this := NewAtomValueClassInstance(cls, NewAtomValueObject(map[string]*AtomValue{}))
 
 	// Walk up the inheritance chain to collect all initializers
 	var initializers []*AtomValue
@@ -163,13 +164,13 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 	// Call initializers from base to derived (reverse order)
 	if len(initializers) == 0 {
 		frame.Stack.Push(
-			NewAtomValueClassInstance(cls, this),
+			this,
 		)
 	} else {
 		// Call the most derived initializer (last in the slice)
 		// The inheritance chain should be handled by the language design,
 		// not by calling multiple initializers
-		DoCallInit(interpreter, frame, cls, initializers[0], this, 1+argc)
+		DoCallInit(interpreter, frame, initializers[0], this, 1+argc)
 	}
 }
 
@@ -236,7 +237,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 	}
 }
 
-func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, fn *AtomValue, this *AtomValue, argc int) {
+func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, this *AtomValue, argc int) {
 	cleanupStack := func() {
 		for range argc {
 			frame.Stack.Pop()
@@ -262,9 +263,8 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomVal
 
 		// Pop return
 		frame.Stack.Pop()
-		frame.Stack.Push(
-			NewAtomValueClassInstance(cls, this),
-		)
+		// Push this
+		frame.Stack.Push(this)
 
 	} else if CheckType(fn, AtomTypeNativeFunc) {
 		nativeFunc := fn.Value.(NativeFunc)
@@ -279,9 +279,8 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomVal
 
 		// Pop return
 		frame.Stack.Pop()
-		frame.Stack.Push(
-			NewAtomValueClassInstance(cls, this),
-		)
+		// Push this
+		frame.Stack.Push(this)
 
 	} else {
 		cleanupStack()
@@ -379,10 +378,19 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 
 	} else if CheckType(obj, AtomTypeClass) {
 		class := obj.Value.(*AtomClass)
-		if class.Proto.Value.(*AtomObject).Get(index.String()) != nil {
-			frame.Stack.Push(class.Proto.Value.(*AtomObject).Get(index.String()))
-			return
+
+		for class != nil {
+			if value := class.Proto.Value.(*AtomObject).Get(index.String()); value != nil {
+				frame.Stack.Push(value)
+				return
+			}
+			if class.Base != nil {
+				class = class.Base.Value.(*AtomClass)
+			} else {
+				break
+			}
 		}
+
 		frame.Stack.Push(interpreter.State.NullValue)
 		return
 
@@ -399,6 +407,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		// Is prototype?
 		current := classInstance.Prototype.Value.(*AtomClass)
 		for current != nil {
+			// Class direct prototype?
 			if attribute := current.Proto.Value.(*AtomObject).Get(index.String()); attribute != nil {
 				if CheckType(attribute, AtomTypeFunc) {
 					frame.Stack.Push(NewAtomValueMethod(obj, attribute))
@@ -1014,6 +1023,14 @@ func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomVal
 		objValue.Set(indexValue, frame.Stack.Pop())
 		return
 
+	} else if CheckType(obj, AtomTypeClass) {
+		class := obj.Value.(*AtomClass)
+		class.Proto.Value.(*AtomObject).Set(index.String(), frame.Stack.Pop())
+		return
+	} else if CheckType(obj, AtomTypeClassInstance) {
+		classInstance := obj.Value.(*AtomClassInstance)
+		classInstance.Property.Value.(*AtomObject).Set(index.String(), frame.Stack.Pop())
+		return
 	} else {
 		cleanupStack(2)
 		message := FormatError(frame, fmt.Sprintf("cannot set index type: %s", GetTypeString(obj)))

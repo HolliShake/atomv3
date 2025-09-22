@@ -360,123 +360,56 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 		if CheckType(fnValue, AtomTypeFunc) {
 			atomCode := fnValue.Value.(*AtomCode)
 			return BuildString(func(b *strings.Builder) {
-				b.WriteString("bound method ")
+				b.WriteString("<bound method ")
+				b.WriteString(GetTypeString(method.This))
+				b.WriteByte('.')
 				b.WriteString(atomCode.Name)
-				b.WriteByte('(')
-
-				if atomCode.Argc == 0 {
-					// No parameters
-				} else {
-					// Build parameters efficiently
-					for i := 0; i < atomCode.Argc; i++ {
-						if i > 0 {
-							b.WriteString(", ")
-						}
-						b.WriteByte('$')
-						b.WriteString(strconv.Itoa(i))
-					}
-				}
-				b.WriteString("){}")
+				b.WriteString(" of ")
+				b.WriteString(method.This.String())
+				b.WriteByte('>')
 			})
 		} else if CheckType(fnValue, AtomTypeNativeFunc) {
 			nativeFunc := fnValue.Value.(NativeFunc)
 			return BuildString(func(b *strings.Builder) {
-				b.WriteString("bound method ")
+				b.WriteString("<bound method ")
+				b.WriteString(GetTypeString(method.This))
+				b.WriteByte('.')
 				b.WriteString(nativeFunc.Name)
-				b.WriteByte('(')
-
-				switch nativeFunc.Paramc {
-				case Variadict:
-					b.WriteString("...")
-				case 0:
-					// No parameters
-				default:
-					// Build parameters efficiently
-					for i := 0; i < nativeFunc.Paramc; i++ {
-						if i > 0 {
-							b.WriteString(", ")
-						}
-						b.WriteByte('$')
-						b.WriteString(strconv.Itoa(i))
-					}
-				}
-				b.WriteString("){}")
+				b.WriteString(" of ")
+				b.WriteString(method.This.String())
+				b.WriteByte('>')
 			})
 		}
-		return "bound method"
+		return "<bound method>"
 
 	case AtomTypeNativeMethod:
 		nativeMethod := v.Value.(*AtomNativeMethod)
 		return BuildString(func(b *strings.Builder) {
-			b.WriteString("bound native method ")
+			b.WriteString("<bound method ")
 			b.WriteString(nativeMethod.Name)
-			b.WriteByte('(')
-
-			switch nativeMethod.Paramc {
-			case Variadict:
-				b.WriteString("...")
-			case 0:
-				// No parameters
-			default:
-				// Build parameters efficiently
-				for i := 0; i < nativeMethod.Paramc; i++ {
-					if i > 0 {
-						b.WriteString(", ")
-					}
-					b.WriteByte('$')
-					b.WriteString(strconv.Itoa(i))
-				}
-			}
-			b.WriteString("){}")
+			b.WriteString(" of ")
+			b.WriteString(nativeMethod.This.String())
+			b.WriteByte('>')
 		})
 
 	case AtomTypeFunc:
 		// Optimized: avoid fmt.Sprintf, use helper function
 		atomCode := v.Value.(*AtomCode)
 		return BuildString(func(b *strings.Builder) {
-			b.WriteString("function ")
+			b.WriteString("<function ")
 			b.WriteString(atomCode.Name)
-			b.WriteByte('(')
-
-			if atomCode.Argc == 0 {
-				// No parameters
-			} else {
-				// Build parameters efficiently
-				for i := 0; i < atomCode.Argc; i++ {
-					if i > 0 {
-						b.WriteString(", ")
-					}
-					b.WriteByte('$')
-					b.WriteString(strconv.Itoa(i))
-				}
-			}
-			b.WriteString("){}")
+			b.WriteString(" at ")
+			b.WriteString(atomCode.File)
+			b.WriteByte('>')
 		})
 
 	case AtomTypeNativeFunc:
 		// Optimized: use helper function
 		nativeFunc := v.Value.(NativeFunc)
 		return BuildString(func(b *strings.Builder) {
-			b.WriteString("native function ")
+			b.WriteString("<built-in function ")
 			b.WriteString(nativeFunc.Name)
-			b.WriteByte('(')
-
-			switch nativeFunc.Paramc {
-			case Variadict:
-				b.WriteString("...")
-			case 0:
-				// No parameters
-			default:
-				// Build parameters efficiently
-				for i := 0; i < nativeFunc.Paramc; i++ {
-					if i > 0 {
-						b.WriteString(", ")
-					}
-					b.WriteByte('$')
-					b.WriteString(strconv.Itoa(i))
-				}
-			}
-			b.WriteString("){}")
+			b.WriteByte('>')
 		})
 
 	case AtomTypeErr:
