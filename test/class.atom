@@ -143,3 +143,14 @@ println('2' + math.rand(1000), math.sqrt(4), math.pow(2, 5), imports.factorial(5
 dog.getNames = 2;
 
 println(dog.fooc(), dog, Dog);
+
+class Person {
+    func init(self, _name, _age) {
+        self.name = _name;
+        self.age = _age;
+    }
+}
+
+for (local h = 2;h < 20000;h+=1) {
+    println(new Person("Person", h));
+}
