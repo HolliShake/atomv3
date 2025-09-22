@@ -1,19 +1,49 @@
 import "atom:std";
 
-
-func fact(n) {
-    if (n <= 1) {
-        return 1;
+func pascal(n) {
+    const triangle = [];
+    
+    for (local i = 0; i < n; i += 1) {
+        const row = [];
+        
+        for (local j = 0; j <= i; j += 1) {
+            if (j == 0 || j == i) {
+                row.push(1);
+            } else {
+                const prevRow = triangle[i - 1];
+                row.push(prevRow[j - 1] + prevRow[j]);
+            }
+        }
+        
+        triangle.push(row);
     }
-    return n * fact(n - 1);
+    
+    return triangle;
 }
 
-func fib(n) {
-    if (n <= 1) {
-        return n;
+func printPascalTriangle(n) {
+    const triangle = pascal(n);
+    
+    for (local i = 0; i < triangle.length(); i += 1) {
+        const row = triangle[i];
+        local line = "";
+        
+        // Add spacing for alignment
+        for (local k = 0; k < n - i - 1; k += 1) {
+            line += " ";
+        }
+        
+        // Add numbers with spacing
+        for (local j = 0; j < row.length(); j += 1) {
+            line += row[j];
+            if (j < row.length() - 1) {
+                line += " ";
+            }
+        }
+        
+        std.println(line);
     }
-    return fib(n - 1) + fib(n - 2);
 }
 
-std.println(fact(5));
-std.println(fib(10));
+// Print Pascal's triangle with 10 rows
+printPascalTriangle(10);
