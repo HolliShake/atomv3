@@ -1189,7 +1189,7 @@ DEBUG(parseExpression)::Error in [test.atom:15:8] unexpected token
 
 ```
 atom/
-├── app/                    # Main application and compiler
+├── app/                   # Main application and compiler
 │   ├── main.go            # Entry point with startup banner
 │   ├── tokenizer.go       # Lexical analysis with Unicode support
 │   ├── parser.go          # Syntax analysis and AST generation
@@ -1362,3 +1362,37 @@ Atom is a custom programming language implementation showcasing modern language 
 - Comprehensive error handling and reporting
 
 The implementation demonstrates the complexity and beauty of programming language design and implementation.
+
+## Appendix: Architecture and Tests (Concise)
+
+- **Compiler (app/)**:
+  - `tokenizer.go` → tokens with Unicode, multi-char ops, number bases.
+  - `parser.go` → AST for expressions/statements, classes, enums, async, catch.
+  - `compile.go` → bytecode emission; scopes, captures, functions, modules.
+- **Runtime (runtime/)**:
+  - `opcode.go` → opcodes; `interpreter.go` → VM loop; `operation.go` → ops.
+  - Async via `scheduler.go`/`promise.go`; objects/arrays/classes in respective files.
+- **Execution flow**: source → tokens → AST → bytecode → interpreter executes.
+
+- **Built-in modules**: `atom:std`, `atom:object`, `atom:math`. Import via:
+  ```atom
+  import [println] from "atom:std";
+  ```
+
+### Running tests quickly
+
+```bash
+# From repo root (binary in app/ if you built there)
+./app/atom.linux test/test.atom | cat
+./app/atom.linux test/async.atom | cat
+
+# Or build and run
+cd app && ./build.sh && ./atom ../test/test.atom | cat
+# Direct with Go (from app/)
+go run *.go ../test/test.atom | cat
+```
+
+Notes:
+- Go version is defined in `app/go.mod` as 1.24.5; ensure your toolchain supports it.
+- Library imports (non-`atom:`) resolve relative to executable `lib/` (see `app/lib/`).
+- Tests are example scripts; there is no separate test runner.
