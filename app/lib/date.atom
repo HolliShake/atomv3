@@ -17,7 +17,3 @@ func now() {
 }
 
 
-var fns = func() {
-    fn;
-    return 2;
-};

@@ -29,7 +29,7 @@ func NewAtomTokenizer(file string, data string) *AtomTokenizer {
 // isKeyword checks if a string is a JavaScript keyword
 func (t *AtomTokenizer) isKeyword(word string) bool {
 	keywords := []string{
-		KeyClass, KeyExtends, KeyAsync, KeyFunc, KeyVar, KeyConst, KeyLocal, KeyEnum,
+		KeyNamespace, KeyClass, KeyExtends, KeyAsync, KeyFunc, KeyVar, KeyConst, KeyLocal, KeyEnum,
 		KeyImport, KeyFrom, KeyContinue, KeyBreak, KeyReturn,
 		KeyIf, KeyElse, KeySwitch, KeyCase, KeyDefault, KeyCatch, KeyFor,
 		KeyWhile, KeyDo, KetTrue, KetFalse, KetNull, KeyNew, KeyTypeof, KeyAwait,
@@ -362,6 +362,9 @@ func (t *AtomTokenizer) NextToken() AtomToken {
 	if t.pos < len(t.data) {
 		next := t.current()
 		switch {
+		case symbol == ":" && next == ':':
+			t.advance()
+			symbol = "::"
 		case symbol == "=" && next == '=':
 			t.advance()
 			symbol = "=="
@@ -371,14 +374,6 @@ func (t *AtomTokenizer) NextToken() AtomToken {
 		case symbol == "!" && next == '=':
 			t.advance()
 			symbol = "!="
-		case symbol == "=" && next == '=' && t.peek() == '=':
-			t.advance()
-			t.advance()
-			symbol = "==="
-		case symbol == "!" && next == '=' && t.peek() == '=':
-			t.advance()
-			t.advance()
-			symbol = "!=="
 		case symbol == "&" && next == '&':
 			t.advance()
 			symbol = "&&"

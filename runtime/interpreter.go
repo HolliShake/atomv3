@@ -94,7 +94,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 		case OpLoadCapture:
 			index := ReadInt(code.Code, strt)
-			DoLoadCapture(frame, index)
+			DoLoadCapture(i, frame, index)
 			forwardIp(4)
 
 		case OpLoadModule:

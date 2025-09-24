@@ -30,6 +30,7 @@ const (
 	AstTypeKeyValue
 	AstTypeAsyncFunctionExpression
 	AstTypeFunctionExpression
+	AstTypeNamespaceAccess
 	AstTypeCall
 	AstTypeIndex
 	AstTypeMember
@@ -80,6 +81,7 @@ const (
 	AstTypeReturnStatement
 	AstTypeEmptyStatement
 	AstTypeExpressionStatement
+	AstTypeNamespace
 	AstTypeClass
 	AstTypeEnum
 	AstTypeAsyncFunction
@@ -101,6 +103,14 @@ const (
 func NewAtomAst(astType AtomAstType, position AtomPosition) *AtomAst {
 	return &AtomAst{
 		AstType:  astType,
+		Str0:     "",
+		Ast0:     nil,
+		Ast1:     nil,
+		Ast2:     nil,
+		Ast3:     nil,
+		Arr0:     nil,
+		Arr1:     nil,
+		Arr2:     nil,
 		Position: position,
 	}
 }
@@ -234,6 +244,13 @@ func NewFunctionExpression(astType AtomAstType, params []*AtomAst, body []*AtomA
 	return ast
 }
 
+func NewNamespaceAccess(obj *AtomAst, key *AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeNamespaceAccess, position)
+	ast.Ast0 = obj
+	ast.Ast1 = key
+	return ast
+}
+
 func NewMember(obj *AtomAst, key *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeMember, position)
 	ast.Ast0 = obj
@@ -336,6 +353,13 @@ func NewEmptyStatement(position AtomPosition) *AtomAst {
 func NewExpressionStatement(expr *AtomAst, position AtomPosition) *AtomAst {
 	ast := NewAtomAst(AstTypeExpressionStatement, position)
 	ast.Ast0 = expr
+	return ast
+}
+
+func NewNamespaceStatement(name *AtomAst, body []*AtomAst, position AtomPosition) *AtomAst {
+	ast := NewAtomAst(AstTypeNamespace, position)
+	ast.Ast0 = name
+	ast.Arr1 = body
 	return ast
 }
 

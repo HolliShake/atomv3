@@ -13,3 +13,14 @@ func factorial(n) {
         std.throw(err);
     });
 }
+
+func upper() {
+    lower();
+}
+
+func lower() {
+    std.println("imports -> Greetings from lower!!");
+}
+
+
+upper();

@@ -66,8 +66,13 @@ func DoLoadName(frame *AtomCallFrame, index int) {
 	frame.Stack.Push(cell.Value)
 }
 
-func DoLoadCapture(frame *AtomCallFrame, index int) {
+func DoLoadCapture(interpreter *AtomInterpreter, frame *AtomCallFrame, index int) {
 	cell := frame.Fn.Value.(*AtomCode).CapturedEnv[index]
+	if cell.Value == nil {
+		error_message := NewAtomValueError(FormatError(frame, "variable is not initialized"))
+		frame.Stack.Push(error_message)
+		return
+	}
 	frame.Stack.Push(cell.Value)
 }
 

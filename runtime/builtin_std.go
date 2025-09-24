@@ -75,6 +75,7 @@ func std_readLine(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) 
 func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 	// Stack trace
 	builder := strings.Builder{}
+	builder.WriteByte('\n')
 
 	builder.WriteString(err.String())
 

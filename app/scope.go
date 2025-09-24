@@ -15,6 +15,7 @@ const (
 type AtomScope struct {
 	Parent    *AtomScope
 	Type      AtomScopeType
+	Alias     string
 	Names     map[string]*AtomSymbol
 	Continues []int
 	Breaks    []int
@@ -24,6 +25,18 @@ func NewAtomScope(parent *AtomScope, scopeType AtomScopeType) *AtomScope {
 	return &AtomScope{
 		Parent:    parent,
 		Type:      scopeType,
+		Alias:     "",
+		Names:     map[string]*AtomSymbol{},
+		Continues: []int{},
+		Breaks:    []int{},
+	}
+}
+
+func NewAtomAliasScope(parent *AtomScope, scopeType AtomScopeType, alias string) *AtomScope {
+	return &AtomScope{
+		Parent:    parent,
+		Type:      scopeType,
+		Alias:     alias,
 		Names:     map[string]*AtomSymbol{},
 		Continues: []int{},
 		Breaks:    []int{},

@@ -296,9 +296,32 @@ for (local l = 0; l < 10; ++l) {
 
 namespace Logger {
     func log(message) {
-
+        std.print(message);
+        std.println(
+            lower
+        );
+    }
+    namespace Std {
+        func println(message) {
+            std.println(" " + message);
+        }
     }
 }
 
+Logger::log("Hello,");
+Logger::Std::println("Word!");
 
-Logger::log("Hello, World!");
+func upper() {
+    lower();
+}
+
+func lower() {
+    std.println("Greetings from lower!!");
+}
+
+upper();
+
+
+import "./imports.atom";
+
+
