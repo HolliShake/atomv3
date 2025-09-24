@@ -1,6 +1,6 @@
 package runtime
 
-var obj_freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func obj_freeze(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	obj := frame.Stack.Pop()
 	if CheckType(obj, AtomTypeObj) {
 		obj.Value.(*AtomObject).Freeze = true
@@ -13,9 +13,9 @@ var obj_freeze = NewNativeFunc("freeze", 1, func(interpreter *AtomInterpreter, f
 		return
 	}
 	frame.Stack.Push(obj)
-})
+}
 
-var obj_keys = NewNativeFunc("keys", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	obj := frame.Stack.Pop()
 	if CheckType(obj, AtomTypeObj) {
 		keys := []*AtomValue{}
@@ -26,9 +26,9 @@ var obj_keys = NewNativeFunc("keys", 1, func(interpreter *AtomInterpreter, frame
 	} else {
 		frame.Stack.Push(NewAtomValueError(FormatError(frame, "cannot keys non-object")))
 	}
-})
+}
 
-var obj_values = NewNativeFunc("values", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func obj_values(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	obj := frame.Stack.Pop()
 	if CheckType(obj, AtomTypeObj) {
 		values := []*AtomValue{}
@@ -39,10 +39,10 @@ var obj_values = NewNativeFunc("values", 1, func(interpreter *AtomInterpreter, f
 	} else {
 		frame.Stack.Push(NewAtomValueError(FormatError(frame, "cannot values non-object")))
 	}
-})
+}
 
 var EXPORT_OBJECT = map[string]*AtomValue{
-	"freeze": NewAtomValueNativeFunc(obj_freeze),
-	"keys":   NewAtomValueNativeFunc(obj_keys),
-	"values": NewAtomValueNativeFunc(obj_values),
+	"freeze": NewAtomValueNativeFunc(NewNativeFunc("freeze", 1, obj_freeze)),
+	"keys":   NewAtomValueNativeFunc(NewNativeFunc("keys", 1, obj_keys)),
+	"values": NewAtomValueNativeFunc(NewNativeFunc("values", 1, obj_values)),
 }

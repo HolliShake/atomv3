@@ -148,12 +148,18 @@ class Person {
     func init(self, _name, _age) {
         self.name = _name;
         self.age = _age;
-
         println("init -> class", Person);
+    }
 
+    func create(_name, _age) {
+        return new Person(_name, _age);
     }
 }
 
-for (local h = 2;h < 20000;h++) {
-    println(new Person("Person", h));
+for (local h = 2;h < 2;h++) {
+    println(Person.create("Person", h));
 }
+
+import "atom:path";
+
+println(path.cwd(), path.join(path.cwd(), "this", "time"));

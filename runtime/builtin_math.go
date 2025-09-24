@@ -5,7 +5,7 @@ import (
 	"math/rand"
 )
 
-var math_rand = NewNativeFunc("rand", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_rand(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "rand expects 1 argument"),
@@ -24,9 +24,9 @@ var math_rand = NewNativeFunc("rand", 1, func(interpreter *AtomInterpreter, fram
 
 	val := CoerceToLong(arg)
 	frame.Stack.Push(NewAtomValueInt(rand.Intn(int(val))))
-})
+}
 
-var math_abs = NewNativeFunc("abs", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_abs(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "abs expects 1 argument"),
@@ -45,9 +45,9 @@ var math_abs = NewNativeFunc("abs", 1, func(interpreter *AtomInterpreter, frame 
 
 	val := CoerceToNum(arg)
 	frame.Stack.Push(NewAtomValueNum(math.Abs(val)))
-})
+}
 
-var math_floor = NewNativeFunc("floor", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_floor(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "floor expects 1 argument"),
@@ -66,9 +66,9 @@ var math_floor = NewNativeFunc("floor", 1, func(interpreter *AtomInterpreter, fr
 
 	val := CoerceToNum(arg)
 	frame.Stack.Push(NewAtomValueNum(math.Floor(val)))
-})
+}
 
-var math_ceil = NewNativeFunc("ceil", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_ceil(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "ceil expects 1 argument"),
@@ -87,9 +87,9 @@ var math_ceil = NewNativeFunc("ceil", 1, func(interpreter *AtomInterpreter, fram
 
 	val := CoerceToNum(arg)
 	frame.Stack.Push(NewAtomValueNum(math.Ceil(val)))
-})
+}
 
-var math_round = NewNativeFunc("round", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_round(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "round expects 1 argument"),
@@ -108,9 +108,9 @@ var math_round = NewNativeFunc("round", 1, func(interpreter *AtomInterpreter, fr
 
 	val := CoerceToNum(arg)
 	frame.Stack.Push(NewAtomValueNum(math.Round(val)))
-})
+}
 
-var math_pow = NewNativeFunc("pow", 2, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_pow(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 2 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "pow expects 2 arguments"),
@@ -131,9 +131,9 @@ var math_pow = NewNativeFunc("pow", 2, func(interpreter *AtomInterpreter, frame 
 	val := CoerceToNum(arg)
 	val2 := CoerceToNum(arg2)
 	frame.Stack.Push(NewAtomValueNum(math.Pow(val, val2)))
-})
+}
 
-var math_sqrt = NewNativeFunc("sqrt", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_sqrt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "sqrt expects 1 argument"),
@@ -152,9 +152,9 @@ var math_sqrt = NewNativeFunc("sqrt", 1, func(interpreter *AtomInterpreter, fram
 
 	val := CoerceToNum(arg)
 	frame.Stack.Push(NewAtomValueNum(math.Sqrt(val)))
-})
+}
 
-var math_log = NewNativeFunc("log", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func math_log(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "log expects 1 argument"),
@@ -173,15 +173,15 @@ var math_log = NewNativeFunc("log", 1, func(interpreter *AtomInterpreter, frame 
 
 	val := CoerceToNum(arg)
 	frame.Stack.Push(NewAtomValueNum(math.Log(val)))
-})
+}
 
 var EXPORT_MATH = map[string]*AtomValue{
-	"rand":  NewAtomValueNativeFunc(math_rand),
-	"abs":   NewAtomValueNativeFunc(math_abs),
-	"floor": NewAtomValueNativeFunc(math_floor),
-	"ceil":  NewAtomValueNativeFunc(math_ceil),
-	"round": NewAtomValueNativeFunc(math_round),
-	"pow":   NewAtomValueNativeFunc(math_pow),
-	"sqrt":  NewAtomValueNativeFunc(math_sqrt),
-	"log":   NewAtomValueNativeFunc(math_log),
+	"rand":  NewAtomValueNativeFunc(NewNativeFunc("rand", 1, math_rand)),
+	"abs":   NewAtomValueNativeFunc(NewNativeFunc("abs", 1, math_abs)),
+	"floor": NewAtomValueNativeFunc(NewNativeFunc("floor", 1, math_floor)),
+	"ceil":  NewAtomValueNativeFunc(NewNativeFunc("ceil", 1, math_ceil)),
+	"round": NewAtomValueNativeFunc(NewNativeFunc("round", 1, math_round)),
+	"pow":   NewAtomValueNativeFunc(NewNativeFunc("pow", 2, math_pow)),
+	"sqrt":  NewAtomValueNativeFunc(NewNativeFunc("sqrt", 1, math_sqrt)),
+	"log":   NewAtomValueNativeFunc(NewNativeFunc("log", 1, math_log)),
 }

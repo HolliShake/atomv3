@@ -10,7 +10,7 @@ import (
 	"github.com/fatih/color"
 )
 
-var std_decompile = NewNativeFunc("decompile", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func std_decompile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "decompile expects 1 argument"),
@@ -25,9 +25,9 @@ var std_decompile = NewNativeFunc("decompile", 1, func(interpreter *AtomInterpre
 		return
 	}
 	frame.Stack.Push(NewAtomValueStr(Decompile(frame.Stack.Pop().Value.(*AtomCode))))
-})
+}
 
-var std_println = NewNativeFunc("println", Variadict, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func std_println(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	writer := bufio.NewWriter(os.Stdout)
 	for i := range argc {
 		fmt.Fprint(writer, color.YellowString(frame.Stack.Pop().String()))
@@ -38,9 +38,9 @@ var std_println = NewNativeFunc("println", Variadict, func(interpreter *AtomInte
 	fmt.Fprintln(writer)
 	writer.Flush()
 	frame.Stack.Push(interpreter.State.NullValue)
-})
+}
 
-var std_print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func std_print(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	writer := bufio.NewWriter(os.Stdout)
 	for i := range argc {
 		fmt.Fprint(writer, color.YellowString(frame.Stack.Pop().String()))
@@ -51,9 +51,9 @@ var std_print = NewNativeFunc("print", Variadict, func(interpreter *AtomInterpre
 	fmt.Fprint(writer)
 	writer.Flush()
 	frame.Stack.Push(interpreter.State.NullValue)
-})
+}
 
-var std_readLine = NewNativeFunc("readLine", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func std_readLine(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "readLine expects 1 argument"),
@@ -70,7 +70,7 @@ var std_readLine = NewNativeFunc("readLine", 1, func(interpreter *AtomInterprete
 		return
 	}
 	frame.Stack.Push(NewAtomValueStr(strings.TrimSpace(text)))
-})
+}
 
 func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 	// Stack trace
@@ -92,7 +92,7 @@ func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 	os.Exit(1)
 }
 
-var std_throw = NewNativeFunc("throw", 1, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func std_throw(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "throw expects 1 argument"),
@@ -108,17 +108,17 @@ var std_throw = NewNativeFunc("throw", 1, func(interpreter *AtomInterpreter, fra
 	}
 	std_throw_error(frame.Caller, frame.Stack.Pop())
 	frame.Stack.Push(interpreter.State.NullValue)
-})
+}
 
-var std_epoch = NewNativeFunc("epoch", 0, func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+func std_epoch(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	frame.Stack.Push(NewAtomValueNum(float64(time.Now().Unix())))
-})
+}
 
 var EXPORT_STD = map[string]*AtomValue{
-	"decompile": NewAtomValueNativeFunc(std_decompile),
-	"println":   NewAtomValueNativeFunc(std_println),
-	"print":     NewAtomValueNativeFunc(std_print),
-	"readLine":  NewAtomValueNativeFunc(std_readLine),
-	"throw":     NewAtomValueNativeFunc(std_throw),
-	"epoch":     NewAtomValueNativeFunc(std_epoch),
+	"decompile": NewAtomValueNativeFunc(NewNativeFunc("decompile", 1, std_decompile)),
+	"println":   NewAtomValueNativeFunc(NewNativeFunc("println", Variadict, std_println)),
+	"print":     NewAtomValueNativeFunc(NewNativeFunc("print", Variadict, std_print)),
+	"readLine":  NewAtomValueNativeFunc(NewNativeFunc("readLine", 1, std_readLine)),
+	"throw":     NewAtomValueNativeFunc(NewNativeFunc("throw", 1, std_throw)),
+	"epoch":     NewAtomValueNativeFunc(NewNativeFunc("epoch", 0, std_epoch)),
 }
