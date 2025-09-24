@@ -156,7 +156,7 @@ class Person {
     }
 }
 
-for (local h = 2;h < 2;h++) {
+for (local h = 0;h < 200000;h++) {
     println(Person.create("Person", h));
 }
 

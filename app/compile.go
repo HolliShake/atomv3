@@ -2657,6 +2657,10 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 
 	// Resolve
 	for _, pendingVariable := range c.pendingVariables {
+		/*
+		 * Variables that have been referenced but do not exist yet,
+		 * we mark them as global captured variables
+		 */
 		c.emitSavedCapture(pendingVariable.atomFunc, globalScope, pendingVariable.ast, pendingVariable.index)
 	}
 
@@ -2695,6 +2699,10 @@ func (c *AtomCompile) Export() int {
 
 	// Resolve
 	for _, pendingVariable := range c.pendingVariables {
+		/*
+		 * Variables that have been referenced but do not exist yet,
+		 * we mark them as global captured variables
+		 */
 		c.emitSavedCapture(pendingVariable.atomFunc, globalScope, pendingVariable.ast, pendingVariable.index)
 	}
 
