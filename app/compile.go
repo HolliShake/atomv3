@@ -1940,16 +1940,7 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 
 	} else if !isRelative(path.Str0) {
 		// Absolute path
-		exec, error := os.Executable()
-		if error != nil {
-			Error(
-				c.parser.tokenizer.file,
-				c.parser.tokenizer.data,
-				"Failed to get executable path",
-				ast.Position,
-			)
-		}
-		absPath := filepath.Join(filepath.Dir(exec), "lib", normalizedPath)
+		absPath := filepath.Join(c.state.Path, "lib", normalizedPath)
 		// Check if is dir
 		if stat, error := os.Stat(absPath); error == nil && stat.IsDir() {
 			absPath = filepath.Join(absPath, "index.atom")

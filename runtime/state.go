@@ -1,6 +1,12 @@
 package runtime
 
+import (
+	"os"
+	"path/filepath"
+)
+
 type AtomState struct {
+	Path          string
 	ModuleLookup  map[string]bool
 	FunctionTable *AtomStack
 	NullValue     *AtomValue
@@ -9,7 +15,12 @@ type AtomState struct {
 }
 
 func NewAtomState() *AtomState {
+	path, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
 	return &AtomState{
+		Path:          filepath.Dir(path),
 		ModuleLookup:  map[string]bool{},
 		FunctionTable: NewAtomStack(),
 		NullValue:     NewAtomValueNull(),
