@@ -36,6 +36,7 @@ Atom is a modern, dynamically-typed programming language with a comprehensive fe
 - **Imports & Stdlib**: Import from `atom:std` (e.g., `print`, `println`, `freeze`, `decompile`, `throw`, `readLine`) with colored output
 - **Math Module**: Import from `atom:math` (e.g., `rand`, `sqrt`, `pow`) for mathematical operations
 - **Object Module**: Import from `atom:object` (e.g., `keys`, `values`) for object manipulation
+- **Path Module**: Import from `atom:path` (e.g., `cwd`, `join`, `isDir`, `isFile`, `exists`) for basic path utilities
 - **Error Reporting**: Comprehensive error messages with source location, context display, and debugging information
 - **Module System**: Support for importing from `atom:std`, `atom:math`, `atom:object`, local modules, and relative imports
 
@@ -503,6 +504,13 @@ Atom provides several built-in functions through multiple modules:
 - **`values(obj)`**: Returns array of object property values
 - **`freeze(obj)`**: Makes objects immutable (alternative to std.freeze)
 
+#### `atom:path` Module
+- **`cwd()`**: Returns current working directory
+- **`join(...parts)`**: Joins path segments using the OS separator
+- **`isDir(path)`**: Returns `true` if path is a directory
+- **`isFile(path)`**: Returns `true` if path is a file
+- **`exists(path)`**: Returns `true` if path exists
+
 ### Module System
 
 Atom supports a flexible module system with multiple import patterns:
@@ -520,6 +528,9 @@ import [ rand, sqrt, pow ] from "atom:math";
 // Import object functions
 import [ keys, values ] from "atom:object";
 
+// Import path utilities
+import [ cwd, join, isDir, isFile, exists ] from "atom:path";
+
 // Import local modules
 import "gui";
 import "hash";
@@ -536,11 +547,19 @@ hash.someFunction();  // Call function from hash module
 ```
 
 The module system supports:
-- **Standard Library**: `atom:std`, `atom:math`, and `atom:object` modules
+- **Standard Library**: `atom:std`, `atom:math`, `atom:object`, and `atom:path` modules
 - **Local Modules**: Files in the same directory or subdirectories
 - **Relative Imports**: Using `./` for relative paths
 - **Named Imports**: Import specific functions with destructuring syntax
 - **Default Imports**: Import entire modules
+
+Resolution rules (per compiler):
+- Import sources must be string literals.
+- `atom:<name>` resolves to a built-in module (`std`, `math`, `object`, `path`).
+- Bare names like `"gui"`/`"hash"` resolve under `app/lib/` as `lib/<name>.atom`, or `lib/<dir>/index.atom` if `<name>` is a directory.
+- Relative paths (`./foo.atom`, `../bar.atom`) resolve from the current file directory; `.atom` extension is optional.
+- Imports are compiled once and cached by module name; subsequent imports load from the module table.
+- Named imports must be valid identifiers and not duplicated within the same import list.
 
 ### Switch and Conditional Expressions
 
@@ -1134,6 +1153,56 @@ The VM supports the following opcodes:
 - **Stack Operations**: `OpDupTop`, `OpPopTop`, `OpNoOp`
 - **Unary Operations**: `OpNot`, `OpNeg`, `OpPos`, `OpTypeof`
 - **Module Operations**: `OpMakeModule`
+
+## Semantics validated by the compiler (authoritative rules)
+
+These rules are enforced in the compiler (`compile.go`) and reflected in tests under `test/`:
+
+- Variable declarations and scope:
+  - `var` is only allowed at global scope and defines globals.
+  - `const` is allowed in block or global scope (not in a single-statement scope created by `if (...) stmt;`).
+  - `local` is allowed in block/function/loop scopes (not in single-statement scope).
+  - Reassigning a `const` produces a compile-time error.
+  - Captures: references to non-local variables are captured into closures automatically.
+
+- Declarations restricted to global scope:
+  - `class`, `enum`, and `namespace` must appear at global scope.
+
+- Namespaces:
+  - Use `namespace Name { ... }` to create a namespace; nested namespaces allowed.
+  - Access with `Namespace::Sub::symbol` or via divide-form in declarations (`namespace A/B { ... }`).
+
+- Async/await:
+  - `await` may only appear inside `async func` bodies.
+  - `await` must be applied to a call expression.
+
+- Catch expressions:
+  - The form is `expr catch (e) { ... }` and yields a value; the handler is compiled as a function taking the error.
+
+- Assignment and increments on members/indices:
+  - Compound assignments and `++/--` work on identifiers as well as `obj.key` and `obj[idx]`.
+
+- Module table and exports:
+  - `import "name";` compiles the module once, executes it, stores it in the module table, and then loads from there for later imports.
+
+Examples:
+
+```atom
+namespace Logger {
+    func log(message) {
+        std.print(message);
+        std.println(lower);
+    }
+    namespace Std {
+        func println(message) {
+            std.println(" " + message);
+        }
+    }
+}
+
+Logger::log("Hello,");
+Logger::Std::println("World!");
+```
 
 ## Building and Running
 
