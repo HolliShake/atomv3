@@ -17,26 +17,3 @@ std.println(global);
 
 mutate();
 println(global);
-
-func fact(n) {
-    if (n <= 1) {
-        return 1;
-    }
-    return n * fact(n - 1);
-}
-
-println(fact(5));
-
-
-class Dog {
-    func init(self) {
-        self.name = "Doy";
-    }
-
-    func eat(self) {
-        println(self.name + " is eating");
-        return self;
-    }
-}
-
-println((new Dog()).eat());

@@ -13,4 +13,3 @@ func factorial(n) {
         std.throw(err);
     });
 }
-
