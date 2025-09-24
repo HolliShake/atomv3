@@ -148,6 +148,9 @@ class Person {
     func init(self, _name, _age) {
         self.name = _name;
         self.age = _age;
+
+        println("init -> class", Person);
+
     }
 }
 

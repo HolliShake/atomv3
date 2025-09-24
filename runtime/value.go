@@ -149,7 +149,7 @@ func NewAtomValueFunction(async bool, file, name string, argc int) *AtomValue {
 	return obj
 }
 
-func NewAtomValueNativeFunc(nativeFunc NativeFunc) *AtomValue {
+func NewAtomValueNativeFunc(nativeFunc *AtomNativeFunc) *AtomValue {
 	obj := NewAtomValue(AtomTypeNativeFunc)
 	obj.Value = nativeFunc
 	return obj
@@ -369,7 +369,7 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 				b.WriteByte('>')
 			})
 		} else if CheckType(fnValue, AtomTypeNativeFunc) {
-			nativeFunc := fnValue.Value.(NativeFunc)
+			nativeFunc := fnValue.Value.(*AtomNativeFunc)
 			return BuildString(func(b *strings.Builder) {
 				b.WriteString("<bound method ")
 				b.WriteString(GetTypeString(method.This))
@@ -405,7 +405,7 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 
 	case AtomTypeNativeFunc:
 		// Optimized: use helper function
-		nativeFunc := v.Value.(NativeFunc)
+		nativeFunc := v.Value.(*AtomNativeFunc)
 		return BuildString(func(b *strings.Builder) {
 			b.WriteString("<built-in function ")
 			b.WriteString(nativeFunc.Name)
@@ -506,7 +506,7 @@ func (v *AtomValue) HashValue() int {
 		return v.Value.(*AtomCode).HashValue()
 
 	case AtomTypeNativeFunc:
-		f := v.Value.(NativeFunc)
+		f := v.Value.(AtomNativeFunc)
 		return int(reflect.ValueOf(f.Callable).Pointer())
 
 	case AtomTypeErr:

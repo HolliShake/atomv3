@@ -1431,6 +1431,13 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 
 	//============================
 
+	// initilize class as null
+	c.emitLine(fn, ast.Position)
+	c.emit(fn, runtime.OpLoadNull)
+
+	// Save
+	c.emitVar(fn, scope, name, true, false)
+
 	items := 0
 
 	// Body
@@ -1465,7 +1472,7 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 	}
 
 	// Save
-	c.emitVar(fn, scope, name, true, false)
+	c.identifier(fn, scope, name, runtime.OpStoreLocal)
 }
 
 func (c *AtomCompile) classVariable(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {

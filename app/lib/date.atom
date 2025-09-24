@@ -8,6 +8,7 @@ class Date {
         self.day   = 0;
         self.year  = 0;
     }
+
 }
 
 
@@ -15,3 +16,8 @@ func now() {
     return new Date();
 }
 
+
+var fns = func() {
+    fn;
+    return 2;
+};

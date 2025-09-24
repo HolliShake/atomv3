@@ -10,7 +10,7 @@ func DoMakeModule(interpreter *AtomInterpreter, frame *AtomCallFrame, size int) 
 	for range size {
 		k := frame.Stack.Pop()
 		v := frame.Stack.Pop()
-		elements[k.Value.(string)] = v
+		elements[k.String()] = v
 	}
 	frame.Stack.Push(NewAtomValueObject(elements))
 }
@@ -54,7 +54,7 @@ func DoLoadObject(frame *AtomCallFrame, size int) {
 	for range size {
 		k := frame.Stack.Pop()
 		v := frame.Stack.Pop()
-		elements[k.Value.(string)] = v
+		elements[k.String()] = v
 	}
 	frame.Stack.Push(
 		NewAtomValueObject(elements),
@@ -92,7 +92,7 @@ func DoMakeClass(interpreter *AtomInterpreter, frame *AtomCallFrame, name string
 	for range size {
 		k := frame.Stack.Pop()
 		v := frame.Stack.Pop()
-		elements[k.Value.(string)] = v
+		elements[k.String()] = v
 	}
 
 	frame.Stack.Push(NewAtomValueClass(
@@ -114,7 +114,7 @@ func DoMakeEnum(frame *AtomCallFrame, size int) {
 	for range size {
 		k := frame.Stack.Pop()
 		v := frame.Stack.Pop()
-		key := k.Value.(string)
+		key := k.String()
 
 		valueHash := v.HashValue()
 		if valueHashes[valueHash] {
@@ -210,7 +210,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		// For non-async functions, the frame will push the return value to the stack
 
 	} else if CheckType(fn, AtomTypeNativeFunc) {
-		nativeFunc := fn.Value.(NativeFunc)
+		nativeFunc := fn.Value.(*AtomNativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
 			cleanupStack()
 			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeFunc.Paramc, argc))
@@ -267,7 +267,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValu
 		frame.Stack.Push(this)
 
 	} else if CheckType(fn, AtomTypeNativeFunc) {
-		nativeFunc := fn.Value.(NativeFunc)
+		nativeFunc := fn.Value.(*AtomNativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
 			cleanupStack()
 			message := FormatError(frame, "Error: argument count mismatch")
