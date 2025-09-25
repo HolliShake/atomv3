@@ -169,6 +169,14 @@ import "atom:os";
 
 namespace Monkey/King {
 
+    namespace Bar/Kitten {
+        enum State {
+            PENDING = 0,
+            WAITING = 1,
+            COMPLETED = 2
+        }
+    }
+
     class New {
         func init(self, name) {
             self.name = name;
@@ -190,4 +198,7 @@ println(new Monkey::King::New("Jake"));
 
 Monkey::King::printName(dog);
 
-os.exit(os.success);
+
+import "./test.atom";
+
+println(">>", test);

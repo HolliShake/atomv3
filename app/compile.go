@@ -152,7 +152,6 @@ func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast
 	}
 
 	aliases := []string{}
-
 	current := scope
 	for current != nil {
 		if current.Alias != "" {
@@ -1685,7 +1684,6 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 	 * global scope with its full namespace path.
 	 */
 	aliases := []string{}
-
 	current := scope
 	for current != nil {
 		if current.Alias != "" {
