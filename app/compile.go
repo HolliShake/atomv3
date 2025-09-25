@@ -775,6 +775,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -790,6 +791,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -805,6 +807,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -820,6 +823,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -835,6 +839,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -850,6 +855,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -865,6 +871,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -880,6 +887,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -895,6 +903,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -910,6 +919,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -925,6 +935,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -940,6 +951,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -955,6 +967,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -970,6 +983,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -985,6 +999,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
@@ -1000,6 +1015,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			if isConstant(ast) {
 				result := Eval(c, ast)
+				c.emitLine(fn, ast.Position)
 				c.emitByRuntimeValue(fn, result)
 				return
 			}
