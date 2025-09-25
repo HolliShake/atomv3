@@ -169,12 +169,24 @@ import "atom:os";
 
 namespace Monkey/King {
 
+    class New {
+        func init(self, name) {
+            self.name = name;
+        }
+
+        func printName(self) {
+            println(self.name);
+        }
+    }
+
     var x = 2;
 
     func printName(dog) {
         println(dog);
     }
 }
+
+println(new Monkey::King::New("Jake"));
 
 Monkey::King::printName(dog);
 

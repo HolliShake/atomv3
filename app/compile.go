@@ -55,32 +55,30 @@ func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 	bytes := []byte{0, 0, 0, 0}
 	binary.LittleEndian.PutUint32(bytes, uint32(intValue))
 
-	atomFunc.Value.(*runtime.AtomCode).Code =
-		append(
-			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
-			runtime.OpCode(bytes[0]),
-			runtime.OpCode(bytes[1]),
-			runtime.OpCode(bytes[2]),
-			runtime.OpCode(bytes[3]),
-		)
+	atomFunc.Value.(*runtime.AtomCode).Code = append(
+		append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
+		runtime.OpCode(bytes[0]),
+		runtime.OpCode(bytes[1]),
+		runtime.OpCode(bytes[2]),
+		runtime.OpCode(bytes[3]),
+	)
 }
 
 func (c *AtomCompile) emitNum(atomFunc *runtime.AtomValue, opcode runtime.OpCode, numValue float64) {
 	bytes := []byte{0, 0, 0, 0, 0, 0, 0, 0}
 	binary.LittleEndian.PutUint64(bytes, uint64(math.Float64bits(numValue)))
 
-	atomFunc.Value.(*runtime.AtomCode).Code =
-		append(
-			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
-			runtime.OpCode(bytes[0]),
-			runtime.OpCode(bytes[1]),
-			runtime.OpCode(bytes[2]),
-			runtime.OpCode(bytes[3]),
-			runtime.OpCode(bytes[4]),
-			runtime.OpCode(bytes[5]),
-			runtime.OpCode(bytes[6]),
-			runtime.OpCode(bytes[7]),
-		)
+	atomFunc.Value.(*runtime.AtomCode).Code = append(
+		append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
+		runtime.OpCode(bytes[0]),
+		runtime.OpCode(bytes[1]),
+		runtime.OpCode(bytes[2]),
+		runtime.OpCode(bytes[3]),
+		runtime.OpCode(bytes[4]),
+		runtime.OpCode(bytes[5]),
+		runtime.OpCode(bytes[6]),
+		runtime.OpCode(bytes[7]),
+	)
 }
 
 func (c *AtomCompile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode, strValue string) {
@@ -168,7 +166,6 @@ func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast
 	name := ast.Str0
 	if len(path) > 1 && global {
 		name = strings.Join(path, "::")
-
 		// convert to global
 		for scope.Parent != nil {
 			scope = scope.Parent
@@ -339,6 +336,7 @@ func (c *AtomCompile) isLocalToFunction(scope *AtomScope, symbol string) bool {
 
 func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *AtomAst, opcode runtime.OpCode) {
 	if !c.isDefined(scope, ast.Str0) {
+		fmt.Println("->", ast.Str0)
 		op := opcode
 		switch opcode {
 		case runtime.OpStoreLocal:
@@ -1584,7 +1582,6 @@ func (c *AtomCompile) namespaceStatement(scope *AtomScope, fn *runtime.AtomValue
 			if currentPath == nil {
 				break
 			}
-
 		}
 
 	} else {
@@ -1677,6 +1674,34 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		c.expression(scope, fn, base)
 		c.emitLine(fn, ast.Position)
 		c.emit(fn, runtime.OpExtendClass)
+	}
+
+	/*
+	 * For classes, we need to handle namespace resolution properly.
+	 * Classes can be defined within namespaces, and when they are,
+	 * we need to construct the fully qualified class name by combining
+	 * all parent namespace aliases with the class name using "::" as
+	 * the separator. This allows the class to be accessible from the
+	 * global scope with its full namespace path.
+	 */
+	aliases := []string{}
+
+	current := scope
+	for current != nil {
+		if current.Alias != "" {
+			aliases = append(aliases, current.Alias)
+		}
+		current = current.Parent
+	}
+
+	// Namespaced??
+	path := append(arrayReverse(aliases), name.Str0)
+	name.Str0 = strings.Join(path, "::")
+	if len(path) > 1 {
+		// convert to global
+		for scope.Parent != nil {
+			scope = scope.Parent
+		}
 	}
 
 	// Save
@@ -2692,6 +2717,7 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 		 * Variables that have been referenced but do not exist yet,
 		 * we mark them as global captured variables
 		 */
+		fmt.Println(pendingVariable.ast.Str0)
 		c.emitSavedCapture(pendingVariable.atomFunc, globalScope, pendingVariable.ast, pendingVariable.index)
 	}
 
