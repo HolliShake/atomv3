@@ -116,10 +116,28 @@ func std_epoch(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 var EXPORT_STD = map[string]*AtomValue{
-	"decompile": NewAtomValueNativeFunc(NewNativeFunc("decompile", 1, std_decompile)),
-	"println":   NewAtomValueNativeFunc(NewNativeFunc("println", Variadict, std_println)),
-	"print":     NewAtomValueNativeFunc(NewNativeFunc("print", Variadict, std_print)),
-	"readLine":  NewAtomValueNativeFunc(NewNativeFunc("readLine", 1, std_readLine)),
-	"throw":     NewAtomValueNativeFunc(NewNativeFunc("throw", 1, std_throw)),
-	"epoch":     NewAtomValueNativeFunc(NewNativeFunc("epoch", 0, std_epoch)),
+	"decompile": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("decompile", 1, std_decompile),
+	),
+	"println": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("println", Variadict, std_println),
+	),
+	"print": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("print", Variadict, std_print),
+	),
+	"readLine": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("readLine", 1, std_readLine),
+	),
+	"throw": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("throw", 1, std_throw),
+	),
+	"epoch": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("epoch", 0, std_epoch),
+	),
 }

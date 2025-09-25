@@ -22,7 +22,10 @@ func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		for key := range obj.Value.(*AtomObject).Elements {
 			keys = append(keys, NewAtomValueStr(key))
 		}
-		frame.Stack.Push(NewAtomValueArray(keys))
+		frame.Stack.Push(NewAtomGenericValue(
+			AtomTypeArray,
+			NewAtomArray(keys),
+		))
 	} else {
 		frame.Stack.Push(NewAtomValueError(FormatError(frame, "cannot keys non-object")))
 	}
@@ -35,14 +38,26 @@ func obj_values(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		for _, value := range obj.Value.(*AtomObject).Elements {
 			values = append(values, value)
 		}
-		frame.Stack.Push(NewAtomValueArray(values))
+		frame.Stack.Push(NewAtomGenericValue(
+			AtomTypeArray,
+			NewAtomArray(values),
+		))
 	} else {
 		frame.Stack.Push(NewAtomValueError(FormatError(frame, "cannot values non-object")))
 	}
 }
 
 var EXPORT_OBJECT = map[string]*AtomValue{
-	"freeze": NewAtomValueNativeFunc(NewNativeFunc("freeze", 1, obj_freeze)),
-	"keys":   NewAtomValueNativeFunc(NewNativeFunc("keys", 1, obj_keys)),
-	"values": NewAtomValueNativeFunc(NewNativeFunc("values", 1, obj_values)),
+	"freeze": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("freeze", 1, obj_freeze),
+	),
+	"keys": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("keys", 1, obj_keys),
+	),
+	"values": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("values", 1, obj_values),
+	),
 }

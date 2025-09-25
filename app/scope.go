@@ -7,6 +7,7 @@ const (
 	AtomScopeTypeClass
 	AtomScopeTypeFunction
 	AtomScopeTypeAsyncFunction
+	AtomScopeTypeNamespace
 	AtomScopeTypeBlock
 	AtomScopeTypeLoop
 	AtomScopeTypeSingle

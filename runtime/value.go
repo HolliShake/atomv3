@@ -100,70 +100,15 @@ func NewAtomValueNull() *AtomValue {
 	return obj
 }
 
-func NewAtomValueClass(name string, base, proto *AtomValue) *AtomValue {
-	obj := NewAtomValue(AtomTypeClass)
-	obj.Value = NewAtomClass(name, base, proto)
-	return obj
-}
-
-func NewAtomValueClassInstance(prototype, property *AtomValue) *AtomValue {
-	obj := NewAtomValue(AtomTypeClassInstance)
-	obj.Value = NewAtomClassInstance(prototype, property)
-	return obj
-}
-
-func NewAtomValueEnum(elements map[string]*AtomValue) *AtomValue {
-	obj := NewAtomValue(AtomTypeEnum)
-	obj.Value = NewAtomObject(elements)
-	return obj
-}
-
-func NewAtomValueObject(elements map[string]*AtomValue) *AtomValue {
-	obj := NewAtomValue(AtomTypeObj)
-	obj.Value = NewAtomObject(elements)
-	return obj
-}
-
-func NewAtomValueArray(elements []*AtomValue) *AtomValue {
-	obj := NewAtomValue(AtomTypeArray)
-	obj.Value = NewAtomArray(elements)
-	return obj
-}
-
-// Bound method
-func NewAtomValueMethod(this *AtomValue, fn *AtomValue) *AtomValue {
-	obj := NewAtomValue(AtomTypeMethod)
-	obj.Value = NewAtomMethod(this, fn)
-	return obj
-}
-
-func NewAtomValueNativeMethod(nativeMethod *AtomNativeMethod) *AtomValue {
-	obj := NewAtomValue(AtomTypeNativeMethod)
-	obj.Value = nativeMethod
-	return obj
-}
-
-func NewAtomValueFunction(async bool, file, name string, argc int) *AtomValue {
-	obj := NewAtomValue(AtomTypeFunc)
-	obj.Value = NewAtomCode(file, name, async, argc)
-	return obj
-}
-
-func NewAtomValueNativeFunc(nativeFunc *AtomNativeFunc) *AtomValue {
-	obj := NewAtomValue(AtomTypeNativeFunc)
-	obj.Value = nativeFunc
-	return obj
-}
-
 func NewAtomValueError(message string) *AtomValue {
 	obj := NewAtomValue(AtomTypeErr)
 	obj.Value = message
 	return obj
 }
 
-func NewAtomValuePromise(state PromiseState, value *AtomValue) *AtomValue {
-	obj := NewAtomValue(AtomTypePromise)
-	obj.Value = NewAtomPromise(state, value)
+func NewAtomGenericValue(atomType AtomType, value any) *AtomValue {
+	obj := NewAtomValue(atomType)
+	obj.Value = value
 	return obj
 }
 

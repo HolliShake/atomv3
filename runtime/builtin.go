@@ -18,5 +18,5 @@ func NewNativeFunc(name string, paramc int, callable func(interpreter *AtomInter
 
 func DefineModule(interpreter *AtomInterpreter, name string, values map[string]*AtomValue) {
 	values["__name__"] = NewAtomValueStr(name)
-	interpreter.ModuleTable[name] = NewAtomValueObject(values)
+	interpreter.ModuleTable[name] = NewAtomGenericValue(AtomTypeObj, NewAtomObject(values))
 }

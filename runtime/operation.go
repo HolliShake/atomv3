@@ -12,7 +12,10 @@ func DoMakeModule(interpreter *AtomInterpreter, frame *AtomCallFrame, size int) 
 		v := frame.Stack.Pop()
 		elements[k.String()] = v
 	}
-	frame.Stack.Push(NewAtomValueObject(elements))
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeObj,
+		NewAtomObject(elements),
+	))
 }
 
 func DoLoadInt(frame *AtomCallFrame, value int) {
@@ -44,9 +47,10 @@ func DoLoadArray(frame *AtomCallFrame, size int) {
 	for range size {
 		elements = append(elements, frame.Stack.Pop())
 	}
-	frame.Stack.Push(
-		NewAtomValueArray(elements),
-	)
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeArray,
+		NewAtomArray(elements),
+	))
 }
 
 func DoLoadObject(frame *AtomCallFrame, size int) {
@@ -56,9 +60,11 @@ func DoLoadObject(frame *AtomCallFrame, size int) {
 		v := frame.Stack.Pop()
 		elements[k.String()] = v
 	}
-	frame.Stack.Push(
-		NewAtomValueObject(elements),
-	)
+
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeObj,
+		NewAtomObject(elements),
+	))
 }
 
 func DoLoadName(frame *AtomCallFrame, index int) {
@@ -100,10 +106,16 @@ func DoMakeClass(interpreter *AtomInterpreter, frame *AtomCallFrame, name string
 		elements[k.String()] = v
 	}
 
-	frame.Stack.Push(NewAtomValueClass(
-		name,
-		nil,
-		NewAtomValueObject(elements),
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeClass,
+		NewAtomClass(
+			name,
+			nil,
+			NewAtomGenericValue(
+				AtomTypeObj,
+				NewAtomObject(elements),
+			),
+		),
 	))
 }
 
@@ -130,7 +142,10 @@ func DoMakeEnum(frame *AtomCallFrame, size int) {
 		}
 	}
 
-	frame.Stack.Push(NewAtomValueEnum(elements))
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeEnum,
+		NewAtomObject(elements),
+	))
 }
 
 func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, argc int) {
@@ -149,7 +164,13 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 	atomClass := cls.Value.(*AtomClass)
 
 	// Create this
-	this := NewAtomValueClassInstance(cls, NewAtomValueObject(map[string]*AtomValue{}))
+	this := NewAtomGenericValue(
+		AtomTypeClassInstance,
+		NewAtomClassInstance(cls, NewAtomGenericValue(
+			AtomTypeObj,
+			NewAtomObject(map[string]*AtomValue{}),
+		)),
+	)
 
 	// Walk up the inheritance chain to collect all initializers
 	var initializers []*AtomValue
@@ -345,9 +366,10 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 
 	} else if CheckType(obj, AtomTypeArray) {
 		if method := index.String(); CheckType(index, AtomTypeStr) && IsArrayMethod(method) {
-			frame.Stack.Push(
-				NewAtomValueNativeMethod(ArrayGetMethod(obj, method)),
-			)
+			frame.Stack.Push(NewAtomGenericValue(
+				AtomTypeNativeMethod,
+				ArrayGetMethod(obj, method),
+			))
 			return
 		}
 		if !IsNumberType(index) {
@@ -415,7 +437,10 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 			// Class direct prototype?
 			if attribute := current.Proto.Value.(*AtomObject).Get(index.String()); attribute != nil {
 				if CheckType(attribute, AtomTypeFunc) {
-					frame.Stack.Push(NewAtomValueMethod(obj, attribute))
+					frame.Stack.Push(NewAtomGenericValue(
+						AtomTypeMethod,
+						NewAtomMethod(obj, attribute),
+					))
 					return
 				}
 				frame.Stack.Push(attribute)

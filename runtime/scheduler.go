@@ -30,7 +30,10 @@ func (s *AtomScheduler) Running(frame *AtomCallFrame) {
 		frame.State = ExecRunning
 		// Create a promise if ever the function meets an await,
 		// notice func (s *AtomScheduler) Await(frame *AtomCallFrame);
-		frame.Promise = NewAtomValuePromise(PromiseStatePending, nil)
+		frame.Promise = NewAtomGenericValue(
+			AtomTypePromise,
+			NewAtomPromise(PromiseStatePending, nil),
+		)
 	}
 }
 

@@ -176,12 +176,36 @@ func math_log(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 var EXPORT_MATH = map[string]*AtomValue{
-	"rand":  NewAtomValueNativeFunc(NewNativeFunc("rand", 1, math_rand)),
-	"abs":   NewAtomValueNativeFunc(NewNativeFunc("abs", 1, math_abs)),
-	"floor": NewAtomValueNativeFunc(NewNativeFunc("floor", 1, math_floor)),
-	"ceil":  NewAtomValueNativeFunc(NewNativeFunc("ceil", 1, math_ceil)),
-	"round": NewAtomValueNativeFunc(NewNativeFunc("round", 1, math_round)),
-	"pow":   NewAtomValueNativeFunc(NewNativeFunc("pow", 2, math_pow)),
-	"sqrt":  NewAtomValueNativeFunc(NewNativeFunc("sqrt", 1, math_sqrt)),
-	"log":   NewAtomValueNativeFunc(NewNativeFunc("log", 1, math_log)),
+	"rand": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("rand", 1, math_rand),
+	),
+	"abs": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("abs", 1, math_abs),
+	),
+	"floor": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("floor", 1, math_floor),
+	),
+	"ceil": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("ceil", 1, math_ceil),
+	),
+	"round": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("round", 1, math_round),
+	),
+	"pow": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("pow", 2, math_pow),
+	),
+	"sqrt": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("sqrt", 1, math_sqrt),
+	),
+	"log": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("log", 1, math_log),
+	),
 }

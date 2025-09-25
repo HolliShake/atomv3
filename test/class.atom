@@ -156,10 +156,26 @@ class Person {
     }
 }
 
-for (local h = 0;h < 1;h++) {
+for (local h = 0;h < 1; h++) {
     println(Person.create("Person", h));
 }
 
 import "atom:path";
+import "date";
 
-println(path.cwd(), path.join(path.cwd(), "this", "time"));
+println(path.cwd(), path.join(path.cwd(), "this", "time"), date.Date.create(), 2.2e2);
+
+import "atom:os";
+
+namespace Monkey/King {
+
+    var x = 2;
+
+    func printName(dog) {
+        println(dog);
+    }
+}
+
+Monkey::King::printName(dog);
+
+os.exit(os.success);

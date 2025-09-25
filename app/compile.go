@@ -493,7 +493,10 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			}
 
 			funScope := NewAtomScope(scope, scopeType)
-			atomFunc := runtime.NewAtomValueFunction(async, c.parser.tokenizer.file, "anonymous", len(ast.Arr0))
+			atomFunc := runtime.NewAtomGenericValue(
+				runtime.AtomTypeFunc,
+				runtime.NewAtomCode(c.parser.tokenizer.file, "anonymous", async, len(ast.Arr0)),
+			)
 
 			params := ast.Arr0
 			//============================
@@ -1122,7 +1125,10 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			body := ast.Arr0
 
 			//==========================
-			atomFunc := runtime.NewAtomValueFunction(false, c.parser.tokenizer.file, "catch", 1)
+			atomFunc := runtime.NewAtomGenericValue(
+				runtime.AtomTypeFunc,
+				runtime.NewAtomCode(c.parser.tokenizer.file, "catch", false, 1),
+			)
 			funScope := NewAtomScope(scope, AtomScopeTypeFunction)
 			fnOffset := c.state.SaveFunction(atomFunc)
 
@@ -1531,13 +1537,15 @@ func (c *AtomCompile) expressionStatement(scope *AtomScope, fn *runtime.AtomValu
 
 func (c *AtomCompile) namespaceStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	// Guard
-	if !scope.InSide(AtomScopeTypeGlobal, false) {
+	// Allowed only in global or namespace scope
+	if !scope.InSide(AtomScopeTypeGlobal, false) && !scope.InSide(AtomScopeTypeNamespace, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
-			"Namespace statement must be in global scope",
+			"Namespace statement must be in global or namespace scope",
 			ast.Position,
 		)
+		return
 	}
 
 	name := ast.Ast0
@@ -1585,7 +1593,7 @@ func (c *AtomCompile) namespaceStatement(scope *AtomScope, fn *runtime.AtomValue
 
 	namespaceName := strings.Join(arrayReverse(path), "::")
 
-	namespaceScope := NewAtomAliasScope(scope, AtomScopeTypeGlobal, namespaceName)
+	namespaceScope := NewAtomAliasScope(scope, AtomScopeTypeNamespace, namespaceName)
 	for _, stmt := range body {
 		c.statement(namespaceScope, fn, stmt)
 	}
@@ -1593,11 +1601,12 @@ func (c *AtomCompile) namespaceStatement(scope *AtomScope, fn *runtime.AtomValue
 
 func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	// Guard
-	if !scope.InSide(AtomScopeTypeGlobal, false) {
+	// Allowed only in global or namespace scope
+	if !scope.InSide(AtomScopeTypeGlobal, false) && !scope.InSide(AtomScopeTypeNamespace, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
-			"Class statement must be in global scope",
+			"Class statement must be in global or namespace scope",
 			ast.Position,
 		)
 	}
@@ -1727,7 +1736,10 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 	}
 
 	funScope := NewAtomScope(scope, scopeType)
-	atomFunc := runtime.NewAtomValueFunction(async, c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
+	atomFunc := runtime.NewAtomGenericValue(
+		runtime.AtomTypeFunc,
+		runtime.NewAtomCode(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0)),
+	)
 
 	params := ast.Arr0
 	//============================
@@ -1771,13 +1783,15 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 
 func (c *AtomCompile) enumStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	// Guard
-	if !scope.InSide(AtomScopeTypeGlobal, false) {
+	// Allowed only in global
+	if !scope.InSide(AtomScopeTypeGlobal, false) && !scope.InSide(AtomScopeTypeNamespace, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
-			"Enum statement must be in global scope",
+			"Enum statement must be in global or namespace scope",
 			ast.Position,
 		)
+		return
 	}
 
 	name := ast.Ast0
@@ -1824,11 +1838,12 @@ func (c *AtomCompile) enumStatement(scope *AtomScope, fn *runtime.AtomValue, ast
 
 func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst, async bool) {
 	// Guard
-	if !scope.InSide(AtomScopeTypeGlobal, false) {
+	// Allowed only in global or namespace scope
+	if !scope.InSide(AtomScopeTypeGlobal, false) && !scope.InSide(AtomScopeTypeNamespace, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
-			"Function must be defined in global scope",
+			"Function must be defined in global or namespace scope",
 			ast.Position,
 		)
 		return
@@ -1840,7 +1855,10 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 	}
 
 	funScope := NewAtomScope(scope, scopeType)
-	atomFunc := runtime.NewAtomValueFunction(async, c.parser.tokenizer.file, ast.Ast0.Str0, len(ast.Arr0))
+	atomFunc := runtime.NewAtomGenericValue(
+		runtime.AtomTypeFunc,
+		runtime.NewAtomCode(c.parser.tokenizer.file, ast.Ast0.Str0, async, len(ast.Arr0)),
+	)
 
 	params := ast.Arr0
 	//============================
@@ -1892,11 +1910,13 @@ func (c *AtomCompile) block(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAs
 }
 
 func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
-	if !scope.InSide(AtomScopeTypeGlobal, false) {
+	// Guard
+	// Allowed only in global or namespace scope
+	if !scope.InSide(AtomScopeTypeGlobal, false) && !scope.InSide(AtomScopeTypeNamespace, false) {
 		Error(
 			c.parser.tokenizer.file,
 			c.parser.tokenizer.data,
-			"Var statement must be in global scope",
+			"Var statement must be in global or namespace scope",
 			ast.Position,
 		)
 		return
@@ -1945,6 +1965,8 @@ func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 }
 
 func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
+	// Guard
+	// Allowed on any scope except single scope
 	if scope.InSide(AtomScopeTypeSingle, false) {
 		// error, not allowed in single scope
 		// if (true)
@@ -1958,7 +1980,7 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		return
 	}
 
-	isGlobal := scope.InSide(AtomScopeTypeGlobal, false)
+	isGlobal := scope.InSide(AtomScopeTypeGlobal, false) || scope.InSide(AtomScopeTypeNamespace, false)
 
 	seenNames := map[string]bool{}
 
@@ -2003,7 +2025,12 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 }
 
 func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
-	if scope.InSide(AtomScopeTypeSingle, false) || !scope.InSide(AtomScopeTypeBlock, false) && !(scope.InSide(AtomScopeTypeFunction, false) || scope.InSide(AtomScopeTypeAsyncFunction, false) || scope.InSide(AtomScopeTypeLoop, false)) {
+	// Guard
+	// Allowed only in block, function, async function, and loop scope
+	if !scope.InSide(AtomScopeTypeBlock, false) &&
+		!scope.InSide(AtomScopeTypeFunction, false) &&
+		!scope.InSide(AtomScopeTypeAsyncFunction, false) &&
+		!scope.InSide(AtomScopeTypeLoop, false) {
 		// error, not allowed in single scope
 		// if (true)
 		// 	local x = 2;
@@ -2059,6 +2086,7 @@ func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, as
 
 func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	// Guard
+	// Allowed only in global scope
 	if !scope.InSide(AtomScopeTypeGlobal, false) {
 		Error(
 			c.parser.tokenizer.file,
@@ -2645,7 +2673,10 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
-	programFunc := runtime.NewAtomValueFunction(false, c.parser.tokenizer.file, "script", 0)
+	programFunc := runtime.NewAtomGenericValue(
+		runtime.AtomTypeFunc,
+		runtime.NewAtomCode(c.parser.tokenizer.file, "script", false, 0),
+	)
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)
@@ -2673,7 +2704,10 @@ func (c *AtomCompile) Export() int {
 		panic("Already exists (not handled properly)!")
 	}
 	globalScope := NewAtomScope(nil, AtomScopeTypeGlobal)
-	programFunc := runtime.NewAtomValueFunction(false, c.parser.tokenizer.file, "script", 0)
+	programFunc := runtime.NewAtomGenericValue(
+		runtime.AtomTypeFunc,
+		runtime.NewAtomCode(c.parser.tokenizer.file, "script", false, 0),
+	)
 	body := ast.Arr1
 	for _, stmt := range body {
 		c.statement(globalScope, programFunc, stmt)

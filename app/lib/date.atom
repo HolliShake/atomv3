@@ -9,11 +9,7 @@ class Date {
         self.year  = 0;
     }
 
+    func create() {
+        return new Date();
+    }
 }
-
-
-func now() {
-    return new Date();
-}
-
-

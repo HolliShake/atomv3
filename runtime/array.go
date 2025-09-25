@@ -299,7 +299,10 @@ func ArraySelect(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		elements = append(elements, frame.Stack.Pop())
 	}
 
-	frame.Stack.Push(NewAtomValueArray(elements))
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeArray,
+		NewAtomArray(elements),
+	))
 }
 
 func ArrayWhere(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
@@ -337,7 +340,10 @@ func ArrayWhere(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 			resultElements = append(resultElements, element)
 		}
 	}
-	frame.Stack.Push(NewAtomValueArray(resultElements))
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeArray,
+		NewAtomArray(resultElements),
+	))
 }
 
 func ArrayGetMethod(this *AtomValue, name string) *AtomNativeMethod {
