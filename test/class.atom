@@ -23,7 +23,7 @@ class Animal {
 }
 
 func reg() {
-    (3 / 0) catch (err) {
+    (3 / 1) catch (err) {
         std.println(">>>", err);
     };
     return 2;
@@ -202,3 +202,15 @@ Monkey::King::printName(dog);
 import "./test.atom";
 
 println(">>", test);
+
+
+func mul() {
+    2 * 3;
+    2 / 3;
+    2 % 3;
+    2 / 3;
+    "hello" + " " + "world";
+    return 2 * 3;
+}
+
+println(std.decompile(mul));

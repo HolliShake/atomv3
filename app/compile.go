@@ -37,12 +37,64 @@ func NewAtomCompile(parser *AtomParser, state *runtime.AtomState) *AtomCompile {
 	}
 }
 
+func isConstant(ast *AtomAst) bool {
+	switch ast.AstType {
+	case AstTypeInt,
+		AstTypeNum,
+		AstTypeStr,
+		AstTypeBool,
+		AstTypeNull:
+		return true
+	case AstTypeBinaryMul,
+		AstTypeBinaryDiv,
+		AstTypeBinaryMod,
+		AstTypeBinaryAdd,
+		AstTypeBinarySub,
+		AstTypeBinaryShiftRight,
+		AstTypeBinaryShiftLeft,
+		AstTypeBinaryGreaterThan,
+		AstTypeBinaryGreaterThanEqual,
+		AstTypeBinaryLessThan,
+		AstTypeBinaryLessThanEqual,
+		AstTypeBinaryEqual,
+		AstTypeBinaryNotEqual,
+		AstTypeBinaryAnd,
+		AstTypeBinaryOr,
+		AstTypeBinaryXor:
+		// Careful for recursive calls
+		return isConstant(ast.Ast0) && isConstant(ast.Ast1)
+	default:
+		return false
+	}
+}
+
 func arrayReverse(path []string) []string {
 	reverse := []string{}
 	for i := len(path) - 1; i >= 0; i-- {
 		reverse = append(reverse, path[i])
 	}
 	return reverse
+}
+
+func (c *AtomCompile) emitByRuntimeValue(fn, obj *runtime.AtomValue) {
+	switch obj.Type {
+	case runtime.AtomTypeInt:
+		c.emitInt(fn, runtime.OpLoadInt, int(obj.Value.(int32)))
+	case runtime.AtomTypeNum:
+		c.emitNum(fn, runtime.OpLoadNum, obj.Value.(float64))
+	case runtime.AtomTypeStr:
+		c.emitStr(fn, runtime.OpLoadStr, obj.Value.(string))
+	case runtime.AtomTypeBool:
+		if runtime.CoerceToBool(obj) {
+			c.emitInt(fn, runtime.OpLoadBool, 1)
+		} else {
+			c.emitInt(fn, runtime.OpLoadBool, 0)
+		}
+	case runtime.AtomTypeNull:
+		c.emit(fn, runtime.OpLoadNull)
+	default:
+		panic(fmt.Sprintf("invalid type: %d", obj.Type))
+	}
 }
 
 func (c *AtomCompile) emit(atomFunc *runtime.AtomValue, opcode runtime.OpCode) {
@@ -335,7 +387,6 @@ func (c *AtomCompile) isLocalToFunction(scope *AtomScope, symbol string) bool {
 
 func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *AtomAst, opcode runtime.OpCode) {
 	if !c.isDefined(scope, ast.Str0) {
-		fmt.Println("->", ast.Str0)
 		op := opcode
 		switch opcode {
 		case runtime.OpStoreLocal:
@@ -722,6 +773,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryMul:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -732,6 +788,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryDiv:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -742,6 +803,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryMod:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -752,6 +818,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryAdd:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -762,6 +833,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinarySub:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -772,6 +848,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryShiftRight:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -782,6 +863,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryShiftLeft:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -792,6 +878,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryGreaterThan:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -802,6 +893,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryGreaterThanEqual:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -812,6 +908,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryLessThan:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -822,6 +923,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryLessThanEqual:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -832,6 +938,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryEqual:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -842,6 +953,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryNotEqual:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -852,6 +968,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryAnd:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -862,6 +983,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryOr:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -872,6 +998,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeBinaryXor:
 		{
+			if isConstant(ast) {
+				result := Eval(c, ast)
+				c.emitByRuntimeValue(fn, result)
+				return
+			}
 			lhs := ast.Ast0
 			rhs := ast.Ast1
 			c.expression(scope, fn, lhs)
@@ -2003,8 +2134,6 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		return
 	}
 
-	isGlobal := scope.InSide(AtomScopeTypeGlobal, false) || scope.InSide(AtomScopeTypeNamespace, false)
-
 	seenNames := map[string]bool{}
 
 	for idx, key := range ast.Arr0 {
@@ -2041,7 +2170,7 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 			fn,
 			scope,
 			key,
-			isGlobal,
+			scope.InSide(AtomScopeTypeGlobal, false) || scope.InSide(AtomScopeTypeNamespace, false),
 			true,
 		)
 	}

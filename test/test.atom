@@ -227,7 +227,7 @@ class Dog extends Animal {
 }
 
 
-println(Dog, (3 / 0.00) catch(err) {
+println(Dog, (3 / 2) catch(err) {
     println("ERR:", err);
     return;
 });
