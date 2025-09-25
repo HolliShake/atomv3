@@ -113,10 +113,10 @@ func NewAtomGenericValue(atomType AtomType, value any) *AtomValue {
 }
 
 func (v *AtomValue) String() string {
-	return v.stringWithVisited(make(map[uintptr]bool))
+	return v.StringWithVisited(make(map[uintptr]bool))
 }
 
-func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
+func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 	switch v.Type {
 	case AtomTypeInt:
 		// Fast path: direct conversion without fmt.Sprintf
@@ -191,7 +191,7 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 			builder.WriteString("  ")
 			builder.WriteString(key)
 			builder.WriteString(": ")
-			builder.WriteString(valueToStringWithVisited(value, visited))
+			builder.WriteString(ValueToStringWithVisited(value, visited))
 			builder.WriteByte(',')
 		}
 		builder.WriteString("\n}")
@@ -226,7 +226,7 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 			first = false
 			builder.WriteString(key)
 			builder.WriteByte('=')
-			builder.WriteString(valueToStringWithVisited(value, visited))
+			builder.WriteString(ValueToStringWithVisited(value, visited))
 		}
 		builder.WriteByte('}')
 		result := builder.String()
@@ -260,7 +260,7 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 			first = false
 			builder.WriteString(keyStr)
 			builder.WriteString(": ")
-			builder.WriteString(valueToStringWithVisited(value, visited))
+			builder.WriteString(ValueToStringWithVisited(value, visited))
 		}
 		builder.WriteByte('}')
 		result := builder.String()
@@ -292,7 +292,7 @@ func (v *AtomValue) stringWithVisited(visited map[uintptr]bool) string {
 				builder.WriteString(", ")
 			}
 			first = false
-			builder.WriteString(valueToStringWithVisited(element, visited))
+			builder.WriteString(ValueToStringWithVisited(element, visited))
 		}
 		builder.WriteByte(']')
 		result := builder.String()
@@ -536,10 +536,10 @@ func ValueToString(v *AtomValue) string {
 }
 
 // Helper function to get string representation with visited tracking for circular reference detection
-func valueToStringWithVisited(v *AtomValue, visited map[uintptr]bool) string {
+func ValueToStringWithVisited(v *AtomValue, visited map[uintptr]bool) string {
 	if CheckType(v, AtomTypeStr) {
 		// Fast path: add quotes directly
 		return "'" + v.Value.(string) + "'"
 	}
-	return v.stringWithVisited(visited)
+	return v.StringWithVisited(visited)
 }

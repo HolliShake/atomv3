@@ -112,12 +112,12 @@ func FormatError(frame *AtomCallFrame, message string) string {
 	ip := frame.Ip
 
 	// binary search the line
-	line := binarySearch(frame.Fn.Value.(*AtomCode).Line, ip)
+	line := BinarySearch(frame.Fn.Value.(*AtomCode).Line, ip)
 
 	return fmt.Sprintf("[%s:%d]::Error: %s", file, line, message)
 }
 
-func binarySearch(lines []AtomDebugLine, ip int) int {
+func BinarySearch(lines []AtomDebugLine, ip int) int {
 	left, right := 0, len(lines)-1
 	result := -1
 

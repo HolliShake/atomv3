@@ -214,3 +214,5 @@ func mul() {
 }
 
 println(std.decompile(mul));
+
+import "./async.atom";
