@@ -1,0 +1,246 @@
+import [println] from "atom:std";
+
+println("=== Closure Stress Test ===");
+
+// Test 1: Basic closure with single variable capture
+func createCounter() {
+    var count = 0;
+    return func() {
+        count = count + 1;
+        return count;
+    };
+}
+
+const counter1 = createCounter();
+const counter2 = createCounter();
+
+println("Basic closure test:");
+println("Counter1:", counter1(), counter1(), counter1()); // Should be 1, 2, 3
+println("Counter2:", counter2(), counter2());             // Should be 1, 2
+
+// Test 2: Multiple variable capture
+func createCalculator(initial) {
+    var value = initial;
+    var operations = 0;
+    
+    return {
+        add: func(x) {
+            value = value + x;
+            operations = operations + 1;
+            return value;
+        },
+        subtract: func(x) {
+            value = value - x;
+            operations = operations + 1;
+            return value;
+        },
+        getOperations: func() {
+            return operations;
+        },
+        getValue: func() {
+            return value;
+        }
+    };
+}
+
+const calc = createCalculator(10);
+println("\nMultiple variable capture test:");
+println("Initial value:", calc.getValue());
+println("Add 5:", calc.add(5));
+println("Subtract 3:", calc.subtract(3));
+println("Operations count:", calc.getOperations());
+
+// Test 3: Nested closures
+func createNestedCounter() {
+    var outer = 0;
+    
+    return func() {
+        outer = outer + 1;
+        var inner = 0;
+        
+        return func() {
+            inner = inner + 1;
+            return "Outer: " + outer + ", Inner: " + inner;
+        };
+    };
+}
+
+const nestedFactory = createNestedCounter();
+const nested1 = nestedFactory();
+const nested2 = nestedFactory();
+
+println("\nNested closures test:");
+println("Nested1:", nested1(), nested1());
+println("Nested2:", nested2(), nested2());
+
+// Test 4: Closure in loop (classic closure problem)
+func createFunctionArray() {
+    var functions = [];
+    var i = 0;
+    
+    while (i < 5) {
+        // Create a closure that captures the current value of i
+        functions.push((func(index) {
+            return func() {
+                return "Function " + index + " called";
+            };
+        })(i));
+        i = i + 1;
+    }
+    
+    return functions;
+}
+
+const funcArray = createFunctionArray();
+println("\nClosure in loop test:");
+var j = 0;
+while (j < funcArray.length()) {
+    println(funcArray[j]());
+    j = j + 1;
+}
+
+// Test 5: Closure with parameter modification
+func createParameterModifier(param) {
+    return func(newValue) {
+        if (newValue != null) {
+            param = newValue;
+        }
+        return param;
+    };
+}
+
+const modifier = createParameterModifier("initial");
+println("\nParameter modification test:");
+println("Initial:", modifier());
+println("Modified:", modifier("changed"));
+println("Current:", modifier());
+
+// Test 6: Complex closure with multiple levels
+func createComplexClosure() {
+    var level1 = "L1";
+    
+    return func(param1) {
+        var level2 = "L2-" + param1;
+        
+        return func(param2) {
+            var level3 = "L3-" + param2;
+            
+            return func() {
+                return level1 + ":" + level2 + ":" + level3;
+            };
+        };
+    };
+}
+
+const complex = createComplexClosure();
+const level2Func = complex("A");
+const level3Func = level2Func("B");
+
+println("\nComplex multi-level closure test:");
+println("Result:", level3Func());
+
+// Test 7: Closure with array and object capture
+func createDataCapture() {
+    var arr = [1, 2, 3];
+    var obj = {name: "test", value: 42};
+    
+    return {
+        addToArray: func(item) {
+            arr.push(item);
+            return arr;
+        },
+        modifyObject: func(key, value) {
+            obj[key] = value;
+            return obj;
+        },
+        getAll: func() {
+            return {array: arr, object: obj};
+        }
+    };
+}
+
+const dataCapture = createDataCapture();
+println("\nData structure capture test:");
+println("Add to array:", dataCapture.addToArray(4));
+println("Modify object:", dataCapture.modifyObject("newKey", "newValue"));
+println("Get all:", dataCapture.getAll());
+
+// Test 8: Recursive closure
+func createRecursiveClosure() {
+    local memo = {};
+    
+    return func (n) {
+        if (n <= 1) {
+            return n;
+        }
+        
+        if (memo[n] != null) {
+            return memo[n];
+        }
+        
+        memo[n] = fibonacci(n - 1) + fibonacci(n - 2);
+        return memo[n];
+    };
+}
+
+const fibClosure = createRecursiveClosure();
+println("\nRecursive closure test (memoized fibonacci):");
+println("fib(10):", fibClosure(10));
+println("fib(15):", fibClosure(15));
+
+// Test 9: Closure factory with different behaviors
+func createBehaviorFactory(type) {
+    if (type == "adder") {
+        var sum = 0;
+        return func(x) {
+            sum = sum + x;
+            return sum;
+        };
+    } else if (type == "multiplier") {
+        var product = 1;
+        return func(x) {
+            product = product * x;
+            return product;
+        };
+    } else {
+        return func(x) {
+            return "Unknown type: " + x;
+        };
+    }
+}
+
+const adder = createBehaviorFactory("adder");
+const multiplier = createBehaviorFactory("multiplier");
+const unknown = createBehaviorFactory("unknown");
+
+println("\nBehavior factory test:");
+println("Adder:", adder(5), adder(3), adder(2)); // 5, 8, 10
+println("Multiplier:", multiplier(2), multiplier(3), multiplier(4)); // 2, 6, 24
+println("Unknown:", unknown("test"));
+
+// Test 10: Stress test with many closures
+func createManyClosures(count) {
+    var closures = [];
+    var i = 0;
+    
+    while (i < count) {
+        closures.push((func(index) {
+            var localVar = "closure-" + index;
+            return func() {
+                return localVar + " executed";
+            };
+        })(i));
+        i = i + 1;
+    }
+    
+    return closures;
+}
+
+const manyClosures = createManyClosures(100);
+println("\nMany closures stress test:");
+println("Created", manyClosures.length(), "closures");
+println("First closure:", manyClosures[0]());
+println("Middle closure:", manyClosures[50]());
+println("Last closure:", manyClosures[99]());
+
+println("\n=== Closure Stress Test Complete ===");
