@@ -23,16 +23,23 @@ func path_cwd(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func path_join(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	if argc < 2 {
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+	if argc != 2 {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "join expects at least 2 arguments"),
 		))
 		return
 	}
 	parts := []string{}
-	for range argc {
-		parts = append(parts, frame.Stack.Pop().String())
+	for i := range argc {
+		parts = append(parts, frame.Stack.GetOffset(argc, i).String())
 	}
+	cleanup()
 	frame.Stack.Push(NewAtomValueStr(filepath.Join(parts...)))
 }
 

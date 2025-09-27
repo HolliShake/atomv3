@@ -4,7 +4,7 @@ println("=== Closure Stress Test ===");
 
 // Test 1: Basic closure with single variable capture
 func createCounter() {
-    var count = 0;
+    local count = 0;
     return func() {
         count = count + 1;
         return count;
@@ -20,8 +20,8 @@ println("Counter2:", counter2(), counter2());             // Should be 1, 2
 
 // Test 2: Multiple variable capture
 func createCalculator(initial) {
-    var value = initial;
-    var operations = 0;
+    local value = initial;
+    local operations = 0;
     
     return {
         add: func(x) {
@@ -52,11 +52,11 @@ println("Operations count:", calc.getOperations());
 
 // Test 3: Nested closures
 func createNestedCounter() {
-    var outer = 0;
+    local outer = 0;
     
     return func() {
         outer = outer + 1;
-        var inner = 0;
+        local inner = 0;
         
         return func() {
             inner = inner + 1;
@@ -75,8 +75,8 @@ println("Nested2:", nested2(), nested2());
 
 // Test 4: Closure in loop (classic closure problem)
 func createFunctionArray() {
-    var functions = [];
-    var i = 0;
+    local functions = [];
+    local i = 0;
     
     while (i < 5) {
         // Create a closure that captures the current value of i
@@ -111,19 +111,19 @@ func createParameterModifier(param) {
 
 const modifier = createParameterModifier("initial");
 println("\nParameter modification test:");
-println("Initial:", modifier());
+println("Initial:", modifier(null));
 println("Modified:", modifier("changed"));
-println("Current:", modifier());
+println("Current:", modifier(null));
 
 // Test 6: Complex closure with multiple levels
 func createComplexClosure() {
-    var level1 = "L1";
+    local level1 = "L1";
     
     return func(param1) {
-        var level2 = "L2-" + param1;
+        local level2 = "L2-" + param1;
         
         return func(param2) {
-            var level3 = "L3-" + param2;
+            local level3 = "L3-" + param2;
             
             return func() {
                 return level1 + ":" + level2 + ":" + level3;
@@ -141,8 +141,8 @@ println("Result:", level3Func());
 
 // Test 7: Closure with array and object capture
 func createDataCapture() {
-    var arr = [1, 2, 3];
-    var obj = {name: "test", value: 42};
+    local arr = [1, 2, 3];
+    local obj = {name: "test", value: 42};
     
     return {
         addToArray: func(item) {
@@ -168,8 +168,9 @@ println("Get all:", dataCapture.getAll());
 // Test 8: Recursive closure
 func createRecursiveClosure() {
     local memo = {};
+    local fibClosure;
     
-    return func (n) {
+    fibClosure = func(n) {
         if (n <= 1) {
             return n;
         }
@@ -178,9 +179,11 @@ func createRecursiveClosure() {
             return memo[n];
         }
         
-        memo[n] = fibonacci(n - 1) + fibonacci(n - 2);
+        memo[n] = fibClosure(n - 1) + fibClosure(n - 2);
         return memo[n];
     };
+    
+    return fibClosure;
 }
 
 const fibClosure = createRecursiveClosure();
@@ -191,13 +194,13 @@ println("fib(15):", fibClosure(15));
 // Test 9: Closure factory with different behaviors
 func createBehaviorFactory(type) {
     if (type == "adder") {
-        var sum = 0;
+        local sum = 0;
         return func(x) {
             sum = sum + x;
             return sum;
         };
     } else if (type == "multiplier") {
-        var product = 1;
+        local product = 1;
         return func(x) {
             product = product * x;
             return product;
@@ -220,12 +223,12 @@ println("Unknown:", unknown("test"));
 
 // Test 10: Stress test with many closures
 func createManyClosures(count) {
-    var closures = [];
-    var i = 0;
+    local closures = [];
+    local i = 0;
     
     while (i < count) {
         closures.push((func(index) {
-            var localVar = "closure-" + index;
+            local localVar = "closure-" + index;
             return func() {
                 return localVar + " executed";
             };

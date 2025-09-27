@@ -1,0 +1,21 @@
+import [println, throw, decompile] from "atom:std";
+
+var z = 2;
+
+func makeAdder(x) {
+    return func(y) {
+        // this captures makeAdder's env
+        return func() {
+            return (y + x + z);
+        };
+    };
+}
+
+const f1 = makeAdder(10);
+const f2 = makeAdder(20);
+
+println(f1(20)(), f2(25)()); // 32, 47
+
+import "atom:math";
+
+println(math.pow(2, 3)); // 8

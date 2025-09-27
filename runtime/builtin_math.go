@@ -111,26 +111,36 @@ func math_round(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func math_pow(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
 	if argc != 2 {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "pow expects 2 arguments"),
 		))
 		return
 	}
 
-	arg := frame.Stack.Pop()
-	arg2 := frame.Stack.Pop()
+	arg1 := frame.Stack.GetOffset(argc, 0)
+	arg2 := frame.Stack.GetOffset(argc, 1)
 
-	if !IsNumberType(arg) || !IsNumberType(arg2) {
+	if !IsNumberType(arg1) || !IsNumberType(arg2) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "pow expects number"),
 		))
 		return
 	}
 
-	val := CoerceToNum(arg)
+	val1 := CoerceToNum(arg1)
 	val2 := CoerceToNum(arg2)
-	frame.Stack.Push(NewAtomValueNum(math.Pow(val, val2)))
+
+	cleanup()
+	frame.Stack.Push(NewAtomValueNum(math.Pow(val1, val2)))
 }
 
 func math_sqrt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {

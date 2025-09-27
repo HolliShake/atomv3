@@ -56,30 +56,41 @@ func IsArrayMethod(methodName string) bool {
 }
 
 func ArrayAll(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	this := frame.Stack.Pop()
-	callback := frame.Stack.Pop()
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
+	arg0 := frame.Stack.GetOffset(argc, 0)
+	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	// Fast path validation
 	if argc != 2 {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("all expects 2 arguments, got %d", argc)),
 		))
 		return
 	}
-	if !CheckType(this, AtomTypeArray) {
+	if !CheckType(arg0, AtomTypeArray) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "all expects array"),
 		))
 		return
 	}
-	if !CheckType(callback, AtomTypeFunc) {
+	if !CheckType(arg1, AtomTypeFunc) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "all expects function"),
 		))
 		return
 	}
 
-	array := this.Value.(*AtomArray)
+	cleanup()
+
+	array := arg0.Value.(*AtomArray)
 	elements := array.Elements
 
 	// Early exit for empty arrays
@@ -91,7 +102,7 @@ func ArrayAll(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	// Process elements with early exit on false
 	for _, element := range elements {
 		frame.Stack.Push(element)
-		DoCall(interpreter, frame, callback, 1)
+		DoCall(interpreter, frame, arg1, 1)
 		result := frame.Stack.Pop()
 		if !CoerceToBool(result) {
 			frame.Stack.Push(interpreter.State.FalseValue)
@@ -127,37 +138,49 @@ func ArrayAny(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func ArrayEach(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	this := frame.Stack.Pop()
-	callback := frame.Stack.Pop()
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
+	arg0 := frame.Stack.GetOffset(argc, 0)
+	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("each expects 2 arguments, got %d", argc)),
 		))
 		return
 	}
-	if !CheckType(this, AtomTypeArray) {
+	if !CheckType(arg0, AtomTypeArray) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "each expects array"),
 		))
 		return
 	}
-	if !CheckType(callback, AtomTypeFunc) {
+	if !CheckType(arg1, AtomTypeFunc) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "each expects function"),
 		))
 		return
 	}
 
-	array := this.Value.(*AtomArray)
+	cleanup()
+
+	array := arg0.Value.(*AtomArray)
 	elements := array.Elements
 
 	for index, element := range elements {
 		frame.Stack.Push(NewAtomValueInt(index))
 		frame.Stack.Push(element)
-		DoCall(interpreter, frame, callback, 2)
+		DoCall(interpreter, frame, arg1, 2)
 		frame.Stack.Pop()
 	}
+
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
@@ -242,51 +265,72 @@ func ArrayPop(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func ArrayPush(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	this := frame.Stack.Pop()
-	value := frame.Stack.Pop()
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
+	arg0 := frame.Stack.GetOffset(argc, 0)
+	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("push expects 1 argument, got %d", argc)),
 		))
 		return
 	}
-	if !CheckType(this, AtomTypeArray) {
+	if !CheckType(arg0, AtomTypeArray) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "push expects array"),
 		))
 		return
 	}
 
-	array := this.Value.(*AtomArray)
-	array.Elements = append(array.Elements, value)
-	frame.Stack.Push(this)
+	cleanup()
+
+	array := arg0.Value.(*AtomArray)
+	array.Elements = append(array.Elements, arg1)
+	frame.Stack.Push(arg0)
 }
 
 func ArraySelect(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	this := frame.Stack.Pop()
-	callback := frame.Stack.Pop()
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
+	arg0 := frame.Stack.GetOffset(argc, 0)
+	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("select expects 2 arguments, got %d", argc)),
 		))
 		return
 	}
-	if !CheckType(this, AtomTypeArray) {
+	if !CheckType(arg0, AtomTypeArray) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "select expects array"),
 		))
 		return
 	}
-	if !CheckType(callback, AtomTypeFunc) {
+	if !CheckType(arg1, AtomTypeFunc) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "select expects function"),
 		))
 		return
 	}
 
-	array := this.Value.(*AtomArray)
+	cleanup()
+
+	array := arg0.Value.(*AtomArray)
 	sourceElements := array.Elements
 
 	// Pre-allocate result slice with known capacity
@@ -295,7 +339,7 @@ func ArraySelect(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	for index, element := range sourceElements {
 		frame.Stack.Push(NewAtomValueInt(index))
 		frame.Stack.Push(element)
-		DoCall(interpreter, frame, callback, 2)
+		DoCall(interpreter, frame, arg1, 2)
 		elements = append(elements, frame.Stack.Pop())
 	}
 
@@ -306,36 +350,47 @@ func ArraySelect(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func ArrayWhere(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	this := frame.Stack.Pop()
-	callback := frame.Stack.Pop()
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
+	arg0 := frame.Stack.GetOffset(argc, 0)
+	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("where expects 2 arguments, got %d", argc)),
 		))
 		return
 	}
-	if !CheckType(this, AtomTypeArray) {
+	if !CheckType(arg0, AtomTypeArray) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "where expects array"),
 		))
 		return
 	}
-	if !CheckType(callback, AtomTypeFunc) {
+	if !CheckType(arg1, AtomTypeFunc) {
+		cleanup()
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "where expects function"),
 		))
 		return
 	}
 
-	array := this.Value.(*AtomArray)
+	cleanup()
+
+	array := arg0.Value.(*AtomArray)
 	elements := array.Elements
 
 	resultElements := []*AtomValue{}
 
 	for _, element := range elements {
 		frame.Stack.Push(element)
-		DoCall(interpreter, frame, callback, 1)
+		DoCall(interpreter, frame, arg1, 1)
 		if CoerceToBool(frame.Stack.Pop()) {
 			resultElements = append(resultElements, element)
 		}

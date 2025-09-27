@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -21,6 +22,22 @@ func NewInterpreter(state *AtomState) *AtomInterpreter {
 	}
 	interpreter.Scheduler = NewAtomScheduler(interpreter)
 	return interpreter
+}
+
+func StackTrace(frame *AtomCallFrame) string {
+	builder := strings.Builder{}
+	builder.WriteByte('\n')
+
+	current := frame
+	for current != nil {
+		builder.WriteString(current.Fn.Value.(*AtomCode).Name)
+		if current.Caller != nil {
+			builder.WriteString("\n")
+		}
+		current = current.Caller
+	}
+
+	return builder.String()
 }
 
 func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
@@ -88,14 +105,9 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forwardIp(4)
 
 		case OpLoadName:
-			index := ReadInt(code.Code, strt)
+			index := ReadStr(code.Code, strt)
 			DoLoadName(frame, index)
-			forwardIp(4)
-
-		case OpLoadCapture:
-			index := ReadInt(code.Code, strt)
-			DoLoadCapture(i, frame, index)
-			forwardIp(4)
+			forwardIp(len(index) + 1)
 
 		case OpLoadModule:
 			name := ReadStr(code.Code, strt)
@@ -263,17 +275,17 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			DoStoreModule(i, frame, name)
 			forwardIp(len(name) + 1)
 
-		case OpStoreCapture:
-			index := ReadInt(code.Code, strt)
+		case OpInitLocal:
+			index := ReadStr(code.Code, strt)
 			value := frame.Stack.Pop()
-			code.CapturedEnv[index].Value = value
-			forwardIp(4)
+			DoInitLocal(i, frame, index, value)
+			forwardIp(len(index) + 1)
 
 		case OpStoreLocal:
-			index := ReadInt(code.Code, strt)
+			index := ReadStr(code.Code, strt)
 			value := frame.Stack.Pop()
-			code.Locals[index].Value = value
-			forwardIp(4)
+			DoStoreLocal(i, frame, index, value)
+			forwardIp(len(index) + 1)
 
 		case OpSetIndex:
 			idx := frame.Stack.Pop()

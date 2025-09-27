@@ -1,34 +1,25 @@
 package runtime
 
 type AtomCode struct {
-	File        string
-	Name        string
-	Async       bool
-	Argc        int
-	Line        []AtomDebugLine
-	Code        []OpCode // Instructions
-	Locals      []*AtomCell
-	CapturedEnv []*AtomCell
+	File    string
+	Name    string
+	Async   bool
+	Argc    int
+	Line    []AtomDebugLine
+	Code    []OpCode // Instructions
+	Capture *AtomEnv
 }
 
 func NewAtomCode(file, name string, async bool, argc int) *AtomCode {
 	return &AtomCode{
-		File:        file,
-		Name:        name,
-		Async:       async,
-		Argc:        argc,
-		Line:        []AtomDebugLine{},
-		Code:        []OpCode{},
-		Locals:      []*AtomCell{},
-		CapturedEnv: []*AtomCell{},
+		File:    file,
+		Name:    name,
+		Async:   async,
+		Argc:    argc,
+		Line:    []AtomDebugLine{},
+		Code:    []OpCode{},
+		Capture: nil, // initialized at runtime
 	}
-}
-
-func (c *AtomCode) ClearLocal() *AtomCode {
-	for _, cell := range c.Locals {
-		cell.Value = nil
-	}
-	return c
 }
 
 func (c *AtomCode) HashValue() int {

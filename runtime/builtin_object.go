@@ -1,6 +1,12 @@
 package runtime
 
 func obj_freeze(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "freeze expects 1 argument"),
+		))
+		return
+	}
 	obj := frame.Stack.Pop()
 	if CheckType(obj, AtomTypeObj) {
 		obj.Value.(*AtomObject).Freeze = true
@@ -16,6 +22,13 @@ func obj_freeze(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "keys expects 1 argument"),
+		))
+		return
+	}
+
 	obj := frame.Stack.Pop()
 	if CheckType(obj, AtomTypeObj) {
 		keys := []*AtomValue{}
@@ -32,6 +45,12 @@ func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func obj_values(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "values expects 1 argument"),
+		))
+		return
+	}
 	obj := frame.Stack.Pop()
 	if CheckType(obj, AtomTypeObj) {
 		values := []*AtomValue{}

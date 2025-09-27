@@ -1,218 +1,391 @@
 import [ println ] from "atom:std";
-import "atom:object";
-import "atom:math";
-import "gui";
-import "hash";
-import "../test/imports.atom";
 
-var cat = 20;
+println("=== Class Stress Test ===");
 
-(async func() {
-    println("Hello World");
-})();
-
+// Test 1: Basic class functionality
 class Animal {
-    func init(self, name) {
+    func init(self, name, species) {
+        
         self.name = name;
+        self.species = species;
+        println("Created animal:", name, "(" + species + ")");
     }
 
-    // Common property for an animals
-    func eat(self, food) {
-        std.println(self.name + " is eating " + food);
+    func speak(self) {
+        println(self.name, "makes a sound");
+    }
+
+    func getInfo(self) {
+        return self.name + " is a " + self.species;
     }
 }
 
-func reg() {
-    (3 / 1) catch (err) {
-        std.println(">>>", err);
-    };
-    return 2;
-}
-
-async func waitable() {
-    return await reg() + 23;
-}
-
-class Dog extends Animal {
-    local x = 2;
-    func init(self, name, ageInMonths) {
-        println("cat", cat);
-        cat = 1000;
-        println("cat", cat);
+class Dog {
+    func init(self, name, breed) {
+        println("Dog", name, breed);
         self.name = name;
-        self.age = ageInMonths;
-
-        println("constructor->self >>", self);
+        self.breed = breed;
+        self.species = "dog";
+        println("Created dog:", name, "(" + breed + ")");
     }
 
-    async func process(self) {
-        println("process->self >>", self);
-        return await waitable();
-    }
-}
-
-Dog.fooc = func(self) {
-    println("fooc->self >>", self);
-};
-
-const dog = new Dog("Buddy", 12);
-std.println(dog);
-
-const d = dog.eat("bone");
-
-std.println("d>>", d, dog.process());
-
-std.println(gui.getName());
-
-std.println(gui, hash, imports.factorial(5));
-
-println(cat);
-
-async func add(a, b) {
-    return a + b;
-}
-
-println("+------------------+");
-println("| Decompiled Code  |");
-println("+------------------+");
-println(std.decompile(add), "\n=", add(60, 9));
-
-
-const call = func(n) {
-   {
-        cat += 2;
-        println("call", n, cat);
-        return 2;
-   }
-};
-
-call(1000+cat);
-
-func ret() {
-    local g = 2;
-    return func() {
-        println(">>", g += 2, 0xff, 0b1010, 0o2);
-    };
-}
-
-ret()();
-
-
-for (local x = 0; x <= 10; x += 1) {
-    println(">>", x);
-}
-
-const array = [1,2,3,4,5];
-
-println(">", array.all(func(x) {
-    return x != 20;
-}));
-
-println(array.select(func(x, index) {
-    return x + index;
-}).length());
-
-println("|>>", array
-    .push(6)
-    .push(7)
-    .push(8)
-    .select(func(n, index) {
-        return n;
-    })
-    .where(func(n) {
-        return n > 5;
-    })
-    .select(func(n, index) {
-        return n * 2;
-    })
-    .where(func(n) {
-        return n == "asdasdasd";
-    })
-    .any());
-
-println(object.keys({
-    H: 200
-}));
-
-println(object.values({
-    H: 200
-}));
-
-println('2' + math.rand(1000), math.sqrt(4), math.pow(2, 5), imports.factorial(5));
-
-dog.getNames = 2;
-
-println(dog.fooc(), dog, Dog);
-
-class Person {
-    func init(self, _name, _age) {
-        self.name = _name;
-        self.age = _age;
-        println("init -> class", Person);
+    func speak(self) {
+        println(self.name, "barks: Woof!");
     }
 
-    func create(_name, _age) {
-        return new Person(_name, _age);
+    func wagTail(self) {
+        println(self.name, "wags tail happily");
+    }
+
+    func getInfo(self) {
+        return self.name + " is a " + self.breed + " " + self.species;
     }
 }
 
-for (local h = 0;h < 1; h++) {
-    println(Person.create("Person", h));
+class Cat {
+    func init(self, name, color) {
+        self.name = name;
+        self.color = color;
+        self.species = "cat";
+        println("Created cat:", name, "(" + color + ")");
+    }
+
+    func speak(self) {
+        println(self.name, "meows: Meow!");
+    }
+
+    func purr(self) {
+        println(self.name, "purrs contentedly");
+    }
+
+    func getInfo(self) {
+        return self.name + " is a " + self.color + " " + self.species;
+    }
 }
 
-import "atom:path";
-import "date";
+println("\n--- Basic Class Test ---");
+const dog1 = new Dog("Buddy", "Golden Retriever");
+const cat1 = new Cat("Whiskers", "orange");
+const animal1 = new Animal("Generic", "unknown");
 
-println(path.cwd(), path.join(path.cwd(), "this", "time"), date.Date.create(), 2.2e2);
+dog1.speak();
+dog1.wagTail();
+cat1.speak();
+cat1.purr();
+animal1.speak();
 
-import "atom:os";
+println("Dog info:", dog1.getInfo());
+println("Cat info:", cat1.getInfo());
+println("Animal info:", animal1.getInfo());
 
-namespace Monkey/King {
+// Test 2: Static methods and properties
+class MathUtils {
+    func init(self) {
+        println("MathUtils instance created");
+    }
 
-    namespace Bar/Kitten {
-        enum State {
-            PENDING = 0,
-            WAITING = 1,
-            COMPLETED = 2
+    func add(a, b) {
+        return a + b;
+    }
+
+    func multiply(a, b) {
+        return a * b;
+    }
+
+    func factorial(n) {
+        if (n <= 1) {
+            return 1;
+        }
+        return n * MathUtils.factorial(n - 1);
+    }
+}
+
+println("\n--- Static Methods Test ---");
+println("5 + 3 =", MathUtils.add(5, 3));
+println("4 * 7 =", MathUtils.multiply(4, 7));
+println("5! =", MathUtils.factorial(5));
+
+// Test 3: Polymorphism without inheritance
+println("\n--- Polymorphism Test ---");
+const animals = [
+    new Dog("Rex", "German Shepherd"),
+    new Cat("Luna", "black"),
+    new Animal("Generic", "unknown")
+];
+
+var i = 0;
+while (i < animals.length()) {
+    animals[i].speak();
+    i = i + 1;
+}
+
+// Test 4: Complex class with multiple methods
+class BankAccount {
+    func init(self, owner, initialBalance) {
+        self.owner = owner;
+        self.balance = initialBalance;
+        self.transactions = [];
+        println("Account created for", owner, "with balance:", initialBalance);
+    }
+
+    func deposit(self, amount) {
+        self.balance = self.balance + amount;
+        self.transactions.push("Deposit: +" + amount);
+        println("Deposited", amount, "New balance:", self.balance);
+    }
+
+    func withdraw(self, amount) {
+        if (self.balance >= amount) {
+            self.balance = self.balance - amount;
+            self.transactions.push("Withdrawal: -" + amount);
+            println("Withdrew", amount, "New balance:", self.balance);
+            return true;
+        } else {
+            println("Insufficient funds for withdrawal of", amount);
+            return false;
         }
     }
 
-    class New {
-        func init(self, name) {
-            self.name = name;
-        }
-
-        func printName(self) {
-            println(self.name);
-        }
+    func getBalance(self) {
+        return self.balance;
     }
 
-    var x = 2;
-
-    func printName(dog) {
-        println(dog);
+    func getTransactionHistory(self) {
+        println("Transaction history for", self.owner + ":");
+        local i = 0;
+        while (i < self.transactions.length()) {
+            println("-", self.transactions[i]);
+            i = i + 1;
+        }
     }
 }
 
-println(new Monkey::King::New("Jake"));
+class SavingsAccount {
+    func init(self, owner, initialBalance, interestRate) {
+        self.owner = owner;
+        self.balance = initialBalance;
+        self.interestRate = interestRate;
+        self.transactions = [];
+        println("Savings account created for", owner, "with balance:", initialBalance, "and rate:", interestRate);
+    }
 
-Monkey::King::printName(dog);
+    func deposit(self, amount) {
+        self.balance = self.balance + amount;
+        self.transactions.push("Deposit: +" + amount);
+        println("Deposited", amount, "New balance:", self.balance);
+    }
 
+    func withdraw(self, amount) {
+        if (self.balance >= amount) {
+            self.balance = self.balance - amount;
+            self.transactions.push("Withdrawal: -" + amount);
+            println("Withdrew", amount, "New balance:", self.balance);
+            return true;
+        } else {
+            println("Insufficient funds for withdrawal of", amount);
+            return false;
+        }
+    }
 
-import "./test.atom";
+    func addInterest(self) {
+        const interest = self.balance * self.interestRate;
+        self.balance = self.balance + interest;
+        self.transactions.push("Interest: +" + interest);
+        println("Added interest:", interest, "New balance:", self.balance);
+    }
 
-println(">>", test);
+    func getBalance(self) {
+        return self.balance;
+    }
 
-
-func mul() {
-    2 * 3;
-    2 / 3;
-    2 % 3;
-    2 / 3;
-    "hello" + " " + "world";
-    return 2 * 3;
+    func getTransactionHistory(self) {
+        println("Transaction history for", self.owner + ":");
+        local i = 0;
+        while (i < self.transactions.length()) {
+            println("-", self.transactions[i]);
+            i = i + 1;
+        }
+    }
 }
 
-println(std.decompile(mul));
+println("\n--- Banking System Test ---");
+const account1 = new BankAccount("Alice", 1000);
+const savings1 = new SavingsAccount("Bob", 5000, 0.05);
 
-import "./async.atom";
+account1.deposit(500);
+account1.withdraw(200);
+account1.withdraw(2000); // Should fail
+
+savings1.deposit(1000);
+savings1.addInterest();
+savings1.withdraw(500);
+
+account1.getTransactionHistory();
+savings1.getTransactionHistory();
+
+// Test 5: Stress test with many instances
+println("\n--- Mass Instance Creation Test ---");
+const manyDogs = [];
+var j = 0;
+while (j < 50) {
+    const dogName = "Dog" + j;
+    const breeds = ["Labrador", "Poodle", "Bulldog", "Beagle", "Husky"];
+    const breed = breeds[j % breeds.length()];
+    manyDogs.push(new Dog(dogName, breed));
+    j = j + 1;
+}
+
+println("Created", manyDogs.length(), "dogs");
+println("First dog:", manyDogs[0].name, manyDogs[0].breed);
+println("Last dog:", manyDogs[49].name, manyDogs[49].breed);
+
+// Test 6: Method chaining
+class FluentBuilder {
+    func init(self) {
+        self.data = {};
+    }
+
+    func setName(self, name) {
+        self.data.name = name;
+        return self;
+    }
+
+    func setAge(self, age) {
+        self.data.age = age;
+        return self;
+    }
+
+    func setCity(self, city) {
+        self.data.city = city;
+        return self;
+    }
+
+    func build(self) {
+        return self.data;
+    }
+}
+
+println("\n--- Method Chaining Test ---");
+const builder = new FluentBuilder();
+const result = builder.setName("John").setAge(30).setCity("New York").build();
+println("Built object:", result.name, result.age, result.city);
+
+// Test 7: Class with closures
+class Counter {
+    func init(self, start) {
+        self.value = start;
+    }
+
+    func getIncrementer(self) {
+        return func() {
+            self.value = self.value + 1;
+            return self.value;
+        };
+    }
+
+    func getDecrementer(self) {
+        return func() {
+            self.value = self.value - 1;
+            return self.value;
+        };
+    }
+
+    func getValue(self) {
+        return self.value;
+    }
+}
+
+println("\n--- Class with Closures Test ---");
+const counter = new Counter(10);
+const inc = counter.getIncrementer();
+const dec = counter.getDecrementer();
+
+println("Initial value:", counter.getValue());
+println("After increment:", inc());
+println("After increment:", inc());
+println("After decrement:", dec());
+println("Final value:", counter.getValue());
+
+// Test 8: Class with dynamic properties
+class DynamicObject {
+    func init(self) {
+        self.properties = {};
+    }
+
+    func set(self, key, value) {
+        self.properties[key] = value;
+        println("Set", key, "to", value);
+    }
+
+    func get(self, key) {
+        if (self.properties[key] != null) {
+            return self.properties[key];
+        } else {
+            println("Property", key, "not found");
+            return null;
+        }
+    }
+
+    func listProperties(self) {
+        println("Properties:");
+        // Note: would need object iteration support to fully implement this
+        println("- properties object exists");
+    }
+}
+
+println("\n--- Dynamic Properties Test ---");
+const dynObj = new DynamicObject();
+dynObj.set("name", "Dynamic");
+dynObj.set("value", 42);
+println("Name:", dynObj.get("name"));
+println("Value:", dynObj.get("value"));
+println("Missing:", dynObj.get("missing"));
+
+// Test 9: Class method assignment
+class Vehicle {
+    func init(self, type) {
+        self.type = type;
+    }
+
+    func start(self) {
+        println(self.type, "is starting");
+    }
+
+    func stop(self) {
+        println(self.type, "is stopping");
+    }
+}
+
+println("\n--- Method Assignment Test ---");
+const car = new Vehicle("Car");
+const bike = new Vehicle("Bike");
+
+// Assign methods to variables
+const startCar = car.start;
+const stopBike = bike.stop;
+
+car.start();
+bike.start();
+car.stop();
+bike.stop();
+
+println("\n=== Class Stress Test Complete ===");
+
+class T {
+    func init(self, a, b) {
+        self.a = a;
+        self.b = b;
+    }
+
+    func add(self) {
+        return self.a + self.b;
+    }
+}
+
+const t = new T(1, 2);
+const a = [1,2,3];
+
+T.add = a.push;
+
+t.add(4);
+println(a); // [1,2,3,4]

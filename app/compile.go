@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -183,16 +182,6 @@ func (c *AtomCompile) emitLine(atomFunc *runtime.AtomValue, pos AtomPosition) {
 	})
 }
 
-func (c *AtomCompile) emitLoadVar(atomFunc *runtime.AtomValue, opcode runtime.OpCode) int {
-	c.emit(atomFunc, opcode)
-	start := len(atomFunc.Value.(*runtime.AtomCode).Code)
-	// Emit 4 placeholder bytes for the jump address
-	for range 4 {
-		c.emit(atomFunc, 0)
-	}
-	return start
-}
-
 func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast *AtomAst, global, constant bool) {
 	if _, exists := scope.Names[ast.Str0]; exists {
 		Error(
@@ -223,98 +212,17 @@ func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast
 		}
 	}
 
-	// Increment code locals
-	code := atomFunc.Value.(*runtime.AtomCode)
-	indx := len(code.Locals)
-	cell := runtime.NewAtomCell(false, nil)
-	code.Locals = append(code.Locals, cell)
-
 	// Save to symbol table
 	scope.Names[name] = NewAtomSymbol(
 		name,
 		global,
 		constant,
-		indx,
-		cell,
+		0,
+		nil,
 	)
 
 	c.emitLine(atomFunc, ast.Position)
-	c.emitInt(atomFunc, runtime.OpStoreLocal, indx)
-}
-
-func (c *AtomCompile) emitCapture(atomFunc *runtime.AtomValue, scope *AtomScope, opcode runtime.OpCode, ast *AtomAst) {
-	symb := c.lookup(scope, ast.Str0)
-	code := atomFunc.Value.(*runtime.AtomCode)
-	indx := len(code.CapturedEnv)
-
-	exists := slices.Contains(code.CapturedEnv, symb.cell)
-	if !exists {
-		symb.cell.Captured = true
-		code.CapturedEnv = append(code.CapturedEnv, symb.cell)
-	} else {
-		// Find the existing index of the captured cell
-		for i, cell := range code.CapturedEnv {
-			if cell == symb.cell {
-				indx = i
-				break
-			}
-		}
-	}
-
-	op := opcode
-	switch opcode {
-	case runtime.OpStoreLocal:
-		op = runtime.OpStoreCapture
-	case runtime.OpLoadName:
-		op = runtime.OpLoadCapture
-	default:
-		panic(fmt.Sprintf("invalid opcode: %d", opcode))
-	}
-
-	if symb.constant && (op == runtime.OpStoreLocal || op == runtime.OpStoreCapture) {
-		Error(
-			c.parser.tokenizer.file,
-			c.parser.tokenizer.data,
-			"Cannot store to constant",
-			ast.Position,
-		)
-	}
-
-	c.emitInt(atomFunc, op, indx)
-}
-
-func (c *AtomCompile) emitSavedCapture(atomFunc *runtime.AtomValue, scope *AtomScope, ast *AtomAst, index int) {
-	if !c.isDefined(scope, ast.Str0) {
-		Error(
-			c.parser.tokenizer.file,
-			c.parser.tokenizer.data,
-			fmt.Sprintf("Variable %s is not defined", ast.Str0),
-			ast.Position,
-		)
-	}
-
-	symb := c.lookup(scope, ast.Str0)
-	code := atomFunc.Value.(*runtime.AtomCode)
-	indx := len(code.CapturedEnv)
-
-	exists := slices.Contains(code.CapturedEnv, symb.cell)
-	if !exists {
-		symb.cell.Captured = true
-		code.CapturedEnv = append(code.CapturedEnv, symb.cell)
-	} else {
-		// Find the existing index of the captured cell
-		for i, cell := range code.CapturedEnv {
-			if cell == symb.cell {
-				indx = i
-				break
-			}
-		}
-	}
-
-	for i := range 4 {
-		atomFunc.Value.(*runtime.AtomCode).Code[i+index] =
-			runtime.OpCode((indx >> (8 * i)) & 0xFF)
-	}
+	c.emitStr(atomFunc, runtime.OpInitLocal, name)
 }
 
 func (c *AtomCompile) here(atomFunc *runtime.AtomValue) int {
@@ -354,75 +262,27 @@ func (c *AtomCompile) isDefined(scope *AtomScope, symbol string) bool {
 	return false
 }
 
-func (c *AtomCompile) isLocal(scope *AtomScope, symbol string) bool {
-	_, exists := scope.Names[symbol]
-	return exists
-}
-
-/*
- * var y = 100;
- *
- * func add() {
- *     local x = 2;
- *     {
- *         x; <- local to function
- *         y; <- non local to function
- *         local z = func() {
- *             x; <- non local to function
- *         };
- *     }
- * }
- */
-func (c *AtomCompile) isLocalToFunction(scope *AtomScope, symbol string) bool {
-	for current := scope; current != nil && current.Type != AtomScopeTypeGlobal; current = current.Parent {
-		if current.Type == AtomScopeTypeFunction {
-			return false
-		}
-		if _, exists := current.Names[symbol]; exists {
-			return true
-		}
-	}
-	return false
-}
-
 func (c *AtomCompile) identifier(fn *runtime.AtomValue, scope *AtomScope, ast *AtomAst, opcode runtime.OpCode) {
 	if !c.isDefined(scope, ast.Str0) {
-		op := opcode
-		switch opcode {
-		case runtime.OpStoreLocal:
-			op = runtime.OpStoreCapture
-		case runtime.OpLoadName:
-			op = runtime.OpLoadCapture
-		default:
-			panic("invalid opcode")
-		}
-
-		c.emitLine(fn, ast.Position)
-		index := c.emitLoadVar(fn, op)
-
-		// will be automatically a capture variable
+		// Resolve to global
+		c.emitStr(fn, runtime.OpLoadName, ast.Str0)
 		c.pendingVariables = append(c.pendingVariables, AtomPendingVariable{
 			ast:      ast,
 			atomFunc: fn,
-			index:    index,
+			index:    0,
 		})
 		return
 	}
-	if !c.isLocal(scope, ast.Str0) && !c.isLocalToFunction(scope, ast.Str0) {
-		// Save as capture
-		c.emitCapture(fn, scope, opcode, ast)
-	} else {
-		symbol := c.lookup(scope, ast.Str0)
-		if symbol.constant && (opcode == runtime.OpStoreLocal || opcode == runtime.OpStoreCapture) {
-			Error(
-				c.parser.tokenizer.file,
-				c.parser.tokenizer.data,
-				"Cannot reassign constant",
-				ast.Position,
-			)
-		}
-		c.emitInt(fn, opcode, symbol.index)
+	symbol := c.lookup(scope, ast.Str0)
+	if opcode == runtime.OpStoreLocal && symbol.constant {
+		Error(
+			c.parser.tokenizer.file,
+			c.parser.tokenizer.data,
+			"Cannot store to constant variable",
+			ast.Position,
+		)
 	}
+	c.emitStr(fn, opcode, ast.Str0)
 }
 
 func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
@@ -498,7 +358,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeArray:
 		{
-			for i := len(ast.Arr0) - 1; i >= 0; i-- {
+			for i := 0; i < len(ast.Arr0); i++ {
 				element := ast.Arr0[i]
 				c.expression(scope, fn, element)
 			}
@@ -555,7 +415,8 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.emitInt(fn, runtime.OpLoadFunction, fnOffset)
 			//============================
 
-			for _, param := range params {
+			for i := len(params) - 1; i >= 0; i-- {
+				param := params[i]
 				if param.AstType != AstTypeIdn {
 					Error(
 						c.parser.tokenizer.file,
@@ -569,6 +430,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				// Save to symbol table
 				c.emitVar(atomFunc, funScope, param, false, false)
 			}
+
 			body := ast.Arr1
 			visibleReturn := false
 			for _, stmt := range body {
@@ -652,7 +514,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		{
 			funcAst := ast.Ast0
 			args := ast.Arr0
-			for i := len(args) - 1; i >= 0; i-- {
+			for i := 0; i < len(args); i++ {
 				c.expression(scope, fn, args[i])
 			}
 			c.expression(scope, fn, funcAst)
@@ -675,7 +537,8 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 			constructorAst := ast0.Ast0
 			args := ast0.Arr0
-			for i := len(args) - 1; i >= 0; i-- {
+
+			for i := range len(args) {
 				c.expression(scope, fn, args[i])
 			}
 
@@ -1822,33 +1685,6 @@ func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		c.emit(fn, runtime.OpExtendClass)
 	}
 
-	/*
-	 * For classes, we need to handle namespace resolution properly.
-	 * Classes can be defined within namespaces, and when they are,
-	 * we need to construct the fully qualified class name by combining
-	 * all parent namespace aliases with the class name using "::" as
-	 * the separator. This allows the class to be accessible from the
-	 * global scope with its full namespace path.
-	 */
-	aliases := []string{}
-	current := scope
-	for current != nil {
-		if current.Alias != "" {
-			aliases = append(aliases, current.Alias)
-		}
-		current = current.Parent
-	}
-
-	// Namespaced??
-	path := append(arrayReverse(aliases), name.Str0)
-	name.Str0 = strings.Join(path, "::")
-	if len(path) > 1 {
-		// convert to global
-		for scope.Parent != nil {
-			scope = scope.Parent
-		}
-	}
-
 	// Save
 	c.identifier(fn, scope, name, runtime.OpStoreLocal)
 }
@@ -1920,7 +1756,8 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 	c.emitStr(fn, runtime.OpLoadStr, ast.Ast0.Str0)
 	//============================
 
-	for _, param := range params {
+	for i := len(params) - 1; i >= 0; i-- {
+		param := params[i]
 		if param.AstType != AstTypeIdn {
 			Error(
 				c.parser.tokenizer.file,
@@ -1934,6 +1771,7 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 		// Save to symbol table
 		c.emitVar(atomFunc, funScope, param, false, false)
 	}
+
 	body := ast.Arr1
 	visibleReturn := false
 	for _, stmt := range body {
@@ -2040,7 +1878,8 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 	c.emitVar(fn, scope, ast.Ast0, true, false)
 	//============================
 
-	for _, param := range params {
+	for i := len(params) - 1; i >= 0; i-- {
+		param := params[i]
 		if param.AstType != AstTypeIdn {
 			Error(
 				c.parser.tokenizer.file,
@@ -2054,6 +1893,7 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 		// Save to symbol table
 		c.emitVar(atomFunc, funScope, param, false, false)
 	}
+
 	body := ast.Arr1
 	visibleReturn := false
 	for _, stmt := range body {
@@ -2119,7 +1959,7 @@ func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 		if val == nil {
 			c.emitLine(fn, ast.Position)
-			c.emitInt(fn, runtime.OpLoadNull, 0)
+			c.emit(fn, runtime.OpLoadNull)
 		} else {
 			c.expression(scope, fn, val)
 		}
@@ -2177,7 +2017,7 @@ func (c *AtomCompile) constStatement(scope *AtomScope, fn *runtime.AtomValue, as
 
 		if val == nil {
 			c.emitLine(fn, ast.Position)
-			c.emitInt(fn, runtime.OpLoadNull, 0)
+			c.emit(fn, runtime.OpLoadNull)
 		} else {
 			c.expression(scope, fn, val)
 		}
@@ -2211,8 +2051,6 @@ func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		return
 	}
 
-	seenNames := map[string]bool{}
-
 	for idx, key := range ast.Arr0 {
 		val := ast.Arr1[idx]
 
@@ -2225,19 +2063,9 @@ func (c *AtomCompile) localStatement(scope *AtomScope, fn *runtime.AtomValue, as
 			)
 		}
 
-		if seenNames[key.Str0] {
-			Error(
-				c.parser.tokenizer.file,
-				c.parser.tokenizer.data,
-				fmt.Sprintf("Duplicate identifier: %s", key.Str0),
-				key.Position,
-			)
-		}
-		seenNames[key.Str0] = true
-
 		if val == nil {
 			c.emitLine(fn, ast.Position)
-			c.emitInt(fn, runtime.OpLoadNull, 0)
+			c.emit(fn, runtime.OpLoadNull)
 		} else {
 			c.expression(scope, fn, val)
 		}
@@ -2860,8 +2688,14 @@ func (c *AtomCompile) program(ast *AtomAst) *runtime.AtomValue {
 		 * Variables that have been referenced but do not exist yet,
 		 * we mark them as global captured variables
 		 */
-		fmt.Println(pendingVariable.ast.Str0)
-		c.emitSavedCapture(pendingVariable.atomFunc, globalScope, pendingVariable.ast, pendingVariable.index)
+		if !c.isDefined(globalScope, pendingVariable.ast.Str0) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Variable %s is not defined", pendingVariable.ast.Str0),
+				pendingVariable.ast.Position,
+			)
+		}
 	}
 
 	return programFunc
@@ -2906,7 +2740,14 @@ func (c *AtomCompile) Export() int {
 		 * Variables that have been referenced but do not exist yet,
 		 * we mark them as global captured variables
 		 */
-		c.emitSavedCapture(pendingVariable.atomFunc, globalScope, pendingVariable.ast, pendingVariable.index)
+		if !c.isDefined(globalScope, pendingVariable.ast.Str0) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				fmt.Sprintf("Variable %s is not defined", pendingVariable.ast.Str0),
+				pendingVariable.ast.Position,
+			)
+		}
 	}
 
 	return c.state.SaveFunction(programFunc)

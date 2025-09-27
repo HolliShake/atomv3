@@ -16,6 +16,14 @@ func (s *AtomStack) Get(index int) *AtomValue {
 	return s.Stack[index]
 }
 
+func (s *AtomStack) GetOffset(offset int, index int) *AtomValue {
+	return s.Stack[(len(s.Stack)-offset)+index]
+}
+
+func (s *AtomStack) SetOffset(offset int, index int, value *AtomValue) {
+	s.Stack[(len(s.Stack)-offset)+index] = value
+}
+
 func (s *AtomStack) Copy(Stack *AtomStack, size int) {
 	for i := range size {
 		s.Stack = append(s.Stack, Stack.Stack[len(Stack.Stack)-size+i])

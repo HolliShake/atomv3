@@ -43,10 +43,17 @@ func DoLoadNull(interpreter *AtomInterpreter, frame *AtomCallFrame) {
 }
 
 func DoLoadArray(frame *AtomCallFrame, size int) {
-	elements := []*AtomValue{}
-	for range size {
-		elements = append(elements, frame.Stack.Pop())
+	cleanup := func() {
+		for range size {
+			frame.Stack.Pop()
+		}
 	}
+
+	elements := []*AtomValue{}
+	for i := range size {
+		elements = append(elements, frame.Stack.GetOffset(size, i))
+	}
+	cleanup()
 	frame.Stack.Push(NewAtomGenericValue(
 		AtomTypeArray,
 		NewAtomArray(elements),
@@ -67,19 +74,15 @@ func DoLoadObject(frame *AtomCallFrame, size int) {
 	))
 }
 
-func DoLoadName(frame *AtomCallFrame, index int) {
-	cell := frame.Fn.Value.(*AtomCode).Locals[index]
-	frame.Stack.Push(cell.Value)
-}
-
-func DoLoadCapture(interpreter *AtomInterpreter, frame *AtomCallFrame, index int) {
-	cell := frame.Fn.Value.(*AtomCode).CapturedEnv[index]
-	if cell.Value == nil {
-		error_message := NewAtomValueError(FormatError(frame, "variable is not initialized"))
-		frame.Stack.Push(error_message)
+func DoLoadName(frame *AtomCallFrame, index string) {
+	// Local?
+	if frame.Env.Has(index) {
+		frame.Stack.Push(frame.Env.Get(index))
 		return
 	}
-	frame.Stack.Push(cell.Value)
+	std_throw_error(frame, NewAtomValueError(
+		FormatError(frame, fmt.Sprintf("name %s not found", index)),
+	))
 }
 
 func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
@@ -93,7 +96,21 @@ func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name strin
 }
 
 func DoLoadFunction(interpreter *AtomInterpreter, frame *AtomCallFrame, offset int) {
-	fn := interpreter.State.FunctionTable.Get(offset)
+	// Consider everything in the function table is a closure
+	templateFn := interpreter.State.FunctionTable.Get(offset)
+	templateCode := templateFn.Value.(*AtomCode)
+	templateLocals := templateCode.Line
+	templateFile := templateCode.File
+	templateName := templateCode.Name
+	templateAsync := templateCode.Async
+	templateArgc := templateCode.Argc
+
+	newCode := NewAtomCode(templateFile, templateName, templateAsync, templateArgc)
+	newCode.Line = templateLocals
+	newCode.Code = templateCode.Code
+	newCode.Capture = frame.Env
+
+	fn := NewAtomGenericValue(AtomTypeFunc, newCode)
 	frame.Stack.Push(fn)
 }
 
@@ -203,12 +220,67 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, argc int) {
 	if CheckType(fn, AtomTypeMethod) {
 		method := fn.Value.(*AtomMethod)
-		frame.Stack.Push(method.This)
+		/*
+			    [
+			      arg1, <- top
+				  arg2,
+				  ...
+			    ]
+				  to
+				[
+			      arg1, <- top
+				  arg2,
+				  ...,
+				  this
+			    ]
+		*/
+
+		argc++
+
+		tmpStack := make([]*AtomValue, argc)
+		tmpStack[0] = method.This
+		for i := 1; i < argc; i++ {
+			tmpStack[i] = frame.Stack.GetOffset(argc, i)
+		}
+		for i := 0; i < argc-1; i++ {
+			frame.Stack.Pop()
+		}
+		for _, item := range tmpStack {
+			frame.Stack.Push(item)
+		}
+
 		fn = method.Fn
-		argc++
+
 	} else if CheckType(fn, AtomTypeNativeMethod) {
-		frame.Stack.Push(fn.Value.(*AtomNativeMethod).This)
+		method := fn.Value.(*AtomNativeMethod)
+		/*
+			    [
+			      arg1, <- top
+				  arg2,
+				  ...
+			    ]
+				  to
+				[
+			      arg1, <- top
+				  arg2,
+				  ...,
+				  this
+			    ]
+		*/
+
 		argc++
+
+		tmpStack := make([]*AtomValue, argc)
+		tmpStack[0] = method.This
+		for i := 1; i < argc; i++ {
+			tmpStack[i] = frame.Stack.GetOffset(argc, i)
+		}
+		for i := 0; i < argc-1; i++ {
+			frame.Stack.Pop()
+		}
+		for _, item := range tmpStack {
+			frame.Stack.Push(item)
+		}
 	}
 
 	cleanupStack := func() {
@@ -270,8 +342,17 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValu
 		}
 	}
 
-	// Push this
-	frame.Stack.Push(this)
+	tmpStack := make([]*AtomValue, argc)
+	tmpStack[0] = this
+	for i := 1; i < argc; i++ {
+		tmpStack[i] = frame.Stack.GetOffset(argc, i)
+	}
+	for i := 0; i < argc-1; i++ {
+		frame.Stack.Pop()
+	}
+	for _, item := range tmpStack {
+		frame.Stack.Push(item)
+	}
 
 	if CheckType(fn, AtomTypeFunc) {
 		code := fn.Value.(*AtomCode)
@@ -1005,6 +1086,19 @@ func DoStoreModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name stri
 	module := frame.Stack.Pop()
 	module.Value.(*AtomObject).Set("__name__", NewAtomValueStr(name))
 	interpreter.ModuleTable[name] = module
+}
+
+func DoInitLocal(interpreter *AtomInterpreter, frame *AtomCallFrame, name string, value *AtomValue) {
+	frame.Env.Put(name, value)
+}
+
+func DoStoreLocal(interpreter *AtomInterpreter, frame *AtomCallFrame, name string, value *AtomValue) {
+	// Local?
+	if frame.Env.Has(name) {
+		frame.Env.Set(name, value)
+		return
+	}
+	panic("Not handled properly!!")
 }
 
 func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue, index *AtomValue) {

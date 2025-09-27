@@ -12,7 +12,6 @@ const (
 	OpLoadArray         // with 4 bytes argument
 	OpLoadObject        // with 4 bytes argument
 	OpLoadName          // with 4 bytes argument
-	OpLoadCapture       // with 4 bytes argument
 	OpLoadModule        // With N bytes argument
 	OpLoadFunction      // with 4 bytes argument
 	OpMakeClass         // with 4 bytes argument
@@ -46,7 +45,7 @@ const (
 	OpOr                //
 	OpXor               //
 	OpStoreModule       // with N bytes argument
-	OpStoreCapture      // with 4 bytes argument
+	OpInitLocal         // with 4 bytes argument
 	OpStoreLocal        // with 4 bytes argument
 	OpSetIndex          //
 	OpJumpIfFalseOrPop  // with 4 bytes argument a.k.a jump offset

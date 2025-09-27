@@ -28,28 +28,48 @@ func std_decompile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)
 }
 
 func std_println(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
 	writer := bufio.NewWriter(os.Stdout)
 	for i := range argc {
-		fmt.Fprint(writer, color.YellowString(frame.Stack.Pop().String()))
+		top := frame.Stack.GetOffset(argc, i)
+		fmt.Fprint(writer, color.YellowString(top.String()))
 		if i < argc-1 {
 			fmt.Fprint(writer, " ")
 		}
 	}
+
 	fmt.Fprintln(writer)
 	writer.Flush()
+
+	cleanup()
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
 func std_print(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	cleanup := func() {
+		for range argc {
+			frame.Stack.Pop()
+		}
+	}
+
 	writer := bufio.NewWriter(os.Stdout)
 	for i := range argc {
-		fmt.Fprint(writer, color.YellowString(frame.Stack.Pop().String()))
+		top := frame.Stack.GetOffset(argc, i)
+		fmt.Fprint(writer, color.YellowString(top.String()))
 		if i < argc-1 {
 			fmt.Fprint(writer, " ")
 		}
 	}
+
 	fmt.Fprint(writer)
 	writer.Flush()
+
+	cleanup()
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
@@ -100,14 +120,7 @@ func std_throw(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
-	if !CheckType(frame.Stack.Peek(), AtomTypeErr) {
-		frame.Stack.Pop()
-		frame.Stack.Push(NewAtomValueError(
-			FormatError(frame, "throw expects an error"),
-		))
-		return
-	}
-	std_throw_error(frame.Caller, frame.Stack.Pop())
+	std_throw_error(frame, frame.Stack.Pop())
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
