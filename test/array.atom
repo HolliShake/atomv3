@@ -1,11 +1,184 @@
-import [ println ] from "atom:std";
+import [print, println] from "atom:std";
 
+func test_array_creation() {
+    println("=== Array Creation Tests ===");
+    const empty = [];
+    println("Empty array:", empty);
+    println("Empty array length:", empty.length());
+    
+    const numbers = [1, 2, 3, 4, 5];
+    println("Numbers array:", numbers);
+    println("Numbers length:", numbers.length());
+    
+    const mixed = [1, "hello", true, null, [1, 2, 3]];
+    println("Mixed array:", mixed);
+    println("Mixed length:", mixed.length());
+}
 
-const arr = [
-    1, 2, 3, 4, 5
-];
+func test_array_indexing() {
+    println("=== Array Indexing Tests ===");
+    const arr = [10, 20, 30, 40, 50];
+    
+    println("arr[0] =", arr[0]);
+    println("arr[2] =", arr[2]);
+    println("arr[4] =", arr[4]);
+    
+    // Test assignment
+    arr[1] = 99;
+    println("After arr[1] = 99:", arr);
+    
+    // Test nested arrays
+    const nested = [[1, 2], [3, 4], [5, 6]];
+    println("nested[1][0] =", nested[1][0]);
+    println("nested[2][1] =", nested[2][1]);
+}
 
-arr[4] = arr;
+func test_array_methods() {
+    println("=== Array Methods Tests ===");
+    
+    // Test push and pop
+    const stack = [1, 2, 3];
+    println("Initial stack:", stack);
+    
+    stack.push(4);
+    println("After push(4):", stack);
+    
+    stack.push(5);
+    println("After push(5):", stack);
+    
+    const popped = stack.pop();
+    println("Popped value:", popped);
+    println("Stack after pop:", stack);
+    
+    const peeked = stack.peek();
+    println("Peeked value:", peeked);
+    println("Stack after peek:", stack);
+}
 
-println(arr);
+func test_array_functional_methods() {
+    println("=== Array Functional Methods Tests ===");
+    
+    const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    // Test select (map)
+    const doubled = numbers.select(func(index, value) {
+        return value * 2;
+    });
+    println("Doubled numbers:", doubled);
+    
+    // Test where (filter)
+    const evens = numbers.where(func(value) {
+        return value % 2 == 0;
+    });
+    println("Even numbers:", evens);
+    
+    const odds = numbers.where(func(value) {
+        return value % 2 == 1;
+    });
+    println("Odd numbers:", odds);
+    
+    // Test all
+    const allPositive = numbers.all(func(value) {
+        return value > 0;
+    });
+    println("All positive:", allPositive);
+    
+    const allEven = numbers.all(func(value) {
+        return value % 2 == 0;
+    });
+    println("All even:", allEven);
+    
+    // Test any
+    const hasEven = numbers.any();
+    println("Has any elements:", hasEven);
+    
+    const emptyArray = [];
+    const emptyHasAny = emptyArray.any();
+    println("Empty array has any:", emptyHasAny);
+}
 
+func test_array_each() {
+    println("=== Array Each Tests ===");
+    
+    const fruits = ["apple", "banana", "cherry", "date"];
+    
+    println("Iterating with each:");
+    fruits.each(func(index, value) {
+        println("  [" + index + "] = " + value);
+    });
+    
+    // Test each with side effects
+    const sum_container = [0];
+    const numbers = [1, 2, 3, 4, 5];
+    
+    numbers.each(func(index, value) {
+        sum_container[0] = sum_container[0] + value;
+    });
+    
+    println("Sum using each:", sum_container[0]);
+}
+
+func test_array_stress() {
+    println("=== Array Stress Tests ===");
+    
+    // Large array creation
+    const large = [];
+    const size = 100;
+    
+    // Build large array
+    local build_range =func(n) {
+        return n;
+    };
+    
+    // Push many elements
+    for (local i = 0; i < size; i = i + 1) {
+        large.push(i);
+    }
+    
+    println("Large array length:", large.length());
+    println("First 5 elements:", [large[0], large[1], large[2], large[3], large[4]]);
+    println("Last 5 elements:", [large[95], large[96], large[97], large[98], large[99]]);
+    
+    // Test chaining operations
+    const processed = large
+        .where(func(x) { return x % 2 == 0; })
+        .select(func(i, x) { return x * x; })
+        .where(func(x) { return x < 100; });
+    
+    println("Processed array length:", processed.length());
+    println("Processed sample:", [processed[0], processed[1], processed[2]]);
+}
+
+func test_array_edge_cases() {
+    println("=== Array Edge Cases Tests ===");
+    
+    // Self-reference
+    const selfRef = [1, 2, 3];
+    selfRef[1] = selfRef;
+    println("Self-referencing array:", selfRef);
+    
+    // Deeply nested
+    const deep = [[[[[1]]]]];
+    println("Deep nesting access:", deep[0][0][0][0][0]);
+    
+    // Mixed operations
+    const mixed = [1, "two", 3.14, true, null];
+    mixed.push([1, 2, 3]);
+    println("Mixed after push:", mixed);
+    
+    const mixedLength = mixed.length();
+    println("Mixed length:", mixedLength);
+}
+
+func run_all_tests() {
+    test_array_creation();
+    test_array_indexing();
+    test_array_methods();
+    test_array_functional_methods();
+    test_array_each();
+    test_array_stress();
+    test_array_edge_cases();
+    println("=== All Array Tests Complete ===");
+}
+
+run_all_tests();

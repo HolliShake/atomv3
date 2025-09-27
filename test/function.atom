@@ -1,5 +1,181 @@
-import "atom:std";
+import [print, println] from "atom:std";
 
+// Basic function tests
+func test_basic_functions() {
+    println("=== Basic Function Tests ===");
+    
+    local add = func(a, b) {
+        return a + b;
+    };
+    
+    local multiply = func(x, y) {
+        return x * y;
+    };
+    
+    local greet = func(name) {
+        return "Hello, " + name + "!";
+    };
+    
+    println("add(5, 3) =", add(5, 3));
+    println("multiply(4, 7) =", multiply(4, 7));
+    println("greet('World') =", greet("World"));
+}
+
+// Function with local variables
+func test_local_variables() {
+    println("=== Local Variables Tests ===");
+    
+    local calculateArea = func(radius) {
+        const pi = 3.14159;
+        local area = pi * radius * radius;
+        return area;
+    };
+    
+    local fibonacci = func(n) {
+        if (n <= 1) {
+            return n;
+        }
+        local a = 0;
+        local b = 1;
+        local temp;
+        
+        for (local i = 2; i <= n; i += 1) {
+            temp = a + b;
+            a = b;
+            b = temp;
+        }
+        return b;
+    };
+    
+    println("Circle area (radius 5):", calculateArea(5));
+    println("Fibonacci(10):", fibonacci(10));
+    println("Fibonacci(15):", fibonacci(15));
+}
+
+// Recursive functions
+func test_recursive_functions() {
+    println("=== Recursive Function Tests ===");
+    
+    local factorial = null;
+    factorial = func(n) {
+        if (n <= 1) {
+            return 1;
+        }
+        return n * factorial(n - 1);
+    };
+    
+    local power = null;
+    power = func(base, exp) {
+        if (exp == 0) {
+            return 1;
+        }
+        if (exp == 1) {
+            return base;
+        }
+        return base * power(base, exp - 1);
+    };
+    
+    local gcd = null;
+    gcd = func(a, b) {
+        if (b == 0) {
+            return a;
+        }
+        return gcd(b, a % b);
+    };
+    
+    println("factorial(5) =", factorial(5));
+    println("factorial(7) =", factorial(7));
+    println("power(2, 8) =", power(2, 8));
+    println("power(3, 4) =", power(3, 4));
+    println("gcd(48, 18) =", gcd(48, 18));
+    println("gcd(100, 25) =", gcd(100, 25));
+}
+
+// Higher-order functions
+func test_higher_order_functions() {
+    println("=== Higher-Order Function Tests ===");
+    
+    local applyOperation = func(a, b, operation) {
+        return operation(a, b);
+    };
+    
+    local add = func(x, y) {
+        return x + y;
+    };
+    
+    local subtract = func(x, y) {
+        return x - y;
+    };
+    
+    local multiply = func(x, y) {
+        return x * y;
+    };
+    
+    println("applyOperation(10, 5, add) =", applyOperation(10, 5, add));
+    println("applyOperation(10, 5, subtract) =", applyOperation(10, 5, subtract));
+    println("applyOperation(10, 5, multiply) =", applyOperation(10, 5, multiply));
+    
+    // Function that returns a function
+    local createMultiplier = func(factor) {
+        return func(x) {
+            return x * factor;
+        };
+    };
+    
+    const double = createMultiplier(2);
+    const triple = createMultiplier(3);
+    
+    println("double(7) =", double(7));
+    println("triple(7) =", triple(7));
+}
+
+// Closure tests
+func test_closures() {
+    println("=== Closure Tests ===");
+    
+    local createCounter = func(start) {
+        local count = start;
+        return func() {
+            count += 1;
+            return count;
+        };
+    };
+    
+    const counter1 = createCounter(0);
+    const counter2 = createCounter(100);
+    
+    println("counter1():", counter1());
+    println("counter1():", counter1());
+    println("counter2():", counter2());
+    println("counter1():", counter1());
+    println("counter2():", counter2());
+    
+    // Closure with multiple functions
+    local createCalculator = func(initial) {
+        local value = initial;
+        
+        return {
+            add: func(x) {
+                value += x;
+                return value;
+            },
+            subtract: func(x) {
+                value -= x;
+                return value;
+            },
+            getValue: func() {
+                return value;
+            }
+        };
+    };
+    
+    const calc = createCalculator(10);
+    println("calc.add(5):", calc.add(5));
+    println("calc.subtract(3):", calc.subtract(3));
+    println("calc.getValue():", calc.getValue());
+}
+
+// Pascal's triangle implementation
 func pascal(n) {
     const triangle = [];
     
@@ -41,9 +217,239 @@ func printPascalTriangle(n) {
             }
         }
         
-        std.println(line);
+        println(line);
     }
 }
 
-// Print Pascal's triangle with 10 rows
-printPascalTriangle(10);
+func test_pascal_triangle() {
+    println("=== Pascal Triangle Tests ===");
+    println("Pascal's triangle with 6 rows:");
+    printPascalTriangle(6);
+    
+    println("\nPascal's triangle with 8 rows:");
+    printPascalTriangle(8);
+    
+    // Test individual triangle generation
+    const triangle5 = pascal(5);
+    println("\nTriangle array for 5 rows:", triangle5);
+}
+
+// Function parameter variations
+func test_function_parameters() {
+    println("=== Function Parameter Tests ===");
+    
+    local noParams = func() {
+        return "No parameters";
+    };
+    
+    local oneParam = func(x) {
+        return "One parameter: " + x;
+    };
+    
+    local multipleParams = func(a, b, c, d) {
+        return "Sum: " + (a + b + c + d);
+    };
+    
+    local mixedTypes = func(num, str, bool, arr) {
+        return "Mixed: " + num + ", " + str + ", " + bool + ", " + arr.length();
+    };
+    
+    println("noParams():", noParams());
+    println("oneParam(42):", oneParam(42));
+    println("multipleParams(1, 2, 3, 4):", multipleParams(1, 2, 3, 4));
+    println("mixedTypes(10, 'hello', true, [1,2,3]):", mixedTypes(10, "hello", true, [1, 2, 3]));
+}
+
+// Function stress tests
+func test_function_stress() {
+    println("=== Function Stress Tests ===");
+    
+    // Deep recursion test
+    local deepRecursion = null;
+    deepRecursion = func(n, acc) {
+        if (n <= 0) {
+            return acc;
+        }
+        return deepRecursion(n - 1, acc + n);
+    };
+    
+    println("Deep recursion (sum 1-100):", deepRecursion(100, 0));
+    
+    // Many function calls
+    local simpleAdd = func(a, b) {
+        return a + b;
+    };
+    
+    local total = 0;
+    for (local i = 0; i < 1000; i += 1) {
+        total = simpleAdd(total, i);
+    }
+    println("1000 function calls result:", total);
+    
+    // Nested function definitions
+    local outerFunction = func(x) {
+        local innerFunction1 = func(y) {
+            local innerFunction2 = func(z) {
+                return x + y + z;
+            };
+            return innerFunction2(y * 2);
+        };
+        return innerFunction1(x + 1);
+    };
+    
+    println("Nested functions result:", outerFunction(5));
+    
+    // Function array operations
+    const operations = [
+        func(x) { return x + 1; },
+        func(x) { return x * 2; },
+        func(x) { return x - 3; },
+        func(x) { return x / 2; }
+    ];
+    
+    local value = 10;
+    for (local i = 0; i < operations.length(); i += 1) {
+        value = operations[i](value);
+        println("After operation", i, "value:", value);
+    }
+}
+
+// Complex mathematical functions
+func test_complex_math_functions() {
+    println("=== Complex Math Function Tests ===");
+    
+    local isPrime = func(n) {
+        if (n < 2) return false;
+        if (n == 2) return true;
+        if (n % 2 == 0) return false;
+        
+        for (local i = 3; i * i <= n; i += 2) {
+            if (n % i == 0) {
+                return false;
+            }
+        }
+        return true;
+    };
+    
+    local findPrimes = func(limit) {
+        const primes = [];
+        for (local i = 2; i <= limit; i += 1) {
+            if (isPrime(i)) {
+                primes.push(i);
+            }
+        }
+        return primes;
+    };
+    
+    const primes = findPrimes(50);
+    println("Primes up to 50:", primes);
+
+    local quickSort = null;
+    quickSort = func(arr) {
+        if (arr.length() <= 1) {
+            return arr;
+        }
+        
+        const pivot = arr[0];
+        const less = [];
+        const greater = [];
+        
+        for (local i = 1; i < arr.length(); i += 1) {
+            if (arr[i] <= pivot) {
+                less.push(arr[i]);
+            } else {
+                greater.push(arr[i]);
+            }
+        }
+        
+        const sortedLess = quickSort(less);
+        const sortedGreater = quickSort(greater);
+        
+        const result = [];
+        for (local i = 0; i < sortedLess.length(); i += 1) {
+            result.push(sortedLess[i]);
+        }
+        result.push(pivot);
+        for (local i = 0; i < sortedGreater.length(); i += 1) {
+            result.push(sortedGreater[i]);
+        }
+        
+        return result;
+    };
+    
+    const unsorted = [64, 34, 25, 12, 22, 11, 90, 88, 76, 50, 42];
+    println("Unsorted array:", unsorted);
+    const sorted = quickSort(unsorted);
+    println("Sorted array:", sorted);
+}
+
+// Function edge cases
+func test_function_edge_cases() {
+    println("=== Function Edge Cases Tests ===");
+    
+    // Function returning function returning function
+    local createChain = func() {
+        return func() {
+            return func() {
+                return "Deep chain result";
+            };
+        };
+    };
+    
+    const chain = createChain();
+    const result = chain()();
+    println("Function chain result:", result);
+    
+    // Function with complex closure capture
+    local createComplexClosure = func() {
+        const data = [1, 2, 3, 4, 5];
+        local multiplier = 2;
+        
+        return func(index) {
+            multiplier += 1;
+            return data[index] * multiplier;
+        };
+    };
+    
+    const complexFunc = createComplexClosure();
+    println("Complex closure results:");
+    for (local i = 0; i < 5; i += 1) {
+        println("  Index", i, ":", complexFunc(i));
+    }
+
+    local isOdd = null;
+    local isEven = null;
+    
+    // Mutual recursion
+    isEven = func(n) {
+        if (n == 0) return true;
+        return isOdd(n - 1);
+    };
+    
+    isOdd = func(n) {
+        if (n == 0) return false;
+        return isEven(n - 1);
+    };
+    
+    println("isEven(10):", isEven(10));
+    println("isOdd(10):", isOdd(10));
+    println("isEven(15):", isEven(15));
+    println("isOdd(15):", isOdd(15));
+}
+
+// Run all tests
+func run_all_function_tests() {
+    test_basic_functions();
+    test_local_variables();
+    test_recursive_functions();
+    test_higher_order_functions();
+    test_closures();
+    test_pascal_triangle();
+    test_function_parameters();
+    test_function_stress();
+    test_complex_math_functions();
+    test_function_edge_cases();
+    println("=== All Function Tests Complete ===");
+}
+
+run_all_function_tests();

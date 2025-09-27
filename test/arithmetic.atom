@@ -1,26 +1,134 @@
 import [print, println] from "atom:std";
 
-
-func call(a, b) {
-
-    println(a, "+", b, "=", a + b);
+// Basic arithmetic operations
+func test_addition() {
+    println("=== Addition Tests ===");
+    println("1 + 2 =", 1 + 2);
+    println("100 + 200 =", 100 + 200);
+    println("-5 + 10 =", -5 + 10);
+    println("0 + 0 =", 0 + 0);
+    println("1.5 + 2.5 =", 1.5 + 2.5);
+    println("10 + 3.14 =", 10 + 3.14);
 }
 
-func add(a, b) {
-    println(">>", a, b);
-    call(a, b);
+func test_subtraction() {
+    println("=== Subtraction Tests ===");
+    println("10 - 5 =", 10 - 5);
+    println("0 - 10 =", 0 - 10);
+    println("-5 - 5 =", -5 - 5);
+    println("100.5 - 50.25 =", 100.5 - 50.25);
+    println("7 - 3.2 =", 7 - 3.2);
 }
 
-println("Starting...");
-add(1, 2);
-
-
-class Dog {
-    func init(self, name) {
-        self.name = name;
-        println(">>", self, name);
-    }
-    
+func test_multiplication() {
+    println("=== Multiplication Tests ===");
+    println("3 * 4 =", 3 * 4);
+    println("0 * 100 =", 0 * 100);
+    println("-2 * 5 =", -2 * 5);
+    println("2.5 * 4 =", 2.5 * 4);
+    println("1.5 * 2.5 =", 1.5 * 2.5);
+    println("100 * 100 =", 100 * 100);
+    println("1000 * 1000 =", 1000 * 1000);
 }
 
-println(new Dog("Buddy"));
+func test_division() {
+    println("=== Division Tests ===");
+    println("10 / 2 =", 10 / 2);
+    println("15 / 3 =", 15 / 3);
+    println("7 / 2 =", 7 / 2);
+    println("100.0 / 4.0 =", 100.0 / 4.0);
+    println("22 / 7 =", 22 / 7);
+    println("-10 / 2 =", -10 / 2);
+}
+
+func test_modulo() {
+    println("=== Modulo Tests ===");
+    println("10 % 3 =", 10 % 3);
+    println("15 % 4 =", 15 % 4);
+    println("100 % 7 =", 100 % 7);
+    println("0 % 5 =", 0 % 5);
+    println("-10 % 3 =", -10 % 3);
+}
+
+func test_complex_expressions() {
+    println("=== Complex Expression Tests ===");
+    println("2 + 3 * 4 =", 2 + 3 * 4);
+    println("(2 + 3) * 4 =", (2 + 3) * 4);
+    println("10 - 2 * 3 =", 10 - 2 * 3);
+    println("(10 - 2) * 3 =", (10 - 2) * 3);
+    println("100 / 5 + 10 =", 100 / 5 + 10);
+    println("100 / (5 + 10) =", 100 / (5 + 10));
+    println("2 * 3 + 4 * 5 =", 2 * 3 + 4 * 5);
+    println("(2 + 3) * (4 + 5) =", (2 + 3) * (4 + 5));
+}
+
+func test_unary_operations() {
+    println("=== Unary Operation Tests ===");
+    println("-5 =", -5);
+    println("+5 =", +5);
+    println("-(10 + 5) =", -(10 + 5));
+    println("+(10 - 5) =", +(10 - 5));
+    println("-(-5) =", -(-5));
+}
+
+func test_large_numbers() {
+    println("=== Large Number Tests ===");
+    println("1000000 + 2000000 =", 1000000 + 2000000);
+    println("999999 * 999999 =", 999999 * 999999);
+    println("1000000 / 1000 =", 1000000 / 1000);
+    println("123456789 % 1000 =", 123456789 % 1000);
+}
+
+func test_floating_point() {
+    println("=== Floating Point Tests ===");
+    println("0.1 + 0.2 =", 0.1 + 0.2);
+    println("1.5 * 2.5 =", 1.5 * 2.5);
+    println("10.5 / 2.1 =", 10.5 / 2.1);
+    println("3.14159 * 2 =", 3.14159 * 2);
+    println("100.001 - 100.0 =", 100.001 - 100.0);
+}
+
+func test_edge_cases() {
+    println("=== Edge Case Tests ===");
+    println("0 * 1000000 =", 0 * 1000000);
+    println("1 * 0 =", 1 * 0);
+    println("0 + 0 =", 0 + 0);
+    println("0 - 0 =", 0 - 0);
+    println("1 / 1 =", 1 / 1);
+}
+
+// Run all tests
+println("Starting Arithmetic Stress Tests...");
+println();
+
+test_addition();
+println();
+
+test_subtraction();
+println();
+
+test_multiplication();
+println();
+
+test_division();
+println();
+
+test_modulo();
+println();
+
+test_complex_expressions();
+println();
+
+test_unary_operations();
+println();
+
+test_large_numbers();
+println();
+
+test_floating_point();
+println();
+
+test_edge_cases();
+println();
+
+println("Arithmetic stress tests completed!");
