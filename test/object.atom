@@ -1,24 +1,515 @@
-import [ println ] from "atom:std";
+import [ println, throw ] from "atom:std";
 import [ freeze ] from "atom:object";
 
-const obj = {
-    name: "John",
-    age: 30,
-    city: "New York"
-};
+// Test 1: Basic object operations
+func test_basic_objects() {
+    println("=== Basic Object Tests ===");
+    
+    const obj = {
+        name: "John",
+        age: 30,
+        city: "New York"
+    };
 
-const frz = freeze(obj);
+    const frz = freeze(obj);
 
-obj.name = "Jane";
+    obj.name = "Jane";
 
-println(obj);
-println(frz, frz == obj);
+    println("Original object:", obj);
+    println("Frozen object:", frz, "Same reference:", frz == obj);
+    
+    // Test property access
+    println("obj.name:", obj.name);
+    println("obj['age']:", obj["age"]);
+    println("frz.name:", frz.name);
+    println("frz['city']:", frz["city"]);
+    
+    // Verify expected values - freeze returns the same object, so both should have frozen values
+    if (obj.name != "John") {
+        throw("Expected obj.name to remain 'John' after freezing, got: " + obj.name);
+    }
+    if (obj.age != 30) {
+        throw("Expected obj.age to be 30, got: " + obj.age);
+    }
+    if (frz.name != "John") {
+        throw("Expected frozen object name to be 'John', got: " + frz.name);
+    }
+    if (frz != obj) {
+        throw("Expected freeze to return the same object reference");
+    }
+}
 
-const selfRef = {
-    prop: "PROP",
-    self: ""
-};
+// Test 2: Self-referencing objects
+func test_self_reference() {
+    println("=== Self-Reference Tests ===");
+    
+    const selfRef = {
+        prop: "PROP",
+        self: ""
+    };
 
-selfRef["self"] = selfRef;
+    selfRef["self"] = selfRef;
+    println("Self-referencing object:", selfRef);
+    
+    // Verify self-reference
+    if (selfRef.self != selfRef) {
+        throw("Self-reference failed: selfRef.self should equal selfRef");
+    }
+    
+    // Deep self-reference
+    const deepSelf = {
+        level1: {
+            level2: {
+                level3: null
+            }
+        }
+    };
+    deepSelf.level1.level2.level3 = deepSelf;
+    println("Deep self-reference created");
+    
+    // Verify deep self-reference
+    if (deepSelf.level1.level2.level3 != deepSelf) {
+        throw("Deep self-reference failed");
+    }
+}
 
-println(selfRef);
+// Test 3: Complex nested objects
+func test_nested_objects() {
+    println("=== Nested Object Tests ===");
+    
+    const company = {
+        name: "TechCorp",
+        employees: [
+            {
+                name: "Alice",
+                position: "Developer",
+                skills: ["JavaScript", "Python", "Go"],
+                contact: {
+                    email: "alice@techcorp.com",
+                    phone: "555-0101"
+                }
+            },
+            {
+                name: "Bob",
+                position: "Designer",
+                skills: ["Photoshop", "Figma", "Sketch"],
+                contact: {
+                    email: "bob@techcorp.com",
+                    phone: "555-0102"
+                }
+            }
+        ],
+        departments: {
+            engineering: {
+                budget: 1000000,
+                head: "Charlie"
+            },
+            design: {
+                budget: 500000,
+                head: "Diana"
+            }
+        }
+    };
+    
+    println("Company name:", company.name);
+    println("First employee:", company.employees[0].name);
+    println("Engineering budget:", company.departments.engineering.budget);
+    
+    // Verify initial values
+    if (company.name != "TechCorp") {
+        throw("Expected company name to be 'TechCorp', got: " + company.name);
+    }
+    if (company.employees[0].name != "Alice") {
+        throw("Expected first employee to be 'Alice', got: " + company.employees[0].name);
+    }
+    if (company.departments.engineering.budget != 1000000) {
+        throw("Expected engineering budget to be 1000000, got: " + company.departments.engineering.budget);
+    }
+    
+    // Modify nested properties
+    company.employees[0].skills.push("Rust");
+    company.departments.engineering.budget += 200000;
+    
+    println("Updated skills:", company.employees[0].skills);
+    println("Updated budget:", company.departments.engineering.budget);
+    
+    // Verify modifications
+    if (company.employees[0].skills.length() != 4) {
+        throw("Expected 4 skills after adding Rust, got: " + company.employees[0].skills.length());
+    }
+    if (company.departments.engineering.budget != 1200000) {
+        throw("Expected updated budget to be 1200000, got: " + company.departments.engineering.budget);
+    }
+}
+
+// Test 4: Dynamic property manipulation
+func test_dynamic_properties() {
+    println("=== Dynamic Property Tests ===");
+    
+    const dynamic = {};
+    
+    // Add properties dynamically
+    for (local i = 0; i < 10; i += 1) {
+        dynamic["prop" + i] = i * i;
+    }
+    
+    println("Dynamic object after loop:", dynamic);
+    
+    // Verify dynamic properties
+    if (dynamic.prop5 != 25) {
+        throw("Expected prop5 to be 25, got: " + dynamic.prop5);
+    }
+    
+    // Test property existence
+    println("Has prop5:", dynamic.prop5 != null);
+    dynamic.prop5 = null;
+    println("After setting prop5 to undefined:", dynamic);
+    println("Has prop5 after setting undefined:", dynamic.prop5 != null);
+    
+    // Add complex dynamic properties
+    dynamic.functions = {
+        add: func(a, b) { return a + b; },
+        multiply: func(a, b) { return a * b; }
+    };
+    
+    const addResult = dynamic.functions.add(5, 3);
+    println("Dynamic function result:", addResult);
+    
+    if (addResult != 8) {
+        throw("Expected add function to return 8, got: " + addResult);
+    }
+}
+
+// Test 5: Object as function parameters and return values
+func test_object_parameters() {
+    println("=== Object Parameter Tests ===");
+    
+    local processUser = func(user) {
+        user.processed = true;
+        user.timestamp = "2024-01-01";
+        return {
+            id: user.id,
+            name: user.name,
+            status: "processed"
+        };
+    };
+    
+    const user = {
+        id: 123,
+        name: "TestUser",
+        email: "test@example.com"
+    };
+    
+    const result = processUser(user);
+    println("Original user:", user);
+    println("Processed result:", result);
+    
+    // Verify processing
+    if (!user.processed) {
+        throw("Expected user to be marked as processed");
+    }
+    if (result.status != "processed") {
+        throw("Expected result status to be 'processed', got: " + result.status);
+    }
+    
+    // Array of objects
+    const users = [
+        { id: 1, name: "User1", active: true },
+        { id: 2, name: "User2", active: false },
+        { id: 3, name: "User3", active: true }
+    ];
+    
+    local activeUsers = [];
+    for (local i = 0; i < users.length(); i += 1) {
+        if (users[i].active) {
+            activeUsers.push(users[i]);
+        }
+    }
+    
+    println("Active users:", activeUsers);
+    
+    if (activeUsers.length() != 2) {
+        throw("Expected 2 active users, got: " + activeUsers.length());
+    }
+}
+
+// Test 6: Object property stress test
+func test_property_stress() {
+    println("=== Property Stress Tests ===");
+    
+    const stressObj = {};
+    
+    // Add many properties
+    for (local i = 0; i < 1000; i += 1) {
+        stressObj["key" + i] = {
+            value: i,
+            squared: i * i,
+            description: "Property number " + i
+        };
+    }
+    
+    const keyCount = object.keys(stressObj).length();
+    println("Created object with", keyCount, "properties");
+    
+    if (keyCount != 1000) {
+        throw("Expected 1000 properties, got: " + keyCount);
+    }
+    
+    // Access random properties
+    println("key500:", stressObj.key500);
+    println("key999:", stressObj.key999);
+    
+    if (stressObj.key500.value != 500) {
+        throw("Expected key500.value to be 500, got: " + stressObj.key500.value);
+    }
+    if (stressObj.key999.squared != 998001) {
+        throw("Expected key999.squared to be 998001, got: " + stressObj.key999.squared);
+    }
+    
+    // Modify properties in bulk
+    for (local i = 0; i < 100; i += 1) {
+        stressObj["key" + i].modified = true;
+    }
+    
+    println("Modified first 100 properties");
+    
+    if (!stressObj.key50.modified) {
+        throw("Expected key50 to be marked as modified");
+    }
+}
+
+// Test 7: Object method simulation
+func test_object_methods() {
+    println("=== Object Method Tests ===");
+    
+    const calculator = {
+        value: 0,
+        add: func(self, x) {
+            self.value += x;
+            return self;
+        },
+        multiply: func(self, x) {
+            self.value *= x;
+            return self;
+        },
+        reset: func(self) {
+            self.value = 0;
+            return self;
+        },
+        getValue: func(self) {
+            return self.value;
+        }
+    };
+    
+    // Method chaining simulation
+    calculator.add(calculator, 10);
+    calculator.multiply(calculator, 3);
+    const value1 = calculator.getValue(calculator);
+    println("Calculator value:", value1);
+    
+    if (value1 != 30) {
+        throw("Expected calculator value to be 30, got: " + value1);
+    }
+    
+    calculator.reset(calculator);
+    const value2 = calculator.getValue(calculator);
+    println("After reset:", value2);
+    
+    if (value2 != 0) {
+        throw("Expected calculator value to be 0 after reset, got: " + value2);
+    }
+}
+
+// Test 8: Object copying and cloning
+func test_object_copying() {
+    println("=== Object Copying Tests ===");
+    
+    const original = {
+        name: "Original",
+        data: [1, 2, 3],
+        nested: {
+            prop: "nested value"
+        }
+    };
+    
+    // Shallow copy simulation
+    const shallowCopy = {};
+    const keys = object.keys(original);
+    for (local i = 0; i < keys.length(); i += 1) {
+        const key = keys[i];
+        shallowCopy[key] = original[key];
+    }
+    
+    // Modify original
+    original.name = "Modified";
+    original.data.push(4);
+    original.nested.prop = "modified nested";
+    
+    println("Original:", original);
+    println("Shallow copy:", shallowCopy);
+    
+    // Verify shallow copy behavior
+    if (shallowCopy.name != "Original") {
+        throw("Expected shallow copy name to remain 'Original', got: " + shallowCopy.name);
+    }
+    if (shallowCopy.data.length() != 4) {
+        throw("Expected shallow copy data to have 4 elements (shared reference), got: " + shallowCopy.data.length());
+    }
+    
+    // Test frozen object behavior - freeze returns the same object, not a copy
+    const objToFreeze = {
+        immutable: "value",
+        data: [1, 2, 3]
+    };
+    
+    const frozenObj = freeze(objToFreeze);
+    
+    // Verify freeze returns the same object
+    if (frozenObj != objToFreeze) {
+        throw("Expected freeze to return the same object reference");
+    }
+    
+    // Try to modify frozen object
+    frozenObj.immutable = "new value";  // Should not change
+    frozenObj.data.push(4);  // Array might still be mutable
+    
+    println("Frozen object:", frozenObj);
+    
+    if (frozenObj.immutable != "value") {
+        throw("Expected frozen object property to remain unchanged, got: " + frozenObj.immutable);
+    }
+}
+
+// Test 9: Object edge cases
+func test_object_edge_cases() {
+    println("=== Object Edge Cases Tests ===");
+    
+    // Empty object
+    const empty = {};
+    println("Empty object:", empty);
+    
+    const emptyKeys = object.keys(empty);
+    if (emptyKeys.length() != 0) {
+        throw("Expected empty object to have 0 keys, got: " + emptyKeys.length());
+    }
+    
+    // Object with special characters keys
+    const special = {
+        "key with spaces": "value1",
+        "key-with-dashes": "value2",
+        "key_with_underscores": "value3",
+        "123numeric": "value4"
+    };
+    
+    println("Special keys object:", special);
+    println("Access with spaces:", special["key with spaces"]);
+    
+    if (special["key with spaces"] != "value1") {
+        throw("Expected special key access to work, got: " + special["key with spaces"]);
+    }
+    
+    // Object with null and undefined values
+    const nullish = {
+        nullValue: null,
+        undefinedValue: null,
+        emptyString: "",
+        zero: 0,
+        falseValue: false
+    };
+    
+    println("Nullish values object:", nullish);
+    
+    if (nullish.zero != 0) {
+        throw("Expected zero property to be 0, got: " + nullish.zero);
+    }
+    if (nullish.falseValue != false) {
+        throw("Expected falseValue property to be false, got: " + nullish.falseValue);
+    }
+    
+    // Very deep nesting
+    local deep = {};
+    local current = deep;
+    for (local i = 0; i < 50; i += 1) {
+        current.next = {};
+        current.level = i;
+        current = current.next;
+    }
+    current.final = "deep value";
+    
+    const level10 = deep.next.next.next.next.next.next.next.next.next.next.level;
+    println("Deep nesting created, level 10:", level10);
+    
+    if (level10 != 10) {
+        throw("Expected level 10 to be 10, got: " + level10);
+    }
+}
+
+// Test 10: Object performance test
+func test_object_performance() {
+    println("=== Object Performance Tests ===");
+    
+    // Large object creation
+    const largeObj = {};
+    for (local i = 0; i < 10000; i += 1) {
+        largeObj["prop" + i] = {
+            id: i,
+            name: "Item " + i,
+            data: [i, i * 2, i * 3],
+            metadata: {
+                created: "2024-01-01",
+                type: "test"
+            }
+        };
+    }
+    
+    println("Created large object with 10000 properties");
+    
+    const largeObjKeys = object.keys(largeObj);
+    if (largeObjKeys.length() != 10000) {
+        throw("Expected large object to have 10000 properties, got: " + largeObjKeys.length());
+    }
+    
+    // Property access performance
+    local sum = 0;
+    for (local i = 0; i < 1000; i += 1) {
+        sum += largeObj["prop" + i].id;
+    }
+    
+    println("Sum of first 1000 IDs:", sum);
+    
+    const expectedSum = 999 * 1000 / 2; // Sum of 0 to 999
+    if (sum != expectedSum) {
+        throw("Expected sum to be " + expectedSum + ", got: " + sum);
+    }
+    
+    // Object iteration performance
+    local count = 0;
+    const keys = object.keys(largeObj);
+    for (local i = 0; i < keys.length(); i += 1) {
+        count += 1;
+        if (count >= 100) break;  // Limit iteration for performance
+    }
+    
+    println("Counted", count, "properties during iteration");
+    
+    if (count != 100) {
+        throw("Expected to count 100 properties, got: " + count);
+    }
+}
+
+// Run all object tests
+func run_all_object_tests() {
+    test_basic_objects();
+    test_self_reference();
+    test_nested_objects();
+    test_dynamic_properties();
+    test_object_parameters();
+    test_property_stress();
+    test_object_methods();
+    test_object_copying();
+    test_object_edge_cases();
+    test_object_performance();
+    println("=== All Object Tests Complete ===");
+}
+
+run_all_object_tests();

@@ -1,4 +1,4 @@
-import [print, println] from "atom:std";
+import [print, println, throw] from "atom:std";
 
 // Basic function tests
 func test_basic_functions() {
@@ -16,9 +16,23 @@ func test_basic_functions() {
         return "Hello, " + name + "!";
     };
     
-    println("add(5, 3) =", add(5, 3));
-    println("multiply(4, 7) =", multiply(4, 7));
-    println("greet('World') =", greet("World"));
+    local result1 = add(5, 3);
+    if (result1 != 8) {
+        throw("add(5, 3) expected 8 but got " + result1);
+    }
+    println("add(5, 3) =", result1);
+    
+    local result2 = multiply(4, 7);
+    if (result2 != 28) {
+        throw("multiply(4, 7) expected 28 but got " + result2);
+    }
+    println("multiply(4, 7) =", result2);
+    
+    local result3 = greet("World");
+    if (result3 != "Hello, World!") {
+        throw("greet('World') expected 'Hello, World!' but got '" + result3 + "'");
+    }
+    println("greet('World') =", result3);
 }
 
 // Function with local variables
@@ -47,9 +61,24 @@ func test_local_variables() {
         return b;
     };
     
-    println("Circle area (radius 5):", calculateArea(5));
-    println("Fibonacci(10):", fibonacci(10));
-    println("Fibonacci(15):", fibonacci(15));
+    local area = calculateArea(5);
+    local expectedArea = 78.53975; // 3.14159 * 5 * 5
+    if (area < expectedArea - 0.001 || area > expectedArea + 0.001) {
+        throw("Circle area (radius 5) expected approximately " + expectedArea + " but got " + area);
+    }
+    println("Circle area (radius 5):", area);
+    
+    local fib10 = fibonacci(10);
+    if (fib10 != 55) {
+        throw("Fibonacci(10) expected 55 but got " + fib10);
+    }
+    println("Fibonacci(10):", fib10);
+    
+    local fib15 = fibonacci(15);
+    if (fib15 != 610) {
+        throw("Fibonacci(15) expected 610 but got " + fib15);
+    }
+    println("Fibonacci(15):", fib15);
 }
 
 // Recursive functions
@@ -83,12 +112,41 @@ func test_recursive_functions() {
         return gcd(b, a % b);
     };
     
-    println("factorial(5) =", factorial(5));
-    println("factorial(7) =", factorial(7));
-    println("power(2, 8) =", power(2, 8));
-    println("power(3, 4) =", power(3, 4));
-    println("gcd(48, 18) =", gcd(48, 18));
-    println("gcd(100, 25) =", gcd(100, 25));
+    local fact5 = factorial(5);
+    if (fact5 != 120) {
+        throw("factorial(5) expected 120 but got " + fact5);
+    }
+    println("factorial(5) =", fact5);
+    
+    local fact7 = factorial(7);
+    if (fact7 != 5040) {
+        throw("factorial(7) expected 5040 but got " + fact7);
+    }
+    println("factorial(7) =", fact7);
+    
+    local pow28 = power(2, 8);
+    if (pow28 != 256) {
+        throw("power(2, 8) expected 256 but got " + pow28);
+    }
+    println("power(2, 8) =", pow28);
+    
+    local pow34 = power(3, 4);
+    if (pow34 != 81) {
+        throw("power(3, 4) expected 81 but got " + pow34);
+    }
+    println("power(3, 4) =", pow34);
+    
+    local gcd1 = gcd(48, 18);
+    if (gcd1 != 6) {
+        throw("gcd(48, 18) expected 6 but got " + gcd1);
+    }
+    println("gcd(48, 18) =", gcd1);
+    
+    local gcd2 = gcd(100, 25);
+    if (gcd2 != 25) {
+        throw("gcd(100, 25) expected 25 but got " + gcd2);
+    }
+    println("gcd(100, 25) =", gcd2);
 }
 
 // Higher-order functions
@@ -111,9 +169,23 @@ func test_higher_order_functions() {
         return x * y;
     };
     
-    println("applyOperation(10, 5, add) =", applyOperation(10, 5, add));
-    println("applyOperation(10, 5, subtract) =", applyOperation(10, 5, subtract));
-    println("applyOperation(10, 5, multiply) =", applyOperation(10, 5, multiply));
+    local result1 = applyOperation(10, 5, add);
+    if (result1 != 15) {
+        throw("applyOperation(10, 5, add) expected 15 but got " + result1);
+    }
+    println("applyOperation(10, 5, add) =", result1);
+    
+    local result2 = applyOperation(10, 5, subtract);
+    if (result2 != 5) {
+        throw("applyOperation(10, 5, subtract) expected 5 but got " + result2);
+    }
+    println("applyOperation(10, 5, subtract) =", result2);
+    
+    local result3 = applyOperation(10, 5, multiply);
+    if (result3 != 50) {
+        throw("applyOperation(10, 5, multiply) expected 50 but got " + result3);
+    }
+    println("applyOperation(10, 5, multiply) =", result3);
     
     // Function that returns a function
     local createMultiplier = func(factor) {
@@ -125,8 +197,17 @@ func test_higher_order_functions() {
     const double = createMultiplier(2);
     const triple = createMultiplier(3);
     
-    println("double(7) =", double(7));
-    println("triple(7) =", triple(7));
+    local double7 = double(7);
+    if (double7 != 14) {
+        throw("double(7) expected 14 but got " + double7);
+    }
+    println("double(7) =", double7);
+    
+    local triple7 = triple(7);
+    if (triple7 != 21) {
+        throw("triple(7) expected 21 but got " + triple7);
+    }
+    println("triple(7) =", triple7);
 }
 
 // Closure tests
@@ -144,11 +225,35 @@ func test_closures() {
     const counter1 = createCounter(0);
     const counter2 = createCounter(100);
     
-    println("counter1():", counter1());
-    println("counter1():", counter1());
-    println("counter2():", counter2());
-    println("counter1():", counter1());
-    println("counter2():", counter2());
+    local c1_1 = counter1();
+    if (c1_1 != 1) {
+        throw("counter1() first call expected 1 but got " + c1_1);
+    }
+    println("counter1():", c1_1);
+    
+    local c1_2 = counter1();
+    if (c1_2 != 2) {
+        throw("counter1() second call expected 2 but got " + c1_2);
+    }
+    println("counter1():", c1_2);
+    
+    local c2_1 = counter2();
+    if (c2_1 != 101) {
+        throw("counter2() first call expected 101 but got " + c2_1);
+    }
+    println("counter2():", c2_1);
+    
+    local c1_3 = counter1();
+    if (c1_3 != 3) {
+        throw("counter1() third call expected 3 but got " + c1_3);
+    }
+    println("counter1():", c1_3);
+    
+    local c2_2 = counter2();
+    if (c2_2 != 102) {
+        throw("counter2() second call expected 102 but got " + c2_2);
+    }
+    println("counter2():", c2_2);
     
     // Closure with multiple functions
     local createCalculator = func(initial) {
@@ -170,9 +275,24 @@ func test_closures() {
     };
     
     const calc = createCalculator(10);
-    println("calc.add(5):", calc.add(5));
-    println("calc.subtract(3):", calc.subtract(3));
-    println("calc.getValue():", calc.getValue());
+    
+    local addResult = calc.add(5);
+    if (addResult != 15) {
+        throw("calc.add(5) expected 15 but got " + addResult);
+    }
+    println("calc.add(5):", addResult);
+    
+    local subtractResult = calc.subtract(3);
+    if (subtractResult != 12) {
+        throw("calc.subtract(3) expected 12 but got " + subtractResult);
+    }
+    println("calc.subtract(3):", subtractResult);
+    
+    local getValue = calc.getValue();
+    if (getValue != 12) {
+        throw("calc.getValue() expected 12 but got " + getValue);
+    }
+    println("calc.getValue():", getValue);
 }
 
 // Pascal's triangle implementation
@@ -231,6 +351,21 @@ func test_pascal_triangle() {
     
     // Test individual triangle generation
     const triangle5 = pascal(5);
+    if (triangle5.length() != 5) {
+        throw("Pascal triangle with 5 rows should have 5 rows but got " + triangle5.length());
+    }
+    
+    // Check first row
+    if (triangle5[0].length() != 1 || triangle5[0][0] != 1) {
+        throw("Pascal triangle row 0 should be [1] but got " + triangle5[0]);
+    }
+    
+    // Check last row
+    const lastRow = triangle5[4];
+    if (lastRow.length() != 5 || lastRow[0] != 1 || lastRow[1] != 4 || lastRow[2] != 6 || lastRow[3] != 4 || lastRow[4] != 1) {
+        throw("Pascal triangle row 4 should be [1,4,6,4,1] but got " + lastRow);
+    }
+    
     println("\nTriangle array for 5 rows:", triangle5);
 }
 
@@ -254,10 +389,29 @@ func test_function_parameters() {
         return "Mixed: " + num + ", " + str + ", " + bool + ", " + arr.length();
     };
     
-    println("noParams():", noParams());
-    println("oneParam(42):", oneParam(42));
-    println("multipleParams(1, 2, 3, 4):", multipleParams(1, 2, 3, 4));
-    println("mixedTypes(10, 'hello', true, [1,2,3]):", mixedTypes(10, "hello", true, [1, 2, 3]));
+    local result1 = noParams();
+    if (result1 != "No parameters") {
+        throw("noParams() expected 'No parameters' but got '" + result1 + "'");
+    }
+    println("noParams():", result1);
+    
+    local result2 = oneParam(42);
+    if (result2 != "One parameter: 42") {
+        throw("oneParam(42) expected 'One parameter: 42' but got '" + result2 + "'");
+    }
+    println("oneParam(42):", result2);
+    
+    local result3 = multipleParams(1, 2, 3, 4);
+    if (result3 != "Sum: 10") {
+        throw("multipleParams(1, 2, 3, 4) expected 'Sum: 10' but got '" + result3 + "'");
+    }
+    println("multipleParams(1, 2, 3, 4):", result3);
+    
+    local result4 = mixedTypes(10, "hello", true, [1, 2, 3]);
+    if (result4 != "Mixed: 10, hello, true, 3") {
+        throw("mixedTypes expected 'Mixed: 10, hello, true, 3' but got '" + result4 + "'");
+    }
+    println("mixedTypes(10, 'hello', true, [1,2,3]):", result4);
 }
 
 // Function stress tests
@@ -273,7 +427,12 @@ func test_function_stress() {
         return deepRecursion(n - 1, acc + n);
     };
     
-    println("Deep recursion (sum 1-100):", deepRecursion(100, 0));
+    local deepResult = deepRecursion(100, 0);
+    local expected = 5050; // Sum of 1 to 100
+    if (deepResult != expected) {
+        throw("Deep recursion (sum 1-100) expected " + expected + " but got " + deepResult);
+    }
+    println("Deep recursion (sum 1-100):", deepResult);
     
     // Many function calls
     local simpleAdd = func(a, b) {
@@ -283,6 +442,10 @@ func test_function_stress() {
     local total = 0;
     for (local i = 0; i < 1000; i += 1) {
         total = simpleAdd(total, i);
+    }
+    local expectedTotal = 499500; // Sum of 0 to 999
+    if (total != expectedTotal) {
+        throw("1000 function calls result expected " + expectedTotal + " but got " + total);
     }
     println("1000 function calls result:", total);
     
@@ -297,7 +460,12 @@ func test_function_stress() {
         return innerFunction1(x + 1);
     };
     
-    println("Nested functions result:", outerFunction(5));
+    local nestedResult = outerFunction(5);
+    local expectedNested = 5 + 6 + 12; // x=5, y=6, z=12
+    if (nestedResult != expectedNested) {
+        throw("Nested functions result expected " + expectedNested + " but got " + nestedResult);
+    }
+    println("Nested functions result:", nestedResult);
     
     // Function array operations
     const operations = [
@@ -308,8 +476,12 @@ func test_function_stress() {
     ];
     
     local value = 10;
+    const expectedValues = [11, 22, 19, 9.5];
     for (local i = 0; i < operations.length(); i += 1) {
         value = operations[i](value);
+        if (value != expectedValues[i]) {
+            throw("After operation " + i + " expected " + expectedValues[i] + " but got " + value);
+        }
         println("After operation", i, "value:", value);
     }
 }
@@ -342,6 +514,15 @@ func test_complex_math_functions() {
     };
     
     const primes = findPrimes(50);
+    const expectedPrimes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47];
+    if (primes.length() != expectedPrimes.length()) {
+        throw("Expected " + expectedPrimes.length() + " primes up to 50 but got " + primes.length());
+    }
+    for (local i = 0; i < expectedPrimes.length(); i += 1) {
+        if (primes[i] != expectedPrimes[i]) {
+            throw("Prime at index " + i + " expected " + expectedPrimes[i] + " but got " + primes[i]);
+        }
+    }
     println("Primes up to 50:", primes);
 
     local quickSort = null;
@@ -380,6 +561,16 @@ func test_complex_math_functions() {
     const unsorted = [64, 34, 25, 12, 22, 11, 90, 88, 76, 50, 42];
     println("Unsorted array:", unsorted);
     const sorted = quickSort(unsorted);
+    const expectedSorted = [11, 12, 22, 25, 34, 42, 50, 64, 76, 88, 90];
+    
+    if (sorted.length() != expectedSorted.length()) {
+        throw("Sorted array length expected " + expectedSorted.length() + " but got " + sorted.length());
+    }
+    for (local i = 0; i < expectedSorted.length(); i += 1) {
+        if (sorted[i] != expectedSorted[i]) {
+            throw("Sorted array at index " + i + " expected " + expectedSorted[i] + " but got " + sorted[i]);
+        }
+    }
     println("Sorted array:", sorted);
 }
 
@@ -398,6 +589,9 @@ func test_function_edge_cases() {
     
     const chain = createChain();
     const result = chain()();
+    if (result != "Deep chain result") {
+        throw("Function chain result expected 'Deep chain result' but got '" + result + "'");
+    }
     println("Function chain result:", result);
     
     // Function with complex closure capture
@@ -413,8 +607,13 @@ func test_function_edge_cases() {
     
     const complexFunc = createComplexClosure();
     println("Complex closure results:");
+    const expectedResults = [3, 8, 15, 24, 35]; // data[i] * (3+i)
     for (local i = 0; i < 5; i += 1) {
-        println("  Index", i, ":", complexFunc(i));
+        local result = complexFunc(i);
+        if (result != expectedResults[i]) {
+            throw("Complex closure at index " + i + " expected " + expectedResults[i] + " but got " + result);
+        }
+        println("  Index", i, ":", result);
     }
 
     local isOdd = null;
@@ -431,10 +630,29 @@ func test_function_edge_cases() {
         return isEven(n - 1);
     };
     
-    println("isEven(10):", isEven(10));
-    println("isOdd(10):", isOdd(10));
-    println("isEven(15):", isEven(15));
-    println("isOdd(15):", isOdd(15));
+    local even10 = isEven(10);
+    if (even10 != true) {
+        throw("isEven(10) expected true but got " + even10);
+    }
+    println("isEven(10):", even10);
+    
+    local odd10 = isOdd(10);
+    if (odd10 != false) {
+        throw("isOdd(10) expected false but got " + odd10);
+    }
+    println("isOdd(10):", odd10);
+    
+    local even15 = isEven(15);
+    if (even15 != false) {
+        throw("isEven(15) expected false but got " + even15);
+    }
+    println("isEven(15):", even15);
+    
+    local odd15 = isOdd(15);
+    if (odd15 != true) {
+        throw("isOdd(15) expected true but got " + odd15);
+    }
+    println("isOdd(15):", odd15);
 }
 
 // Run all tests

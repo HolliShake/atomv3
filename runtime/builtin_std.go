@@ -97,13 +97,15 @@ func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 	builder := strings.Builder{}
 	builder.WriteByte('\n')
 
-	builder.WriteString(err.String())
+	builder.WriteString(
+		FormatError(frame, err.String()),
+	)
 
 	if frame.Caller != nil {
 		builder.WriteString("\n")
 	}
 
-	for current := frame.Caller; current != nil; current = current.Caller {
+	for current := frame; current != nil; current = current.Caller {
 		builder.WriteString(FormatError(current, current.Fn.Value.(*AtomCode).Name))
 		if current.Caller != nil {
 			builder.WriteString("\n")

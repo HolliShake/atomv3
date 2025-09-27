@@ -1,4 +1,4 @@
-import [ println ] from "atom:std";
+import [ println, throw ] from "atom:std";
 
 async func wast() {
     println("wait->start");
@@ -9,6 +9,9 @@ async func callee() {
     println("callee->start");
     const data = await wast();
     println("Done", data);
+    if (data != "Hola!") {
+        throw("Expected 'Hola!' but got: " + data);
+    }
     return data;
 }
 
@@ -16,6 +19,9 @@ async func caller() {
     println("Starting...");
     const data = await callee();
     println("caller->callee() =", data);
+    if (data != "Hola!") {
+        throw("Expected 'Hola!' but got: " + data);
+    }
     return data;
 }
 
@@ -33,6 +39,17 @@ async func processMultiple() {
     const data2 = await fetchData("002");
     const data3 = await fetchData("003");
     println("All data:", data1, data2, data3);
+    
+    if (data1 != "Data-001") {
+        throw("Expected 'Data-001' but got: " + data1);
+    }
+    if (data2 != "Data-002") {
+        throw("Expected 'Data-002' but got: " + data2);
+    }
+    if (data3 != "Data-003") {
+        throw("Expected 'Data-003' but got: " + data3);
+    }
+    
     return [data1, data2, data3];
 }
 
@@ -52,6 +69,14 @@ async func handleAsync() {
     const result1 = await mayFail(false);
     const result2 = await mayFail(true);
     println("Results:", result1, result2);
+    
+    if (result1 != "Success!") {
+        throw("Expected 'Success!' but got: " + result1);
+    }
+    if (result2 != null) {
+        throw("Expected null but got: " + result2);
+    }
+    
     return result1;
 }
 
@@ -68,12 +93,21 @@ async func processMessages() {
     
     const result1 = await delayedMessage("Hello", 1);
     println("Processed:", result1);
+    if (result1 != "Hello (delayed)") {
+        throw("Expected 'Hello (delayed)' but got: " + result1);
+    }
     
     const result2 = await delayedMessage("World", 2);
     println("Processed:", result2);
+    if (result2 != "World (delayed)") {
+        throw("Expected 'World (delayed)' but got: " + result2);
+    }
     
     const result3 = await delayedMessage("Async", 3);
     println("Processed:", result3);
+    if (result3 != "Async (delayed)") {
+        throw("Expected 'Async (delayed)' but got: " + result3);
+    }
     
     return "All messages processed";
 }
@@ -106,6 +140,19 @@ async func testReturnTypes() {
     println("Array:", arr);
     println("Object:", obj);
     
+    if (num != 42) {
+        throw("Expected 42 but got: " + num);
+    }
+    if (arr.length() != 5) {
+        throw("Expected array length 5 but got: " + arr.length());
+    }
+    if (obj.name != "Test") {
+        throw("Expected object name 'Test' but got: " + obj.name);
+    }
+    if (obj.value != 100) {
+        throw("Expected object value 100 but got: " + obj.value);
+    }
+    
     return "Type tests complete";
 }
 
@@ -120,12 +167,18 @@ async func level1() {
 async func level2() {
     println("Level 2 async");
     const data = await level1();
+    if (data != "L1") {
+        throw("Expected 'L1' but got: " + data);
+    }
     return "L2-" + data;
 }
 
 async func level3() {
     println("Level 3 async");
     const data = await level2();
+    if (data != "L2-L1") {
+        throw("Expected 'L2-L1' but got: " + data);
+    }
     return "L3-" + data;
 }
 
@@ -133,6 +186,9 @@ async func testNesting() {
     println("Testing nested async calls...");
     const result = await level3();
     println("Final result:", result);
+    if (result != "L3-L2-L1") {
+        throw("Expected 'L3-L2-L1' but got: " + result);
+    }
     return result;
 }
 
@@ -152,8 +208,20 @@ async func multiply(a, b) {
 async func complexCalculation() {
     println("Starting complex calculation...");
     const sum = await calculate(10, 5);
+    if (sum != 15) {
+        throw("Expected 15 but got: " + sum);
+    }
+    
     const product = await multiply(sum, 2);
+    if (product != 30) {
+        throw("Expected 30 but got: " + product);
+    }
+    
     const final = await calculate(product, 8);
+    if (final != 38) {
+        throw("Expected 38 but got: " + final);
+    }
+    
     println("Complex result:", final);
     return final;
 }
@@ -170,10 +238,20 @@ async func processWithWhile() {
         const data = await fetchData("W" + counter);
         results[counter] = data;
         println("While iteration:", counter, "result:", data);
+        
+        const expected = "Data-W" + counter;
+        if (data != expected) {
+            throw("Expected '" + expected + "' but got: " + data);
+        }
+        
         counter = counter + 1;
     }
     
     println("While loop complete, results:", results);
+    if (results.length() != 3) {
+        throw("Expected results length 3 but got: " + results.length());
+    }
+    
     return results;
 }
 
@@ -187,6 +265,11 @@ async func processWithDoWhile() {
     
     do {
         const msg = await delayedMessage("Msg" + counter, counter);
+        const expected = "Msg" + counter + " (delayed)";
+        if (msg != expected) {
+            throw("Expected '" + expected + "' but got: " + msg);
+        }
+        
         if (counter > 0) {
             accumulator = accumulator + " ";
         }
@@ -196,6 +279,11 @@ async func processWithDoWhile() {
     } while (counter < 4);
     
     println("Do-while loop complete, accumulator:", accumulator);
+    const expectedAccumulator = "Msg0 (delayed) Msg1 (delayed) Msg2 (delayed) Msg3 (delayed)";
+    if (accumulator != expectedAccumulator) {
+        throw("Expected '" + expectedAccumulator + "' but got: " + accumulator);
+    }
+    
     return accumulator;
 }
 
@@ -214,6 +302,11 @@ async func nestedWhileTest() {
         
         while (inner < 3) {
             const data = await calculate(outer, inner);
+            const expected = outer + inner;
+            if (data != expected) {
+                throw("Expected " + expected + " but got: " + data);
+            }
+            
             innerResults[inner] = data;
             println("Inner loop:", outer, inner, "result:", data);
             inner = inner + 1;
@@ -224,6 +317,10 @@ async func nestedWhileTest() {
     }
     
     println("Nested while complete, total results:", totalResults);
+    if (totalResults.length() != 2) {
+        throw("Expected totalResults length 2 but got: " + totalResults.length());
+    }
+    
     return totalResults;
 }
 
@@ -241,6 +338,9 @@ async func conditionalLoopTest() {
         const result = await mayFail(!shouldSucceed);
         
         if (result != null) {
+            if (result != "Success!") {
+                throw("Expected 'Success!' but got: " + result);
+            }
             validResults[validCount] = result;
             validCount = validCount + 1;
             println("Valid result at index:", index, "value:", result);
@@ -252,6 +352,10 @@ async func conditionalLoopTest() {
     }
     
     println("Conditional loop complete, valid results:", validResults);
+    if (validCount != 3) {
+        throw("Expected 3 valid results but got: " + validCount);
+    }
+    
     return validResults;
 }
 
@@ -266,6 +370,10 @@ async func accumulationTest() {
     
     while (counter <= 4) {
         const value = await returnNumber();
+        if (value != 42) {
+            throw("Expected 42 but got: " + value);
+        }
+        
         const adjustedValue = value + counter;
         sum = sum + adjustedValue;
         product = product * counter;
@@ -275,6 +383,14 @@ async func accumulationTest() {
     }
     
     const finalResult = await calculate(sum, product);
+    const expectedSum = 43 + 44 + 45 + 46; // 178
+    const expectedProduct = 1 * 2 * 3 * 4; // 24
+    const expectedFinal = expectedSum + expectedProduct; // 202
+    
+    if (finalResult != expectedFinal) {
+        throw("Expected " + expectedFinal + " but got: " + finalResult);
+    }
+    
     println("Final accumulated result:", finalResult);
     return finalResult;
 }
@@ -289,6 +405,11 @@ async func stringBuildingTest() {
     
     do {
         const part = await delayedMessage("Part" + counter, counter);
+        const expectedPart = "Part" + counter + " (delayed)";
+        if (part != expectedPart) {
+            throw("Expected '" + expectedPart + "' but got: " + part);
+        }
+        
         if (counter > 0) {
             result = result + "-";
         }
@@ -298,6 +419,11 @@ async func stringBuildingTest() {
     } while (counter < 3);
     
     println("String building complete:", result);
+    const expectedResult = "Part0 (delayed)-Part1 (delayed)-Part2 (delayed)";
+    if (result != expectedResult) {
+        throw("Expected '" + expectedResult + "' but got: " + result);
+    }
+    
     return result;
 }
 
@@ -312,9 +438,15 @@ async func arrayBuildingTest() {
     while (index < 4) {
         if (index % 2 == 0) {
             const numResult = await returnNumber();
+            if (numResult != 42) {
+                throw("Expected 42 but got: " + numResult);
+            }
             results[index] = numResult + index;
         } else {
             const arrResult = await returnArray();
+            if (arrResult.length() != 5) {
+                throw("Expected array length 5 but got: " + arrResult.length());
+            }
             results[index] = arrResult;
         }
         
@@ -323,6 +455,16 @@ async func arrayBuildingTest() {
     }
     
     println("Array building complete:", results);
+    if (results.length() != 4) {
+        throw("Expected results length 4 but got: " + results.length());
+    }
+    if (results[0] != 42) {
+        throw("Expected results[0] to be 42 but got: " + results[0]);
+    }
+    if (results[2] != 44) {
+        throw("Expected results[2] to be 44 but got: " + results[2]);
+    }
+    
     return results;
 }
 
@@ -341,11 +483,21 @@ async func complexNestedTest() {
         
         do {
             const baseValue = await calculate(mainCounter, subCounter);
+            const expectedBase = mainCounter + subCounter;
+            if (baseValue != expectedBase) {
+                throw("Expected " + expectedBase + " but got: " + baseValue);
+            }
+            
             local processedValue = baseValue;
             
             local innerCounter = 0;
             while (innerCounter < 2) {
                 const multiplier = await multiply(processedValue, 2);
+                const expectedMultiplier = processedValue * 2;
+                if (multiplier != expectedMultiplier) {
+                    throw("Expected " + expectedMultiplier + " but got: " + multiplier);
+                }
+                
                 processedValue = multiplier;
                 println("Inner processing:", mainCounter, subCounter, innerCounter, "value:", processedValue);
                 innerCounter = innerCounter + 1;
@@ -361,6 +513,21 @@ async func complexNestedTest() {
     }
     
     println("Complex nested test complete:", finalData);
+    
+    // Validate the final structure
+    if (finalData.group0 == null) {
+        throw("Expected finalData.group0 to exist");
+    }
+    if (finalData.group1 == null) {
+        throw("Expected finalData.group1 to exist");
+    }
+    if (finalData.group0.length() != 2) {
+        throw("Expected finalData.group0 length 2 but got: " + finalData.group0.length());
+    }
+    if (finalData.group1.length() != 2) {
+        throw("Expected finalData.group1 length 2 but got: " + finalData.group1.length());
+    }
+    
     return finalData;
 }
 

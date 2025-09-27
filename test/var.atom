@@ -14,8 +14,123 @@ func makeAdder(x) {
 const f1 = makeAdder(10);
 const f2 = makeAdder(20);
 
-println(f1(20)(), f2(25)()); // 32, 47
+// Test basic closure functionality
+var result1 = f1(20)();
+var result2 = f2(25)();
+println(result1, result2); // 32, 47
+
+if (result1 != 32) std.throw("Expected f1(20)() to return 32, got " + result1);
+if (result2 != 47) std.throw("Expected f2(25)() to return 47, got " + result2);
+
+// Test variable capture and modification
+z = 5;
+var result3 = f1(20)();
+var result4 = f2(25)();
+println("After z modification:", result3, result4); // 35, 50
+
+if (result3 != 35) std.throw("Expected f1(20)() after z=5 to return 35, got " + result3);
+if (result4 != 50) std.throw("Expected f2(25)() after z=5 to return 50, got " + result4);
+
+// Test multiple closures with same parameters
+const f3 = makeAdder(10);
+var result5 = f3(20)();
+if (result5 != 35) std.throw("Expected f3(20)() to return 35, got " + result5);
+
+// Test closure independence
+var adder1 = makeAdder(1);
+var adder2 = makeAdder(2);
+var inner1 = adder1(10);
+var inner2 = adder2(20);
+
+var final1 = inner1();
+var final2 = inner2();
+println("Independent closures:", final1, final2); // 16, 27
+
+if (final1 != 16) std.throw("Expected adder1(10)() to return 16, got " + final1);
+if (final2 != 27) std.throw("Expected adder2(20)() to return 27, got " + final2);
+
+// Test nested scope variable access
+func testNestedScope() {
+    local outer = 100;
+    z = 1; // Modify global
+    
+    local createNested = func() {
+        local middle = 200;
+        return func() {
+            local inner = 300;
+            return outer + middle + inner + z;
+        };
+    };
+    
+    return createNested();
+}
+
+var nestedFunc = testNestedScope();
+var nestedResult = nestedFunc();
+println("Nested scope result:", nestedResult); // 601
+
+if (nestedResult != 601) std.throw("Expected nested scope result to be 601, got " + nestedResult);
+
+// Test closure with loop variables
+var closures = [];
+for (local i = 0; i < 5; i += 1) {
+    local capturedI = i;
+    closures.push(func() {
+        return capturedI + z;
+    });
+}
+
+for (local j = 0; j < closures.length(); j += 1) {
+    local closureResult = closures[j]();
+    local expected = j + z;
+    println("Closure", j, "result:", closureResult);
+    if (closureResult != expected) std.throw("Expected closure " + j + " to return " + expected + ", got " + closureResult);
+}
+
+// Test global variable mutation through closures
+var globalCounter = 0;
+
+func createCounter() {
+    return func() {
+        globalCounter += 1;
+        return globalCounter;
+    };
+}
+
+var counter1 = createCounter();
+var counter2 = createCounter();
+
+var count1 = counter1();
+var count2 = counter2();
+var count3 = counter1();
+
+println("Counter results:", count1, count2, count3); // 1, 2, 3
+
+if (count1 != 1) std.throw("Expected first counter call to return 1, got " + count1);
+if (count2 != 2) std.throw("Expected second counter call to return 2, got " + count2);
+if (count3 != 3) std.throw("Expected third counter call to return 3, got " + count3);
+if (globalCounter != 3) std.throw("Expected globalCounter to be 3, got " + globalCounter);
 
 import "atom:math";
 
 println(math.pow(2, 3)); // 8
+
+// Test math functions with closures
+func createMathClosure(base) {
+    return func(exponent) {
+        return math.pow(base, exponent);
+    };
+}
+
+var pow2 = createMathClosure(2);
+var pow3 = createMathClosure(3);
+
+var mathResult1 = pow2(3);
+var mathResult2 = pow3(2);
+
+println("Math closure results:", mathResult1, mathResult2); // 8, 9
+
+if (mathResult1 != 8) std.throw("Expected pow2(3) to return 8, got " + mathResult1);
+if (mathResult2 != 9) std.throw("Expected pow3(2) to return 9, got " + mathResult2);
+
+println("=== Variable Stress Test Completed Successfully ===");

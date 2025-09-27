@@ -1,4 +1,4 @@
-import [print, println] from "atom:std";
+import [print, println, throw] from "atom:std";
 
 func test_array_creation() {
     println("=== Array Creation Tests ===");
@@ -6,13 +6,25 @@ func test_array_creation() {
     println("Empty array:", empty);
     println("Empty array length:", empty.length());
     
+    if (empty.length() != 0) {
+        throw("Empty array should have length 0");
+    }
+    
     const numbers = [1, 2, 3, 4, 5];
     println("Numbers array:", numbers);
     println("Numbers length:", numbers.length());
     
+    if (numbers.length() != 5) {
+        throw("Numbers array should have length 5");
+    }
+    
     const mixed = [1, "hello", true, null, [1, 2, 3]];
     println("Mixed array:", mixed);
     println("Mixed length:", mixed.length());
+    
+    if (mixed.length() != 5) {
+        throw("Mixed array should have length 5");
+    }
 }
 
 func test_array_indexing() {
@@ -23,14 +35,35 @@ func test_array_indexing() {
     println("arr[2] =", arr[2]);
     println("arr[4] =", arr[4]);
     
+    if (arr[0] != 10) {
+        throw("arr[0] should be 10");
+    }
+    if (arr[2] != 30) {
+        throw("arr[2] should be 30");
+    }
+    if (arr[4] != 50) {
+        throw("arr[4] should be 50");
+    }
+    
     // Test assignment
     arr[1] = 99;
     println("After arr[1] = 99:", arr);
+    
+    if (arr[1] != 99) {
+        throw("arr[1] should be 99 after assignment");
+    }
     
     // Test nested arrays
     const nested = [[1, 2], [3, 4], [5, 6]];
     println("nested[1][0] =", nested[1][0]);
     println("nested[2][1] =", nested[2][1]);
+    
+    if (nested[1][0] != 3) {
+        throw("nested[1][0] should be 3");
+    }
+    if (nested[2][1] != 6) {
+        throw("nested[2][1] should be 6");
+    }
 }
 
 func test_array_methods() {
@@ -40,19 +73,51 @@ func test_array_methods() {
     const stack = [1, 2, 3];
     println("Initial stack:", stack);
     
+    if (stack.length() != 3) {
+        throw("Initial stack should have length 3");
+    }
+    
     stack.push(4);
     println("After push(4):", stack);
     
+    if (stack.length() != 4) {
+        throw("Stack should have length 4 after push");
+    }
+    if (stack[3] != 4) {
+        throw("Last element should be 4 after push");
+    }
+    
     stack.push(5);
     println("After push(5):", stack);
+    
+    if (stack.length() != 5) {
+        throw("Stack should have length 5 after second push");
+    }
+    if (stack[4] != 5) {
+        throw("Last element should be 5 after second push");
+    }
     
     const popped = stack.pop();
     println("Popped value:", popped);
     println("Stack after pop:", stack);
     
+    if (popped != 5) {
+        throw("Popped value should be 5");
+    }
+    if (stack.length() != 4) {
+        throw("Stack should have length 4 after pop");
+    }
+    
     const peeked = stack.peek();
     println("Peeked value:", peeked);
     println("Stack after peek:", stack);
+    
+    if (peeked != 4) {
+        throw("Peeked value should be 4");
+    }
+    if (stack.length() != 4) {
+        throw("Stack length should remain 4 after peek");
+    }
 }
 
 func test_array_functional_methods() {
@@ -66,16 +131,40 @@ func test_array_functional_methods() {
     });
     println("Doubled numbers:", doubled);
     
+    if (doubled.length() != 10) {
+        throw("Doubled array should have length 10");
+    }
+    if (doubled[0] != 2) {
+        throw("First doubled element should be 2");
+    }
+    if (doubled[9] != 20) {
+        throw("Last doubled element should be 20");
+    }
+    
     // Test where (filter)
     const evens = numbers.where(func(value) {
         return value % 2 == 0;
     });
     println("Even numbers:", evens);
     
+    if (evens.length() != 5) {
+        throw("Should have 5 even numbers");
+    }
+    if (evens[0] != 2) {
+        throw("First even number should be 2");
+    }
+    
     const odds = numbers.where(func(value) {
         return value % 2 == 1;
     });
     println("Odd numbers:", odds);
+    
+    if (odds.length() != 5) {
+        throw("Should have 5 odd numbers");
+    }
+    if (odds[0] != 1) {
+        throw("First odd number should be 1");
+    }
     
     // Test all
     const allPositive = numbers.all(func(value) {
@@ -83,18 +172,34 @@ func test_array_functional_methods() {
     });
     println("All positive:", allPositive);
     
+    if (!allPositive) {
+        throw("All numbers should be positive");
+    }
+    
     const allEven = numbers.all(func(value) {
         return value % 2 == 0;
     });
     println("All even:", allEven);
     
+    if (allEven) {
+        throw("Not all numbers should be even");
+    }
+    
     // Test any
     const hasEven = numbers.any();
     println("Has any elements:", hasEven);
     
+    if (!hasEven) {
+        throw("Numbers array should have elements");
+    }
+    
     const emptyArray = [];
     const emptyHasAny = emptyArray.any();
     println("Empty array has any:", emptyHasAny);
+    
+    if (emptyHasAny) {
+        throw("Empty array should not have any elements");
+    }
 }
 
 func test_array_each() {
@@ -116,6 +221,10 @@ func test_array_each() {
     });
     
     println("Sum using each:", sum_container[0]);
+    
+    if (sum_container[0] != 15) {
+        throw("Sum should be 15 (1+2+3+4+5)");
+    }
 }
 
 func test_array_stress() {
@@ -139,6 +248,16 @@ func test_array_stress() {
     println("First 5 elements:", [large[0], large[1], large[2], large[3], large[4]]);
     println("Last 5 elements:", [large[95], large[96], large[97], large[98], large[99]]);
     
+    if (large.length() != 100) {
+        throw("Large array should have length 100");
+    }
+    if (large[0] != 0) {
+        throw("First element should be 0");
+    }
+    if (large[99] != 99) {
+        throw("Last element should be 99");
+    }
+    
     // Test chaining operations
     const processed = large
         .where(func(x) { return x % 2 == 0; })
@@ -147,6 +266,13 @@ func test_array_stress() {
     
     println("Processed array length:", processed.length());
     println("Processed sample:", [processed[0], processed[1], processed[2]]);
+    
+    if (processed.length() == 0) {
+        throw("Processed array should not be empty");
+    }
+    if (processed[0] != 0) {
+        throw("First processed element should be 0 (0*0)");
+    }
 }
 
 func test_array_edge_cases() {
@@ -157,9 +283,20 @@ func test_array_edge_cases() {
     selfRef[1] = selfRef;
     println("Self-referencing array:", selfRef);
     
+    if (selfRef[0] != 1) {
+        throw("Self-ref array first element should be 1");
+    }
+    if (selfRef[2] != 3) {
+        throw("Self-ref array third element should be 3");
+    }
+    
     // Deeply nested
     const deep = [[[[[1]]]]];
     println("Deep nesting access:", deep[0][0][0][0][0]);
+    
+    if (deep[0][0][0][0][0] != 1) {
+        throw("Deep nested value should be 1");
+    }
     
     // Mixed operations
     const mixed = [1, "two", 3.14, true, null];
@@ -168,6 +305,10 @@ func test_array_edge_cases() {
     
     const mixedLength = mixed.length();
     println("Mixed length:", mixedLength);
+    
+    if (mixedLength != 6) {
+        throw("Mixed array should have length 6 after push");
+    }
 }
 
 func run_all_tests() {

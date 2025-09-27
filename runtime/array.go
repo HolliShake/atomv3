@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"slices"
+	"unsafe"
 )
 
 type AtomArray struct {
@@ -29,8 +30,19 @@ func (a *AtomArray) ValidIndex(index int) bool {
 func (a *AtomArray) Len() int {
 	return len(a.Elements)
 }
-
 func (a *AtomArray) HashValue() int {
+	return a.HashValueWithVisited(make(map[uintptr]bool))
+}
+
+func (a *AtomArray) HashValueWithVisited(visited map[uintptr]bool) int {
+	// Check for self-reference to prevent infinite recursion
+	ptr := uintptr(unsafe.Pointer(a))
+	if visited[ptr] {
+		return 0 // Return a constant for self-referencing arrays
+	}
+	visited[ptr] = true
+	defer delete(visited, ptr)
+
 	hash := 0
 	for _, element := range a.Elements {
 		hash = hash*31 + element.HashValue()

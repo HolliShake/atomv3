@@ -227,25 +227,8 @@ func (p *AtomParser) primary() *AtomAst {
 
 func (p *AtomParser) memberOrCall() *AtomAst {
 	ast := p.primary()
-	for p.checkT(TokenTypeSym) && (p.checkV("::") || p.checkV(".") || p.checkV("[") || p.checkV("(")) {
-		if p.checkV("::") {
-			p.acceptV("::")
-			key := p.terminal()
-			if key == nil {
-				Error(
-					p.tokenizer.file,
-					p.tokenizer.data,
-					"Expected identifier",
-					p.lookahead.Position,
-				)
-				return nil
-			}
-			ast = NewNamespaceAccess(
-				ast,
-				key,
-				ast.Position.Merge(key.Position),
-			)
-		} else if p.checkV(".") {
+	for p.checkT(TokenTypeSym) && (p.checkV(".") || p.checkV("[") || p.checkV("(")) {
+		if p.checkV(".") {
 			p.acceptV(".")
 			key := p.terminal()
 			if key == nil {
@@ -948,9 +931,7 @@ func (p *AtomParser) mandatory() *AtomAst {
 }
 
 func (p *AtomParser) statement() *AtomAst {
-	if p.checkT(TokenTypeKey) && p.checkV(KeyNamespace) {
-		return p.namespaceStatement()
-	} else if p.checkT(TokenTypeKey) && p.checkV(KeyClass) {
+	if p.checkT(TokenTypeKey) && p.checkV(KeyClass) {
 		return p.classStatement()
 	} else if p.checkT(TokenTypeKey) && p.checkV(KeyEnum) {
 		return p.enumStatement()
@@ -986,40 +967,6 @@ func (p *AtomParser) statement() *AtomAst {
 		return p.returnStatement()
 	}
 	return p.expressionStatement()
-}
-
-func (p *AtomParser) namespaceStatement() *AtomAst {
-	start := p.lookahead.Position
-	ended := start
-	p.acceptV(KeyNamespace)
-
-	name := p.expression()
-	if name == nil {
-		Error(
-			p.tokenizer.file,
-			p.tokenizer.data,
-			"Expected identifier",
-			p.lookahead.Position,
-		)
-		return nil
-	}
-
-	p.acceptV("{")
-
-	body := []*AtomAst{}
-	stmt := p.statement()
-	for stmt != nil {
-		body = append(body, stmt)
-		stmt = p.statement()
-	}
-	ended = p.lookahead.Position
-	p.acceptV("}")
-
-	return NewNamespaceStatement(
-		name,
-		body,
-		start.Merge(ended),
-	)
 }
 
 func (p *AtomParser) classStatement() *AtomAst {

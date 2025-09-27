@@ -1,100 +1,278 @@
-import [print, println] from "atom:std";
+import [print, println, throw] from "atom:std";
 
 // Basic arithmetic operations
 func test_addition() {
     println("=== Addition Tests ===");
-    println("1 + 2 =", 1 + 2);
-    println("100 + 200 =", 100 + 200);
-    println("-5 + 10 =", -5 + 10);
-    println("0 + 0 =", 0 + 0);
-    println("1.5 + 2.5 =", 1.5 + 2.5);
-    println("10 + 3.14 =", 10 + 3.14);
+    
+    local result = 1 + 2;
+    if (result != 3) throw("Addition test failed: 1 + 2 should equal 3, got " + result);
+    println("1 + 2 =", result);
+    
+    result = 100 + 200;
+    if (result != 300) throw("Addition test failed: 100 + 200 should equal 300, got " + result);
+    println("100 + 200 =", result);
+    
+    result = -5 + 10;
+    if (result != 5) throw("Addition test failed: -5 + 10 should equal 5, got " + result);
+    println("-5 + 10 =", result);
+    
+    result = 0 + 0;
+    if (result != 0) throw("Addition test failed: 0 + 0 should equal 0, got " + result);
+    println("0 + 0 =", result);
+    
+    result = 1.5 + 2.5;
+    if (result != 4.0) throw("Addition test failed: 1.5 + 2.5 should equal 4.0, got " + result);
+    println("1.5 + 2.5 =", result);
+    
+    result = 10 + 3.14;
+    if (result != 13.14) throw("Addition test failed: 10 + 3.14 should equal 13.14, got " + result);
+    println("10 + 3.14 =", result);
 }
 
 func test_subtraction() {
     println("=== Subtraction Tests ===");
-    println("10 - 5 =", 10 - 5);
-    println("0 - 10 =", 0 - 10);
-    println("-5 - 5 =", -5 - 5);
-    println("100.5 - 50.25 =", 100.5 - 50.25);
-    println("7 - 3.2 =", 7 - 3.2);
+    
+    local result = 10 - 5;
+    if (result != 5) throw("Subtraction test failed: 10 - 5 should equal 5, got " + result);
+    println("10 - 5 =", result);
+    
+    result = 0 - 10;
+    if (result != -10) throw("Subtraction test failed: 0 - 10 should equal -10, got " + result);
+    println("0 - 10 =", result);
+    
+    result = -5 - 5;
+    if (result != -10) throw("Subtraction test failed: -5 - 5 should equal -10, got " + result);
+    println("-5 - 5 =", result);
+    
+    result = 100.5 - 50.25;
+    if (result != 50.25) throw("Subtraction test failed: 100.5 - 50.25 should equal 50.25, got " + result);
+    println("100.5 - 50.25 =", result);
+    
+    result = 7 - 3.2;
+    if (result != 3.8) throw("Subtraction test failed: 7 - 3.2 should equal 3.8, got " + result);
+    println("7 - 3.2 =", result);
 }
 
 func test_multiplication() {
     println("=== Multiplication Tests ===");
-    println("3 * 4 =", 3 * 4);
-    println("0 * 100 =", 0 * 100);
-    println("-2 * 5 =", -2 * 5);
-    println("2.5 * 4 =", 2.5 * 4);
-    println("1.5 * 2.5 =", 1.5 * 2.5);
-    println("100 * 100 =", 100 * 100);
-    println("1000 * 1000 =", 1000 * 1000);
+    
+    local result = 3 * 4;
+    if (result != 12) throw("Multiplication test failed: 3 * 4 should equal 12, got " + result);
+    println("3 * 4 =", result);
+    
+    result = 0 * 100;
+    if (result != 0) throw("Multiplication test failed: 0 * 100 should equal 0, got " + result);
+    println("0 * 100 =", result);
+    
+    result = -2 * 5;
+    if (result != -10) throw("Multiplication test failed: -2 * 5 should equal -10, got " + result);
+    println("-2 * 5 =", result);
+    
+    result = 2.5 * 4;
+    if (result != 10.0) throw("Multiplication test failed: 2.5 * 4 should equal 10.0, got " + result);
+    println("2.5 * 4 =", result);
+    
+    result = 1.5 * 2.5;
+    if (result != 3.75) throw("Multiplication test failed: 1.5 * 2.5 should equal 3.75, got " + result);
+    println("1.5 * 2.5 =", result);
+    
+    result = 100 * 100;
+    if (result != 10000) throw("Multiplication test failed: 100 * 100 should equal 10000, got " + result);
+    println("100 * 100 =", result);
+    
+    result = 1000 * 1000;
+    if (result != 1000000) throw("Multiplication test failed: 1000 * 1000 should equal 1000000, got " + result);
+    println("1000 * 1000 =", result);
 }
 
 func test_division() {
     println("=== Division Tests ===");
-    println("10 / 2 =", 10 / 2);
-    println("15 / 3 =", 15 / 3);
-    println("7 / 2 =", 7 / 2);
-    println("100.0 / 4.0 =", 100.0 / 4.0);
-    println("22 / 7 =", 22 / 7);
-    println("-10 / 2 =", -10 / 2);
+    
+    local result = 10 / 2;
+    if (result != 5) throw("Division test failed: 10 / 2 should equal 5, got " + result);
+    println("10 / 2 =", result);
+    
+    result = 15 / 3;
+    if (result != 5) throw("Division test failed: 15 / 3 should equal 5, got " + result);
+    println("15 / 3 =", result);
+    
+    result = 7 / 2;
+    if (result != 3.5) throw("Division test failed: 7 / 2 should equal 3.5, got " + result);
+    println("7 / 2 =", result);
+    
+    result = 100.0 / 4.0;
+    if (result != 25.0) throw("Division test failed: 100.0 / 4.0 should equal 25.0, got " + result);
+    println("100.0 / 4.0 =", result);
+    
+    result = 22 / 7;
+    local expected = 3.142857142857143;
+    if (result < expected - 0.000001 || result > expected + 0.000001) {
+        throw("Division test failed: 22 / 7 should approximately equal " + expected + ", got " + result);
+    }
+    println("22 / 7 =", result);
+    
+    result = -10 / 2;
+    if (result != -5) throw("Division test failed: -10 / 2 should equal -5, got " + result);
+    println("-10 / 2 =", result);
 }
 
 func test_modulo() {
     println("=== Modulo Tests ===");
-    println("10 % 3 =", 10 % 3);
-    println("15 % 4 =", 15 % 4);
-    println("100 % 7 =", 100 % 7);
-    println("0 % 5 =", 0 % 5);
-    println("-10 % 3 =", -10 % 3);
+    
+    local result = 10 % 3;
+    if (result != 1) throw("Modulo test failed: 10 % 3 should equal 1, got " + result);
+    println("10 % 3 =", result);
+    
+    result = 15 % 4;
+    if (result != 3) throw("Modulo test failed: 15 % 4 should equal 3, got " + result);
+    println("15 % 4 =", result);
+    
+    result = 100 % 7;
+    if (result != 2) throw("Modulo test failed: 100 % 7 should equal 2, got " + result);
+    println("100 % 7 =", result);
+    
+    result = 0 % 5;
+    if (result != 0) throw("Modulo test failed: 0 % 5 should equal 0, got " + result);
+    println("0 % 5 =", result);
+    
+    result = -10 % 3;
+    if (result != -1) throw("Modulo test failed: -10 % 3 should equal -1, got " + result);
+    println("-10 % 3 =", result);
 }
 
 func test_complex_expressions() {
     println("=== Complex Expression Tests ===");
-    println("2 + 3 * 4 =", 2 + 3 * 4);
-    println("(2 + 3) * 4 =", (2 + 3) * 4);
-    println("10 - 2 * 3 =", 10 - 2 * 3);
-    println("(10 - 2) * 3 =", (10 - 2) * 3);
-    println("100 / 5 + 10 =", 100 / 5 + 10);
-    println("100 / (5 + 10) =", 100 / (5 + 10));
-    println("2 * 3 + 4 * 5 =", 2 * 3 + 4 * 5);
-    println("(2 + 3) * (4 + 5) =", (2 + 3) * (4 + 5));
+    
+    local result = 2 + 3 * 4;
+    if (result != 14) throw("Complex expression test failed: 2 + 3 * 4 should equal 14, got " + result);
+    println("2 + 3 * 4 =", result);
+    
+    result = (2 + 3) * 4;
+    if (result != 20) throw("Complex expression test failed: (2 + 3) * 4 should equal 20, got " + result);
+    println("(2 + 3) * 4 =", result);
+    
+    result = 10 - 2 * 3;
+    if (result != 4) throw("Complex expression test failed: 10 - 2 * 3 should equal 4, got " + result);
+    println("10 - 2 * 3 =", result);
+    
+    result = (10 - 2) * 3;
+    if (result != 24) throw("Complex expression test failed: (10 - 2) * 3 should equal 24, got " + result);
+    println("(10 - 2) * 3 =", result);
+    
+    result = 100 / 5 + 10;
+    if (result != 30) throw("Complex expression test failed: 100 / 5 + 10 should equal 30, got " + result);
+    println("100 / 5 + 10 =", result);
+    
+    result = 100 / (5 + 10);
+    local expected = 6.666666666666667;
+    if (result < expected - 0.000001 || result > expected + 0.000001) {
+        throw("Complex expression test failed: 100 / (5 + 10) should approximately equal " + expected + ", got " + result);
+    }
+    println("100 / (5 + 10) =", result);
+    
+    result = 2 * 3 + 4 * 5;
+    if (result != 26) throw("Complex expression test failed: 2 * 3 + 4 * 5 should equal 26, got " + result);
+    println("2 * 3 + 4 * 5 =", result);
+    
+    result = (2 + 3) * (4 + 5);
+    if (result != 45) throw("Complex expression test failed: (2 + 3) * (4 + 5) should equal 45, got " + result);
+    println("(2 + 3) * (4 + 5) =", result);
 }
 
 func test_unary_operations() {
     println("=== Unary Operation Tests ===");
-    println("-5 =", -5);
-    println("+5 =", +5);
-    println("-(10 + 5) =", -(10 + 5));
-    println("+(10 - 5) =", +(10 - 5));
-    println("-(-5) =", -(-5));
+    
+    local result = -5;
+    if (result != -5) throw("Unary operation test failed: -5 should equal -5, got " + result);
+    println("-5 =", result);
+    
+    result = +5;
+    if (result != 5) throw("Unary operation test failed: +5 should equal 5, got " + result);
+    println("+5 =", result);
+    
+    result = -(10 + 5);
+    if (result != -15) throw("Unary operation test failed: -(10 + 5) should equal -15, got " + result);
+    println("-(10 + 5) =", result);
+    
+    result = +(10 - 5);
+    if (result != 5) throw("Unary operation test failed: +(10 - 5) should equal 5, got " + result);
+    println("+(10 - 5) =", result);
+    
+    result = -(-5);
+    if (result != 5) throw("Unary operation test failed: -(-5) should equal 5, got " + result);
+    println("-(-5) =", result);
 }
 
 func test_large_numbers() {
     println("=== Large Number Tests ===");
-    println("1000000 + 2000000 =", 1000000 + 2000000);
-    println("999999 * 999999 =", 999999 * 999999);
-    println("1000000 / 1000 =", 1000000 / 1000);
-    println("123456789 % 1000 =", 123456789 % 1000);
+    
+    local result = 1000000 + 2000000;
+    if (result != 3000000) throw("Large number test failed: 1000000 + 2000000 should equal 3000000, got " + result);
+    println("1000000 + 2000000 =", result);
+    
+    result = 999999 * 999999;
+    if (result != 999998000001) throw("Large number test failed: 999999 * 999999 should equal 999998000001, got " + result);
+    println("999999 * 999999 =", result);
+    
+    result = 1000000 / 1000;
+    if (result != 1000) throw("Large number test failed: 1000000 / 1000 should equal 1000, got " + result);
+    println("1000000 / 1000 =", result);
+    
+    result = 123456789 % 1000;
+    if (result != 789) throw("Large number test failed: 123456789 % 1000 should equal 789, got " + result);
+    println("123456789 % 1000 =", result);
 }
 
 func test_floating_point() {
     println("=== Floating Point Tests ===");
-    println("0.1 + 0.2 =", 0.1 + 0.2);
-    println("1.5 * 2.5 =", 1.5 * 2.5);
-    println("10.5 / 2.1 =", 10.5 / 2.1);
-    println("3.14159 * 2 =", 3.14159 * 2);
-    println("100.001 - 100.0 =", 100.001 - 100.0);
+    
+    local result = 0.1 + 0.2;
+    local expected = 0.30000000000000004;
+    if (result < expected - 0.000001 || result > expected + 0.000001) {
+        throw("Floating point test failed: 0.1 + 0.2 should approximately equal " + expected + ", got " + result);
+    }
+    println("0.1 + 0.2 =", result);
+    
+    result = 1.5 * 2.5;
+    if (result != 3.75) throw("Floating point test failed: 1.5 * 2.5 should equal 3.75, got " + result);
+    println("1.5 * 2.5 =", result);
+    
+    result = 10.5 / 2.1;
+    expected = 5.0;
+    if (result != expected) throw("Floating point test failed: 10.5 / 2.1 should equal " + expected + ", got " + result);
+    println("10.5 / 2.1 =", result);
+    
+    result = 3.14159 * 2;
+    if (result != 6.28318) throw("Floating point test failed: 3.14159 * 2 should equal 6.28318, got " + result);
+    println("3.14159 * 2 =", result);
+    
+    result = 100.001 - 100.0;
+    if (result != 0.001) throw("Floating point test failed: 100.001 - 100.0 should equal 0.001, got " + result);
+    println("100.001 - 100.0 =", result);
 }
 
 func test_edge_cases() {
     println("=== Edge Case Tests ===");
-    println("0 * 1000000 =", 0 * 1000000);
-    println("1 * 0 =", 1 * 0);
-    println("0 + 0 =", 0 + 0);
-    println("0 - 0 =", 0 - 0);
-    println("1 / 1 =", 1 / 1);
+    
+    local result = 0 * 1000000;
+    if (result != 0) throw("Edge case test failed: 0 * 1000000 should equal 0, got " + result);
+    println("0 * 1000000 =", result);
+    
+    result = 1 * 0;
+    if (result != 0) throw("Edge case test failed: 1 * 0 should equal 0, got " + result);
+    println("1 * 0 =", result);
+    
+    result = 0 + 0;
+    if (result != 0) throw("Edge case test failed: 0 + 0 should equal 0, got " + result);
+    println("0 + 0 =", result);
+    
+    result = 0 - 0;
+    if (result != 0) throw("Edge case test failed: 0 - 0 should equal 0, got " + result);
+    println("0 - 0 =", result);
+    
+    result = 1 / 1;
+    if (result != 1) throw("Edge case test failed: 1 / 1 should equal 1, got " + result);
+    println("1 / 1 =", result);
 }
 
 // Run all tests

@@ -1,6 +1,12 @@
-import [println] from "atom:std";
+import [println, throw] from "atom:std";
 
 println("=== Closure Stress Test ===");
+
+func assertEqual(actual, expected, msg) {
+    if (actual != expected) {
+        throw(msg + ": expected '" + expected + "' but got '" + actual + "'");
+    }
+}
 
 // Test 1: Basic closure with single variable capture
 func createCounter() {
@@ -11,12 +17,23 @@ func createCounter() {
     };
 }
 
+println("Basic closure test:");
 const counter1 = createCounter();
 const counter2 = createCounter();
 
-println("Basic closure test:");
-println("Counter1:", counter1(), counter1(), counter1()); // Should be 1, 2, 3
-println("Counter2:", counter2(), counter2());             // Should be 1, 2
+const c1_1 = counter1();
+const c1_2 = counter1();
+const c1_3 = counter1();
+println("Counter1:", c1_1, c1_2, c1_3);
+assertEqual(c1_1, 1, "Counter1 first call");
+assertEqual(c1_2, 2, "Counter1 second call");
+assertEqual(c1_3, 3, "Counter1 third call");
+
+const c2_1 = counter2();
+const c2_2 = counter2();
+println("Counter2:", c2_1, c2_2);
+assertEqual(c2_1, 1, "Counter2 first call");
+assertEqual(c2_2, 2, "Counter2 second call");
 
 // Test 2: Multiple variable capture
 func createCalculator(initial) {
@@ -43,21 +60,30 @@ func createCalculator(initial) {
     };
 }
 
-const calc = createCalculator(10);
 println("\nMultiple variable capture test:");
-println("Initial value:", calc.getValue());
-println("Add 5:", calc.add(5));
-println("Subtract 3:", calc.subtract(3));
-println("Operations count:", calc.getOperations());
+const calc = createCalculator(10);
+const initialValue = calc.getValue();
+println("Initial value:", initialValue);
+assertEqual(initialValue, 10, "Calculator initial value");
+
+const addResult = calc.add(5);
+println("Add 5:", addResult);
+assertEqual(addResult, 15, "Calculator add");
+
+const subtractResult = calc.subtract(3);
+println("Subtract 3:", subtractResult);
+assertEqual(subtractResult, 12, "Calculator subtract");
+
+const operationsCount = calc.getOperations();
+println("Operations count:", operationsCount);
+assertEqual(operationsCount, 2, "Calculator operations count");
 
 // Test 3: Nested closures
 func createNestedCounter() {
     local outer = 0;
-    
     return func() {
         outer = outer + 1;
         local inner = 0;
-        
         return func() {
             inner = inner + 1;
             return "Outer: " + outer + ", Inner: " + inner;
@@ -65,21 +91,28 @@ func createNestedCounter() {
     };
 }
 
+println("\nNested closures test:");
 const nestedFactory = createNestedCounter();
 const nested1 = nestedFactory();
 const nested2 = nestedFactory();
 
-println("\nNested closures test:");
-println("Nested1:", nested1(), nested1());
-println("Nested2:", nested2(), nested2());
+const n1_1 = nested1();
+const n1_2 = nested1();
+println("Nested1:", n1_1, n1_2);
+assertEqual(n1_1, "Outer: 2, Inner: 1", "Nested1 first call");
+assertEqual(n1_2, "Outer: 2, Inner: 2", "Nested1 second call");
 
-// Test 4: Closure in loop (classic closure problem)
+const n2_1 = nested2();
+const n2_2 = nested2();
+println("Nested2:", n2_1, n2_2);
+assertEqual(n2_1, "Outer: 2, Inner: 1", "Nested2 first call");
+assertEqual(n2_2, "Outer: 2, Inner: 2", "Nested2 second call");
+
+// Test 4: Closure in loop
 func createFunctionArray() {
     local functions = [];
     local i = 0;
-    
     while (i < 5) {
-        // Create a closure that captures the current value of i
         functions.push((func(index) {
             return func() {
                 return "Function " + index + " called";
@@ -87,15 +120,16 @@ func createFunctionArray() {
         })(i));
         i = i + 1;
     }
-    
     return functions;
 }
 
-const funcArray = createFunctionArray();
 println("\nClosure in loop test:");
+const funcArray = createFunctionArray();
 var j = 0;
 while (j < funcArray.length()) {
-    println(funcArray[j]());
+    const result = funcArray[j]();
+    println(result);
+    assertEqual(result, "Function " + j + " called", "Function array index " + j);
     j = j + 1;
 }
 
@@ -109,22 +143,27 @@ func createParameterModifier(param) {
     };
 }
 
-const modifier = createParameterModifier("initial");
 println("\nParameter modification test:");
-println("Initial:", modifier(null));
-println("Modified:", modifier("changed"));
-println("Current:", modifier(null));
+const modifier = createParameterModifier("initial");
+const initial = modifier(null);
+println("Initial:", initial);
+assertEqual(initial, "initial", "Parameter modifier initial");
+
+const modified = modifier("changed");
+println("Modified:", modified);
+assertEqual(modified, "changed", "Parameter modifier change");
+
+const current = modifier(null);
+println("Current:", current);
+assertEqual(current, "changed", "Parameter modifier current");
 
 // Test 6: Complex closure with multiple levels
 func createComplexClosure() {
     local level1 = "L1";
-    
     return func(param1) {
         local level2 = "L2-" + param1;
-        
         return func(param2) {
             local level3 = "L3-" + param2;
-            
             return func() {
                 return level1 + ":" + level2 + ":" + level3;
             };
@@ -132,18 +171,18 @@ func createComplexClosure() {
     };
 }
 
+println("\nComplex multi-level closure test:");
 const complex = createComplexClosure();
 const level2Func = complex("A");
 const level3Func = level2Func("B");
-
-println("\nComplex multi-level closure test:");
-println("Result:", level3Func());
+const complexResult = level3Func();
+println("Result:", complexResult);
+assertEqual(complexResult, "L1:L2-A:L3-B", "Complex closure result");
 
 // Test 7: Closure with array and object capture
 func createDataCapture() {
     local arr = [1, 2, 3];
     local obj = {name: "test", value: 42};
-    
     return {
         addToArray: func(item) {
             arr.push(item);
@@ -159,39 +198,50 @@ func createDataCapture() {
     };
 }
 
-const dataCapture = createDataCapture();
 println("\nData structure capture test:");
-println("Add to array:", dataCapture.addToArray(4));
-println("Modify object:", dataCapture.modifyObject("newKey", "newValue"));
-println("Get all:", dataCapture.getAll());
+const dataCapture = createDataCapture();
+const arrayResult = dataCapture.addToArray(4);
+println("Add to array:", arrayResult);
+assertEqual(arrayResult.length(), 4, "Array length after push");
+assertEqual(arrayResult[3], 4, "Array last element after push");
 
-// Test 8: Recursive closure
+const objectResult = dataCapture.modifyObject("newKey", "newValue");
+println("Modify object:", objectResult);
+assertEqual(objectResult.newKey, "newValue", "Object newKey value");
+
+const allData = dataCapture.getAll();
+println("Get all:", allData);
+assertEqual(allData.array.length(), 4, "GetAll array length");
+assertEqual(allData.object.newKey, "newValue", "GetAll object newKey");
+
+// Test 8: Recursive closure (fibonacci)
 func createRecursiveClosure() {
     local memo = {};
     local fibClosure;
-    
     fibClosure = func(n) {
         if (n <= 1) {
             return n;
         }
-        
         if (memo[n] != null) {
             return memo[n];
         }
-        
         memo[n] = fibClosure(n - 1) + fibClosure(n - 2);
         return memo[n];
     };
-    
     return fibClosure;
 }
 
+println("\nRecursive closure test:");
 const fibClosure = createRecursiveClosure();
-println("\nRecursive closure test (memoized fibonacci):");
-println("fib(10):", fibClosure(10));
-println("fib(15):", fibClosure(15));
+const fib10 = fibClosure(10);
+println("fib(10):", fib10);
+assertEqual(fib10, 55, "fib(10)");
 
-// Test 9: Closure factory with different behaviors
+const fib15 = fibClosure(15);
+println("fib(15):", fib15);
+assertEqual(fib15, 610, "fib(15)");
+
+// Test 9: Closure factory with behaviors
 func createBehaviorFactory(type) {
     if (type == "adder") {
         local sum = 0;
@@ -212,20 +262,35 @@ func createBehaviorFactory(type) {
     }
 }
 
+println("\nBehavior factory test:");
 const adder = createBehaviorFactory("adder");
 const multiplier = createBehaviorFactory("multiplier");
 const unknown = createBehaviorFactory("unknown");
 
-println("\nBehavior factory test:");
-println("Adder:", adder(5), adder(3), adder(2)); // 5, 8, 10
-println("Multiplier:", multiplier(2), multiplier(3), multiplier(4)); // 2, 6, 24
-println("Unknown:", unknown("test"));
+const add1 = adder(5);
+const add2 = adder(3);
+const add3 = adder(2);
+println("Adder:", add1, add2, add3);
+assertEqual(add1, 5, "Adder first");
+assertEqual(add2, 8, "Adder second");
+assertEqual(add3, 10, "Adder third");
 
-// Test 10: Stress test with many closures
+const mult1 = multiplier(2);
+const mult2 = multiplier(3);
+const mult3 = multiplier(4);
+println("Multiplier:", mult1, mult2, mult3);
+assertEqual(mult1, 2, "Multiplier first");
+assertEqual(mult2, 6, "Multiplier second");
+assertEqual(mult3, 24, "Multiplier third");
+
+const unknownResult = unknown("test");
+println("Unknown:", unknownResult);
+assertEqual(unknownResult, "Unknown type: test", "Unknown type result");
+
+// Test 10: Many closures
 func createManyClosures(count) {
     local closures = [];
     local i = 0;
-    
     while (i < count) {
         closures.push((func(index) {
             local localVar = "closure-" + index;
@@ -235,15 +300,24 @@ func createManyClosures(count) {
         })(i));
         i = i + 1;
     }
-    
     return closures;
 }
 
-const manyClosures = createManyClosures(100);
 println("\nMany closures stress test:");
+const manyClosures = createManyClosures(100);
 println("Created", manyClosures.length(), "closures");
-println("First closure:", manyClosures[0]());
-println("Middle closure:", manyClosures[50]());
-println("Last closure:", manyClosures[99]());
+assertEqual(manyClosures.length(), 100, "Many closures count");
+
+const firstResult = manyClosures[0]();
+println("First closure:", firstResult);
+assertEqual(firstResult, "closure-0 executed", "First closure result");
+
+const middleResult = manyClosures[50]();
+println("Middle closure:", middleResult);
+assertEqual(middleResult, "closure-50 executed", "Middle closure result");
+
+const lastResult = manyClosures[99]();
+println("Last closure:", lastResult);
+assertEqual(lastResult, "closure-99 executed", "Last closure result");
 
 println("\n=== Closure Stress Test Complete ===");

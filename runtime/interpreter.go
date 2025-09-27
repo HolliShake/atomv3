@@ -373,6 +373,18 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 		case OpPopTop:
 			frame.Stack.Pop()
 
+		case OpEnterBlock:
+			_ = ReadInt(code.Code, strt)
+			forwardIp(4)
+			frame.Env = NewAtomEnv(frame.Env)
+
+		case OpExitBlock:
+			depth := ReadInt(code.Code, strt)
+			forwardIp(4)
+			for range depth {
+				frame.Env = frame.Env.Parent
+			}
+
 		case OpRot2:
 			DoRot2(frame)
 

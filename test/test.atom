@@ -273,8 +273,6 @@ Monkey.printName(monkey);
 
 import "date";
 
-println(date.now());
-
 func incTest() {
     local inc = {
         value: 2
@@ -294,34 +292,6 @@ for (local l = 0; l < 10; ++l) {
     local hj = 2;
 }
 
-namespace Logger {
-    func log(message) {
-        std.print(message);
-        std.println(
-            lower
-        );
-    }
-    namespace Std {
-        func println(message) {
-            std.println(" " + message);
-        }
-    }
-}
 
-Logger::log("Hello,");
-Logger::Std::println("Word!");
-
-func upper() {
-    lower();
-}
-
-func lower() {
-    std.println("Greetings from lower!!");
-}
-
-upper();
-
-
-import "./imports.atom";
 
 

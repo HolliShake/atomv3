@@ -67,12 +67,49 @@ func isConstant(ast *AtomAst) bool {
 	}
 }
 
+func hasDeclairation(block []*AtomAst) bool {
+	for _, stmt := range block {
+		if stmt.AstType == AstTypeVarStatement || stmt.AstType == AstTypeConstStatement || stmt.AstType == AstTypeLocalStatement {
+			return true
+		}
+	}
+	return false
+}
+
 func arrayReverse(path []string) []string {
 	reverse := []string{}
 	for i := len(path) - 1; i >= 0; i-- {
 		reverse = append(reverse, path[i])
 	}
 	return reverse
+}
+
+func currentLoop(scope *AtomScope) *AtomScope {
+	for current := scope; current != nil; current = current.Parent {
+		if current.Type == AtomScopeTypeLoop {
+			return current
+		}
+	}
+	return nil
+}
+
+func currentBlock(scope *AtomScope) *AtomScope {
+	for current := scope; current != nil; current = current.Parent {
+		if current.Type == AtomScopeTypeBlock {
+			return current
+		}
+	}
+	return nil
+}
+
+func sendBreak(scope *AtomScope, jumpAddress int) {
+	loop := currentLoop(scope)
+	loop.Breaks = append(loop.Breaks, jumpAddress)
+}
+
+func sendContinue(scope *AtomScope, jumpAddress int) {
+	loop := currentLoop(scope)
+	loop.Continues = append(loop.Continues, jumpAddress)
 }
 
 func (c *AtomCompile) emitByRuntimeValue(fn, obj *runtime.AtomValue) {
@@ -296,19 +333,53 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 	case AstTypeInt:
 		c.emitLine(fn, ast.Position)
 		intValue, err := strconv.Atoi(ast.Str0)
+		var overflowed bool
 
 		if after, ok := strings.CutPrefix(ast.Str0, "0x"); ok {
-			_intValue, _err := strconv.ParseInt(after, 16, 32)
-			intValue = int(_intValue)
+			_intValue, _err := strconv.ParseInt(after, 16, 64)
+			if _intValue > math.MaxInt32 || _intValue < math.MinInt32 {
+				overflowed = true
+			} else {
+				intValue = int(_intValue)
+			}
 			err = _err
 		} else if after, ok := strings.CutPrefix(ast.Str0, "0o"); ok {
-			_intValue, _err := strconv.ParseInt(after, 8, 32)
-			intValue = int(_intValue)
+			_intValue, _err := strconv.ParseInt(after, 8, 64)
+			if _intValue > math.MaxInt32 || _intValue < math.MinInt32 {
+				overflowed = true
+			} else {
+				intValue = int(_intValue)
+			}
 			err = _err
 		} else if after, ok := strings.CutPrefix(ast.Str0, "0b"); ok {
-			_intValue, _err := strconv.ParseInt(after, 2, 32)
-			intValue = int(_intValue)
+			_intValue, _err := strconv.ParseInt(after, 2, 64)
+			if _intValue > math.MaxInt32 || _intValue < math.MinInt32 {
+				overflowed = true
+			} else {
+				intValue = int(_intValue)
+			}
 			err = _err
+		} else {
+			// Check for overflow in decimal case
+			_intValue, _err := strconv.ParseInt(ast.Str0, 10, 64)
+			if _err == nil && (_intValue > math.MaxInt32 || _intValue < math.MinInt32) {
+				overflowed = true
+			}
+		}
+
+		// If overflow detected, promote to float
+		if overflowed {
+			numValue, numErr := strconv.ParseFloat(ast.Str0, 64)
+			if numErr != nil {
+				Error(
+					c.parser.tokenizer.file,
+					c.parser.tokenizer.data,
+					"Invalid number",
+					ast.Position,
+				)
+			}
+			c.emitNum(fn, runtime.OpLoadNum, numValue)
+			return
 		}
 
 		if err != nil {
@@ -373,11 +444,11 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				k := element.Ast0
 				v := element.Ast1
 
-				if k.AstType != AstTypeIdn {
+				if k.AstType != AstTypeIdn && k.AstType != AstTypeStr {
 					Error(
 						c.parser.tokenizer.file,
 						c.parser.tokenizer.data,
-						"Expected identifier",
+						"Expected identifier or string",
 						k.Position,
 					)
 					return
@@ -447,37 +518,6 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 				c.emitLine(atomFunc, ast.Position)
 				c.emit(atomFunc, runtime.OpReturn)
 			}
-		}
-
-	case AstTypeNamespaceAccess:
-		{
-			path := []string{}
-			current := ast
-			for {
-				switch current.AstType {
-				case AstTypeIdn:
-					path = append(path, current.Str0)
-					current = nil
-				case AstTypeNamespaceAccess:
-					path = append(path, current.Ast1.Str0)
-					current = current.Ast0
-				default:
-					Error(
-						c.parser.tokenizer.file,
-						c.parser.tokenizer.data,
-						"Expected identifier",
-						current.Position,
-					)
-					return
-				}
-
-				if current == nil {
-					break
-				}
-			}
-
-			namespaceName := strings.Join(arrayReverse(path), "::")
-			c.expression(scope, fn, NewTerminal(AstTypeIdn, namespaceName, ast.Position))
 		}
 
 	case AstTypeMember:
@@ -1364,13 +1404,6 @@ func (c *AtomCompile) statement(scope *AtomScope, fn *runtime.AtomValue, ast *At
 			ast,
 		)
 
-	case AstTypeNamespace:
-		c.namespaceStatement(
-			scope,
-			fn,
-			ast,
-		)
-
 	case AstTypeClass:
 		c.classStatement(
 			scope,
@@ -1485,11 +1518,18 @@ func (c *AtomCompile) breakStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		)
 		return
 	}
-	currentLoop := scope.GetCurrentLoop()
+
+	depth := 0
+	for block := currentBlock(scope); block != nil && block.Type == AtomScopeTypeBlock; block = block.Parent {
+		depth++
+	}
+	if depth != 0 {
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpExitBlock, depth)
+	}
+
 	c.emitLine(fn, ast.Position)
-	currentLoop.AddBreak(
-		c.emitJump(fn, runtime.OpJump),
-	)
+	sendBreak(scope, c.emitJump(fn, runtime.OpJump))
 }
 
 func (c *AtomCompile) continueStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
@@ -1503,11 +1543,18 @@ func (c *AtomCompile) continueStatement(scope *AtomScope, fn *runtime.AtomValue,
 		)
 		return
 	}
-	currentLoop := scope.GetCurrentLoop()
+
+	depth := 0
+	for block := currentBlock(scope); block != nil && block.Type == AtomScopeTypeBlock; block = block.Parent {
+		depth++
+	}
+	if depth != 0 {
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpExitBlock, depth)
+	}
+
 	c.emitLine(fn, ast.Position)
-	currentLoop.AddContinue(
-		c.emitJump(fn, runtime.OpAbsoluteJump),
-	)
+	sendContinue(scope, c.emitJump(fn, runtime.OpAbsoluteJump))
 }
 
 func (c *AtomCompile) returnStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
@@ -1540,69 +1587,6 @@ func (c *AtomCompile) expressionStatement(scope *AtomScope, fn *runtime.AtomValu
 	c.expression(scope, fn, ast.Ast0)
 	c.emitLine(fn, ast.Position)
 	c.emit(fn, runtime.OpPopTop)
-}
-
-func (c *AtomCompile) namespaceStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
-	// Guard
-	// Allowed only in global or namespace scope
-	if !scope.InSide(AtomScopeTypeGlobal, false) && !scope.InSide(AtomScopeTypeNamespace, false) {
-		Error(
-			c.parser.tokenizer.file,
-			c.parser.tokenizer.data,
-			"Namespace statement must be in global or namespace scope",
-			ast.Position,
-		)
-		return
-	}
-
-	name := ast.Ast0
-	body := ast.Arr1
-
-	if name.AstType != AstTypeIdn && name.AstType != AstTypeBinaryDiv {
-		Error(
-			c.parser.tokenizer.file,
-			c.parser.tokenizer.data,
-			"Expected identifier",
-			name.Position,
-		)
-	}
-
-	path := []string{}
-	if name.AstType == AstTypeBinaryDiv {
-		// Traverse right to left if divide
-		currentPath := name
-		for {
-			switch currentPath.AstType {
-			case AstTypeIdn:
-				path = append(path, currentPath.Str0)
-				currentPath = nil
-			case AstTypeBinaryDiv:
-				path = append(path, currentPath.Ast1.Str0)
-				currentPath = currentPath.Ast0
-			default:
-				Error(
-					c.parser.tokenizer.file,
-					c.parser.tokenizer.data,
-					"Expected identifier",
-					currentPath.Ast1.Position,
-				)
-			}
-
-			if currentPath == nil {
-				break
-			}
-		}
-
-	} else {
-		path = []string{name.Str0}
-	}
-
-	namespaceName := strings.Join(arrayReverse(path), "::")
-
-	namespaceScope := NewAtomAliasScope(scope, AtomScopeTypeNamespace, namespaceName)
-	for _, stmt := range body {
-		c.statement(namespaceScope, fn, stmt)
-	}
 }
 
 func (c *AtomCompile) classStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
@@ -1914,9 +1898,19 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 
 func (c *AtomCompile) block(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	blockScope := NewAtomScope(scope, AtomScopeTypeBlock)
-	for _, stmt := range ast.Arr1 {
+	if !hasDeclairation(ast.Arr0) {
+		blockScope = NewAtomScope(scope, AtomScopeTypeBlockNoEnv)
+		for _, stmt := range ast.Arr0 {
+			c.statement(blockScope, fn, stmt)
+		}
+		return
+	}
+
+	c.emitInt(fn, runtime.OpEnterBlock, 1)
+	for _, stmt := range ast.Arr0 {
 		c.statement(blockScope, fn, stmt)
 	}
+	c.emitInt(fn, runtime.OpExitBlock, 1)
 }
 
 func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
@@ -2361,62 +2355,23 @@ func (c *AtomCompile) importStatement(scope *AtomScope, fn *runtime.AtomValue, a
 }
 
 func (c *AtomCompile) ifStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
-	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
-	if !isLogical {
-		c.expression(scope, fn, ast.Ast0)
-		c.emitLine(fn, ast.Position)
-		toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-		single := NewAtomScope(scope, AtomScopeTypeSingle)
-		c.statement(single, fn, ast.Ast1)
-		c.emitLine(fn, ast.Position)
-		toEnd := c.emitJump(fn, runtime.OpJump)
+	c.expression(scope, fn, ast.Ast0)
+	c.emitLine(fn, ast.Position)
+	toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
+	single := NewAtomScope(scope, AtomScopeTypeSingle)
+	c.statement(single, fn, ast.Ast1)
+	c.emitLine(fn, ast.Position)
+	toEnd := -1
+	if ast.Ast2 != nil {
+		toEnd = c.emitJump(fn, runtime.OpJump)
 		c.label(fn, toElse)
-		if ast.Ast2 != nil {
-			single := NewAtomScope(scope, AtomScopeTypeSingle)
-			c.statement(single, fn, ast.Ast2)
-		}
-		c.label(fn, toEnd)
+		single := NewAtomScope(scope, AtomScopeTypeSingle)
+		c.statement(single, fn, ast.Ast2)
 	} else {
-		isAnd := ast.Ast0.AstType == AstTypeLogicalAnd
-		lhs := ast.Ast0.Ast0
-		rhs := ast.Ast0.Ast1
-		if isAnd {
-			c.expression(scope, fn, lhs)
-			c.emitLine(fn, ast.Position)
-			toEnd0 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			c.expression(scope, fn, rhs)
-			c.emitLine(fn, ast.Position)
-			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			single := NewAtomScope(scope, AtomScopeTypeSingle)
-			c.statement(single, fn, ast.Ast1)
-			c.emitLine(fn, ast.Position)
-			toEnd2 := c.emitJump(fn, runtime.OpJump)
-			c.label(fn, toEnd0)
-			c.label(fn, toEnd1)
-			if ast.Ast2 != nil {
-				single := NewAtomScope(scope, AtomScopeTypeSingle)
-				c.statement(single, fn, ast.Ast2)
-			}
-			c.label(fn, toEnd2)
-		} else {
-			c.expression(scope, fn, lhs)
-			c.emitLine(fn, ast.Position)
-			toThen := c.emitJump(fn, runtime.OpPopJumpIfTrue)
-			c.expression(scope, fn, rhs)
-			c.emitLine(fn, ast.Position)
-			toElse := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			c.label(fn, toThen)
-			single := NewAtomScope(scope, AtomScopeTypeSingle)
-			c.statement(single, fn, ast.Ast1)
-			c.emitLine(fn, ast.Position)
-			toEnd1 := c.emitJump(fn, runtime.OpJump)
-			c.label(fn, toElse)
-			if ast.Ast2 != nil {
-				single := NewAtomScope(scope, AtomScopeTypeSingle)
-				c.statement(single, fn, ast.Ast2)
-			}
-			c.label(fn, toEnd1)
-		}
+		c.label(fn, toElse)
+	}
+	if toEnd != -1 {
+		c.label(fn, toEnd)
 	}
 }
 
@@ -2480,9 +2435,21 @@ func (c *AtomCompile) switchStatement(scope *AtomScope, fn *runtime.AtomValue, a
 
 func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	loopScope := NewAtomScope(scope, AtomScopeTypeLoop)
-	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
 	loopStart := c.here(fn)
-	if !isLogical {
+	if ast.Ast1.AstType == AstTypeBlock && hasDeclairation(ast.Ast1.Arr0) {
+		c.emitInt(fn, runtime.OpEnterBlock, 1)
+		c.expression(loopScope, fn, ast.Ast0)
+		c.emitLine(fn, ast.Position)
+		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
+		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
+		for _, stmt := range ast.Ast1.Arr0 {
+			c.statement(blockScope, fn, stmt)
+		}
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+		c.label(fn, toEnd)
+		c.emitInt(fn, runtime.OpExitBlock, 1)
+	} else {
 		c.expression(loopScope, fn, ast.Ast0)
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
@@ -2491,40 +2458,7 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 		c.label(fn, toEnd)
-	} else {
-		isAnd := ast.Ast0.AstType == AstTypeLogicalAnd
-		lhs := ast.Ast0.Ast0
-		rhs := ast.Ast0.Ast1
-		if isAnd {
-			c.expression(loopScope, fn, lhs)
-			c.emitLine(fn, ast.Position)
-			toEnd0 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			c.expression(loopScope, fn, rhs)
-			c.emitLine(fn, ast.Position)
-			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
-			c.statement(single, fn, ast.Ast1)
-			c.emitLine(fn, ast.Position)
-			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
-			c.label(fn, toEnd0)
-			c.label(fn, toEnd1)
-		} else {
-			c.expression(loopScope, fn, lhs)
-			c.emitLine(fn, ast.Position)
-			toThen := c.emitJump(fn, runtime.OpPopJumpIfTrue)
-			c.expression(loopScope, fn, rhs)
-			c.emitLine(fn, ast.Position)
-			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			// Then?
-			c.label(fn, toThen)
-			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
-			c.statement(single, fn, ast.Ast1)
-			c.emitLine(fn, ast.Position)
-			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
-			c.label(fn, toEnd1)
-		}
 	}
-
 	for _, breakAddress := range loopScope.Breaks {
 		c.label(fn, breakAddress)
 	}
@@ -2535,51 +2469,34 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 
 func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
 	loopScope := NewAtomScope(scope, AtomScopeTypeLoop)
-	isLogical := ast.Ast0.AstType == AstTypeLogicalAnd || ast.Ast0.AstType == AstTypeLogicalOr
 	loopStart := c.here(fn)
-	if !isLogical {
+	if ast.Ast1.AstType == AstTypeBlock && hasDeclairation(ast.Ast1.Arr0) {
+		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
+		c.emitInt(fn, runtime.OpEnterBlock, 1)
+		for _, stmt := range ast.Ast1.Arr0 {
+			c.statement(blockScope, fn, stmt)
+		}
+		// check condition
 		c.expression(loopScope, fn, ast.Ast0)
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-		single := NewAtomScope(loopScope, AtomScopeTypeSingle)
-		c.statement(single, fn, ast.Ast1)
+		// jump to start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 		c.label(fn, toEnd)
+		c.emitInt(fn, runtime.OpExitBlock, 1)
 	} else {
-		isAnd := ast.Ast0.AstType == AstTypeLogicalAnd
-		lhs := ast.Ast0.Ast0
-		rhs := ast.Ast0.Ast1
-		if isAnd {
-			c.expression(loopScope, fn, lhs)
-			c.emitLine(fn, ast.Position)
-			toEnd0 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			c.expression(loopScope, fn, rhs)
-			c.emitLine(fn, ast.Position)
-			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
-			c.statement(single, fn, ast.Ast1)
-			c.emitLine(fn, ast.Position)
-			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
-			c.label(fn, toEnd0)
-			c.label(fn, toEnd1)
-		} else {
-			c.expression(loopScope, fn, lhs)
-			c.emitLine(fn, ast.Position)
-			toThen := c.emitJump(fn, runtime.OpPopJumpIfTrue)
-			c.expression(loopScope, fn, rhs)
-			c.emitLine(fn, ast.Position)
-			toEnd1 := c.emitJump(fn, runtime.OpPopJumpIfFalse)
-			// Then?
-			c.label(fn, toThen)
-			single := NewAtomScope(loopScope, AtomScopeTypeSingle)
-			c.statement(single, fn, ast.Ast1)
-			c.emitLine(fn, ast.Position)
-			c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
-			c.label(fn, toEnd1)
-		}
+		single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+		c.statement(single, fn, ast.Ast1)
+		// check condition
+		c.expression(loopScope, fn, ast.Ast0)
+		c.emitLine(fn, ast.Position)
+		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
+		// jump to start
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+		c.label(fn, toEnd)
 	}
-
 	for _, breakAddress := range loopScope.Breaks {
 		c.label(fn, breakAddress)
 	}
@@ -2724,7 +2641,7 @@ func (c *AtomCompile) Export() int {
 		}
 		count++
 		c.emitLine(programFunc, ast.Position)
-		c.emitInt(programFunc, runtime.OpLoadName, name.index)
+		c.emitStr(programFunc, runtime.OpLoadName, name.name)
 		c.emitLine(programFunc, ast.Position)
 		c.emitStr(programFunc, runtime.OpLoadStr, name.name)
 	}

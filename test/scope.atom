@@ -1,19 +1,363 @@
-import [ println ] from "atom:std";
+import [ println, throw ] from "atom:std";
 
-
+// Global variable tests
 var global = 2;
+var globalString = "initial";
+var globalArray = [1, 2, 3];
+var globalObject = { value: 42, nested: { deep: "test" } };
 
+// Test 1: Basic global variable mutation
+func test_basic_global_mutation() {
+    println("=== Basic Global Mutation Test ===");
+    println("Initial global:", global);
+    
+    global += 100;
+    println("After increment:", global);
+    if (global != 102) throw("Expected global to be 102, got " + global);
+    
+    global *= 2;
+    println("After multiply:", global);
+    if (global != 204) throw("Expected global to be 204, got " + global);
+    
+    global = global / 2 - 50;
+    println("After complex operation:", global);
+    if (global != 52) throw("Expected global to be 52, got " + global);
+}
 
-func mutate() {
+// Test 2: Nested scope variable shadowing
+func test_variable_shadowing() {
+    println("=== Variable Shadowing Test ===");
+    
+    local outer = "outer";
+    println("Outer local:", outer);
+    if (outer != "outer") throw("Expected outer to be 'outer', got " + outer);
+    
     {
-        println(global);
-        global += 100;
-        println(global);
+        local inner = "inner";
+        println("Inner local:", inner);
+        if (inner != "inner") throw("Expected inner to be 'inner', got " + inner);
+        
+        {
+            local deepest = "deepest";
+            println("Deepest local:", deepest);
+            if (deepest != "deepest") throw("Expected deepest to be 'deepest', got " + deepest);
+            
+            // Access global from deep scope
+            println("Global from deep scope:", global);
+            local expectedGlobal = global;
+            global += 1;
+            if (global != expectedGlobal + 1) throw("Expected global to be " + (expectedGlobal + 1) + ", got " + global);
+        }
+        
+        println("Back to inner local:", inner);
+        if (inner != "inner") throw("Expected inner to still be 'inner', got " + inner);
+    }
+    
+    println("Back to outer local:", outer);
+    if (outer != "outer") throw("Expected outer to still be 'outer', got " + outer);
+    println("Global after deep modification:", global);
+}
+
+// Test 3: Function parameter shadowing
+func test_parameter_shadowing(global, globalString) {
+    println("=== Parameter Shadowing Test ===");
+    println("Parameter global:", global);
+    println("Parameter globalString:", globalString);
+    if (global != 42) throw("Expected parameter global to be 42, got " + global);
+    if (globalString != "parameter test") throw("Expected parameter globalString to be 'parameter test', got " + globalString);
+    
+    // Modify parameters (should not affect globals)
+    global = 999;
+    globalString = "modified parameter";
+    
+    println("Modified parameter global:", global);
+    println("Modified parameter globalString:", globalString);
+    if (global != 999) throw("Expected modified parameter global to be 999, got " + global);
+    if (globalString != "modified parameter") throw("Expected modified parameter globalString to be 'modified parameter', got " + globalString);
+}
+
+// Test 4: Complex scope interactions
+func test_complex_scope_interactions() {
+    println("=== Complex Scope Interactions Test ===");
+    
+    local counter = 0;
+    local initialGlobal = global;
+    
+    // Nested function accessing outer scope
+    local incrementCounter = func() {
+        counter += 1;
+        global += 10;
+        println("Counter:", counter, "Global:", global);
+    };
+    
+    for (local i = 0; i < 5; i += 1) {
+        incrementCounter();
+        
+        {
+            local counter = 100; // Shadow outer counter
+            println("Shadowed counter:", counter);
+            if (counter != 100) throw("Expected shadowed counter to be 100, got " + counter);
+            counter += i;
+            println("Modified shadowed counter:", counter);
+            if (counter != 100 + i) throw("Expected modified shadowed counter to be " + (100 + i) + ", got " + counter);
+        }
+        
+        println("Original counter after shadow:", counter);
+        if (counter != i + 1) throw("Expected original counter to be " + (i + 1) + ", got " + counter);
+    }
+    
+    if (counter != 5) throw("Expected final counter to be 5, got " + counter);
+    if (global != initialGlobal + 50) throw("Expected global to be " + (initialGlobal + 50) + ", got " + global);
+}
+
+// Test 5: Global array and object mutation
+func test_global_collection_mutation() {
+    println("=== Global Collection Mutation Test ===");
+    
+    println("Initial global array:", globalArray);
+    local initialLength = globalArray.length();
+    globalArray.push(4);
+    if (globalArray.length() != initialLength + 1) throw("Expected array length to increase by 1");
+    globalArray[0] = 999;
+    println("Modified global array:", globalArray);
+    if (globalArray[0] != 999) throw("Expected first element to be 999, got " + globalArray[0]);
+    
+    println("Initial global object:", globalObject);
+    globalObject.value = 100;
+    globalObject.nested.deep = "modified";
+    globalObject.newProp = "added";
+    println("Modified global object:", globalObject);
+    if (globalObject.value != 100) throw("Expected object value to be 100, got " + globalObject.value);
+    if (globalObject.nested.deep != "modified") throw("Expected nested.deep to be 'modified', got " + globalObject.nested.deep);
+    if (globalObject.newProp != "added") throw("Expected newProp to be 'added', got " + globalObject.newProp);
+}
+
+// Test 6: Scope chain stress test
+func test_scope_chain_stress() {
+    println("=== Scope Chain Stress Test ===");
+    
+    local level0 = "L0";
+    local initialGlobal = global;
+    
+    {
+        local level1 = "L1";
+        {
+            local level2 = "L2";
+            {
+                local level3 = "L3";
+                {
+                    local level4 = "L4";
+                    {
+                        local level5 = "L5";
+                        {
+                            local level6 = "L6";
+                            {
+                                local level7 = "L7";
+                                {
+                                    local level8 = "L8";
+                                    {
+                                        local level9 = "L9";
+                                        
+                                        println("Deep scope access:");
+                                        println("Level 0:", level0);
+                                        println("Level 5:", level5);
+                                        println("Level 9:", level9);
+                                        println("Global:", global);
+                                        
+                                        if (level0 != "L0") throw("Expected level0 to be 'L0', got " + level0);
+                                        if (level5 != "L5") throw("Expected level5 to be 'L5', got " + level5);
+                                        if (level9 != "L9") throw("Expected level9 to be 'L9', got " + level9);
+                                        
+                                        // Modify variables from different levels
+                                        global += 1;
+                                        level0 = "Modified L0";
+                                        level5 = "Modified L5";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    println("Level 0 after deep modification:", level0);
+    if (level0 != "Modified L0") throw("Expected level0 to be 'Modified L0', got " + level0);
+    if (global != initialGlobal + 1) throw("Expected global to be " + (initialGlobal + 1) + ", got " + global);
+}
+
+// Test 7: Function closure simulation
+func test_closure_simulation() {
+    println("=== Closure Simulation Test ===");
+    
+    local closureVar = "closure value";
+    local counter = 0;
+    
+    local createCounter = func() {
+        counter += 1;
+        local localCounter = counter;
+        
+        return func() {
+            localCounter += 1;
+            closureVar = "modified by closure " + localCounter;
+            return localCounter;
+        };
+    };
+    
+    local counter1 = createCounter();
+    local counter2 = createCounter();
+    
+    local result1 = counter1();
+    println("Counter 1 first call:", result1);
+    println("Closure var:", closureVar);
+    
+    local result2 = counter2();
+    println("Counter 2 first call:", result2);
+    println("Closure var:", closureVar);
+    
+    local result3 = counter1();
+    println("Counter 1 second call:", result3);
+    println("Closure var:", closureVar);
+}
+
+// Test 8: Variable hoisting behavior
+func test_variable_hoisting() {
+    println("=== Variable Hoisting Test ===");
+    
+    local globalBefore = global;
+    println("Global before function:", global);
+    
+    {
+        println("Global in block before declaration:", global);
+        if (global != globalBefore) throw("Expected global to be " + globalBefore + " in block, got " + global);
+        local global = "local global";
+        println("Local global after declaration:", global);
+        if (global != "local global") throw("Expected local global to be 'local global', got " + global);
+    }
+    
+    println("Global after block:", global);
+    if (global != globalBefore) throw("Expected global to be " + globalBefore + " after block, got " + global);
+}
+
+// Test 9: Loop scope behavior
+func test_loop_scope() {
+    println("=== Loop Scope Test ===");
+    
+    local functions = [];
+    
+    for (local i = 0; i < 5; i += 1) {
+        local loopVar = "loop " + i;
+        
+        // Simulate function creation in loop
+        local capturedI = i;
+        local capturedLoopVar = loopVar;
+        
+        functions.push(func() {
+            return "Captured: " + capturedI + " - " + capturedLoopVar;
+        });
+        
+        {
+            local i = 999; // Shadow loop variable
+            println("Shadowed i in loop:", i);
+            if (i != 999) throw("Expected shadowed i to be 999, got " + i);
+        }
+        
+        println("Original i after shadow:", i);
+    }
+    
+    // Execute captured functions
+    for (local j = 0; j < functions.length(); j += 1) {
+        local result = functions[j]();
+        println("Function", j, "result:", result);
+        local expected = "Captured: " + j + " - loop " + j;
+        if (result != expected) throw("Expected function " + j + " result to be '" + expected + "', got '" + result + "'");
     }
 }
 
-println(global);
-std.println(global);
+// Test 10: Global modification stress test
+func test_global_modification_stress() {
+    println("=== Global Modification Stress Test ===");
+    
+    local initialGlobal = global;
+    local initialString = globalString;
+    
+    // Multiple functions modifying globals
+    local modifier1 = func() {
+        global += 1;
+        globalString += "1";
+    };
+    
+    local modifier2 = func() {
+        global *= 2;
+        globalString += "2";
+    };
+    
+    local modifier3 = func() {
+        global -= 5;
+        globalString += "3";
+    };
+    
+    println("Before modifications - Global:", global, "String:", globalString);
+    
+    for (local i = 0; i < 10; i += 1) {
+        modifier1();
+        modifier2();
+        modifier3();
+        
+        if (i % 3 == 0) {
+            println("Iteration", i, "- Global:", global, "String:", globalString);
+        }
+    }
+    
+    println("Final - Global:", global, "String:", globalString);
+    
+    // Verify the array has the expected length
+    local expectedArrayLength = 4; // Original 3 elements + 1 pushed element
+    if (globalArray.length() != expectedArrayLength) {
+        throw("Expected globalArray length to be " + expectedArrayLength + ", got " + globalArray.length());
+    }
+}
 
-mutate();
-println(global);
+// Run all tests
+println("=== Starting Scope Stress Tests ===");
+println("Initial state - Global:", global, "String:", globalString);
+
+test_basic_global_mutation();
+test_variable_shadowing();
+test_parameter_shadowing(42, "parameter test");
+println("Global after parameter test:", global, globalString); // Should be unchanged by parameters
+test_complex_scope_interactions();
+test_global_collection_mutation();
+test_scope_chain_stress();
+test_closure_simulation();
+test_variable_hoisting();
+test_loop_scope();
+test_global_modification_stress();
+
+println("=== Final State ===");
+println("Global:", global);
+println("Global String:", globalString);
+println("Global Array:", globalArray);
+println("Global Object:", globalObject);
+
+func loop(n) {
+    local i = 0;
+    local funcs = [];
+    do {
+        local j = i;
+        funcs.push(func() {
+            return j;
+        });
+
+        i = i + 1;
+    } while (i < n)
+    return funcs;
+}
+
+const funcs = loop(10);
+for (local i = 0; i < funcs.length(); i += 1) {
+    local result = funcs[i]();
+    println(result);
+    if (result != i) throw("Expected function " + i + " to return " + i + ", got " + result);
+}

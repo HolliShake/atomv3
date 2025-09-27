@@ -81,7 +81,7 @@ func DoLoadName(frame *AtomCallFrame, index string) {
 		return
 	}
 	std_throw_error(frame, NewAtomValueError(
-		FormatError(frame, fmt.Sprintf("name %s not found", index)),
+		FormatError(frame, fmt.Sprintf("name '%s' not found", index)),
 	))
 }
 
@@ -959,22 +959,22 @@ func DoCmpNe(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 	if IsNumberType(val0) && IsNumberType(val1) {
 		lhsValue := CoerceToLong(val0)
 		rhsValue := CoerceToLong(val1)
-		if lhsValue != rhsValue {
-			frame.Stack.Push(interpreter.State.TrueValue)
+		if lhsValue == rhsValue {
+			frame.Stack.Push(interpreter.State.FalseValue)
 			return
 		}
-		frame.Stack.Push(interpreter.State.FalseValue)
+		frame.Stack.Push(interpreter.State.TrueValue)
 		return
 	}
 
 	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
 		lhsStr := val0.Value.(string)
 		rhsStr := val1.Value.(string)
-		if lhsStr != rhsStr {
-			frame.Stack.Push(interpreter.State.TrueValue)
+		if lhsStr == rhsStr {
+			frame.Stack.Push(interpreter.State.FalseValue)
 			return
 		}
-		frame.Stack.Push(interpreter.State.FalseValue)
+		frame.Stack.Push(interpreter.State.TrueValue)
 		return
 	}
 
@@ -983,19 +983,13 @@ func DoCmpNe(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 		return
 	}
 
-	// For different types or other cases, they are not equal
-	if val0.Type != val1.Type {
-		frame.Stack.Push(interpreter.State.TrueValue)
-		return
-	}
-
 	// For other types, use simple reference equality for now
-	if val0.HashValue() != val1.HashValue() {
-		frame.Stack.Push(interpreter.State.TrueValue)
+	if val0.HashValue() == val1.HashValue() || val0 == val1 {
+		frame.Stack.Push(interpreter.State.FalseValue)
 		return
 	}
 
-	frame.Stack.Push(interpreter.State.FalseValue)
+	frame.Stack.Push(interpreter.State.TrueValue)
 }
 
 func DoAnd(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {

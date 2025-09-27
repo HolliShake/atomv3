@@ -1,27 +1,38 @@
-import [ println ] from "atom:std";
+import [ println, throw ] from "atom:std";
 
 println("=== Class Stress Test ===");
 
 // Test 1: Basic class functionality
 class Animal {
     func init(self, name, species) {
-        
+        if (name == null || species == null) {
+            throw("Animal constructor requires name and species");
+        }
         self.name = name;
         self.species = species;
         println("Created animal:", name, "(" + species + ")");
     }
 
     func speak(self) {
+        if (self.name == null) {
+            throw("Animal name is null, cannot speak");
+        }
         println(self.name, "makes a sound");
     }
 
     func getInfo(self) {
+        if (self.name == null || self.species == null) {
+            throw("Animal missing required properties for getInfo");
+        }
         return self.name + " is a " + self.species;
     }
 }
 
 class Dog {
     func init(self, name, breed) {
+        if (name == null || breed == null) {
+            throw("Dog constructor requires name and breed");
+        }
         println("Dog", name, breed);
         self.name = name;
         self.breed = breed;
@@ -30,20 +41,32 @@ class Dog {
     }
 
     func speak(self) {
+        if (self.name == null) {
+            throw("Dog name is null, cannot speak");
+        }
         println(self.name, "barks: Woof!");
     }
 
     func wagTail(self) {
+        if (self.name == null) {
+            throw("Dog name is null, cannot wag tail");
+        }
         println(self.name, "wags tail happily");
     }
 
     func getInfo(self) {
+        if (self.name == null || self.breed == null || self.species == null) {
+            throw("Dog missing required properties for getInfo");
+        }
         return self.name + " is a " + self.breed + " " + self.species;
     }
 }
 
 class Cat {
     func init(self, name, color) {
+        if (name == null || color == null) {
+            throw("Cat constructor requires name and color");
+        }
         self.name = name;
         self.color = color;
         self.species = "cat";
@@ -51,14 +74,23 @@ class Cat {
     }
 
     func speak(self) {
+        if (self.name == null) {
+            throw("Cat name is null, cannot speak");
+        }
         println(self.name, "meows: Meow!");
     }
 
     func purr(self) {
+        if (self.name == null) {
+            throw("Cat name is null, cannot purr");
+        }
         println(self.name, "purrs contentedly");
     }
 
     func getInfo(self) {
+        if (self.name == null || self.color == null || self.species == null) {
+            throw("Cat missing required properties for getInfo");
+        }
         return self.name + " is a " + self.color + " " + self.species;
     }
 }
@@ -85,14 +117,23 @@ class MathUtils {
     }
 
     func add(a, b) {
+        if (a == null || b == null) {
+            throw("MathUtils.add requires two non-null arguments");
+        }
         return a + b;
     }
 
     func multiply(a, b) {
+        if (a == null || b == null) {
+            throw("MathUtils.multiply requires two non-null arguments");
+        }
         return a * b;
     }
 
     func factorial(n) {
+        if (n == null || n < 0) {
+            throw("MathUtils.factorial requires non-negative number");
+        }
         if (n <= 1) {
             return 1;
         }
@@ -115,6 +156,9 @@ const animals = [
 
 var i = 0;
 while (i < animals.length()) {
+    if (animals[i] == null) {
+        throw("Null animal found in array at index " + i);
+    }
     animals[i].speak();
     i = i + 1;
 }
@@ -122,6 +166,9 @@ while (i < animals.length()) {
 // Test 4: Complex class with multiple methods
 class BankAccount {
     func init(self, owner, initialBalance) {
+        if (owner == null || initialBalance == null || initialBalance < 0) {
+            throw("BankAccount requires valid owner and non-negative initial balance");
+        }
         self.owner = owner;
         self.balance = initialBalance;
         self.transactions = [];
@@ -129,12 +176,18 @@ class BankAccount {
     }
 
     func deposit(self, amount) {
+        if (amount == null || amount <= 0) {
+            throw("Deposit amount must be positive");
+        }
         self.balance = self.balance + amount;
         self.transactions.push("Deposit: +" + amount);
         println("Deposited", amount, "New balance:", self.balance);
     }
 
     func withdraw(self, amount) {
+        if (amount == null || amount <= 0) {
+            throw("Withdrawal amount must be positive");
+        }
         if (self.balance >= amount) {
             self.balance = self.balance - amount;
             self.transactions.push("Withdrawal: -" + amount);
@@ -151,6 +204,9 @@ class BankAccount {
     }
 
     func getTransactionHistory(self) {
+        if (self.owner == null || self.transactions == null) {
+            throw("Account data corrupted, cannot get transaction history");
+        }
         println("Transaction history for", self.owner + ":");
         local i = 0;
         while (i < self.transactions.length()) {
@@ -162,6 +218,9 @@ class BankAccount {
 
 class SavingsAccount {
     func init(self, owner, initialBalance, interestRate) {
+        if (owner == null || initialBalance == null || interestRate == null || initialBalance < 0 || interestRate < 0) {
+            throw("SavingsAccount requires valid owner, non-negative balance and interest rate");
+        }
         self.owner = owner;
         self.balance = initialBalance;
         self.interestRate = interestRate;
@@ -170,12 +229,18 @@ class SavingsAccount {
     }
 
     func deposit(self, amount) {
+        if (amount == null || amount <= 0) {
+            throw("Deposit amount must be positive");
+        }
         self.balance = self.balance + amount;
         self.transactions.push("Deposit: +" + amount);
         println("Deposited", amount, "New balance:", self.balance);
     }
 
     func withdraw(self, amount) {
+        if (amount == null || amount <= 0) {
+            throw("Withdrawal amount must be positive");
+        }
         if (self.balance >= amount) {
             self.balance = self.balance - amount;
             self.transactions.push("Withdrawal: -" + amount);
@@ -188,6 +253,9 @@ class SavingsAccount {
     }
 
     func addInterest(self) {
+        if (self.balance == null || self.interestRate == null) {
+            throw("Account data corrupted, cannot add interest");
+        }
         const interest = self.balance * self.interestRate;
         self.balance = self.balance + interest;
         self.transactions.push("Interest: +" + interest);
@@ -199,6 +267,9 @@ class SavingsAccount {
     }
 
     func getTransactionHistory(self) {
+        if (self.owner == null || self.transactions == null) {
+            throw("Account data corrupted, cannot get transaction history");
+        }
         println("Transaction history for", self.owner + ":");
         local i = 0;
         while (i < self.transactions.length()) {
@@ -230,9 +301,16 @@ var j = 0;
 while (j < 50) {
     const dogName = "Dog" + j;
     const breeds = ["Labrador", "Poodle", "Bulldog", "Beagle", "Husky"];
+    if (breeds.length() == 0) {
+        throw("Breeds array is empty");
+    }
     const breed = breeds[j % breeds.length()];
     manyDogs.push(new Dog(dogName, breed));
     j = j + 1;
+}
+
+if (manyDogs.length() != 50) {
+    throw("Expected 50 dogs but created " + manyDogs.length());
 }
 
 println("Created", manyDogs.length(), "dogs");
@@ -246,21 +324,33 @@ class FluentBuilder {
     }
 
     func setName(self, name) {
+        if (name == null) {
+            throw("Name cannot be null");
+        }
         self.data.name = name;
         return self;
     }
 
     func setAge(self, age) {
+        if (age == null || age < 0) {
+            throw("Age must be non-negative");
+        }
         self.data.age = age;
         return self;
     }
 
     func setCity(self, city) {
+        if (city == null) {
+            throw("City cannot be null");
+        }
         self.data.city = city;
         return self;
     }
 
     func build(self) {
+        if (self.data == null) {
+            throw("Builder data is corrupted");
+        }
         return self.data;
     }
 }
@@ -268,11 +358,17 @@ class FluentBuilder {
 println("\n--- Method Chaining Test ---");
 const builder = new FluentBuilder();
 const result = builder.setName("John").setAge(30).setCity("New York").build();
+if (result.name != "John" || result.age != 30 || result.city != "New York") {
+    throw("Method chaining produced incorrect result");
+}
 println("Built object:", result.name, result.age, result.city);
 
 // Test 7: Class with closures
 class Counter {
     func init(self, start) {
+        if (start == null) {
+            throw("Counter start value cannot be null");
+        }
         self.value = start;
     }
 
@@ -300,10 +396,32 @@ const counter = new Counter(10);
 const inc = counter.getIncrementer();
 const dec = counter.getDecrementer();
 
+if (counter.getValue() != 10) {
+    throw("Counter initial value is incorrect");
+}
+
 println("Initial value:", counter.getValue());
-println("After increment:", inc());
-println("After increment:", inc());
-println("After decrement:", dec());
+const incResult1 = inc();
+if (incResult1 != 11) {
+    throw("First increment returned " + incResult1 + " instead of 11");
+}
+println("After increment:", incResult1);
+
+const incResult2 = inc();
+if (incResult2 != 12) {
+    throw("Second increment returned " + incResult2 + " instead of 12");
+}
+println("After increment:", incResult2);
+
+const decResult = dec();
+if (decResult != 11) {
+    throw("Decrement returned " + decResult + " instead of 11");
+}
+println("After decrement:", decResult);
+
+if (counter.getValue() != 11) {
+    throw("Final counter value is " + counter.getValue() + " instead of 11");
+}
 println("Final value:", counter.getValue());
 
 // Test 8: Class with dynamic properties
@@ -313,11 +431,17 @@ class DynamicObject {
     }
 
     func set(self, key, value) {
+        if (key == null) {
+            throw("Property key cannot be null");
+        }
         self.properties[key] = value;
         println("Set", key, "to", value);
     }
 
     func get(self, key) {
+        if (key == null) {
+            throw("Property key cannot be null");
+        }
         if (self.properties[key] != null) {
             return self.properties[key];
         } else {
@@ -327,6 +451,9 @@ class DynamicObject {
     }
 
     func listProperties(self) {
+        if (self.properties == null) {
+            throw("Properties object is null");
+        }
         println("Properties:");
         // Note: would need object iteration support to fully implement this
         println("- properties object exists");
@@ -337,21 +464,45 @@ println("\n--- Dynamic Properties Test ---");
 const dynObj = new DynamicObject();
 dynObj.set("name", "Dynamic");
 dynObj.set("value", 42);
-println("Name:", dynObj.get("name"));
-println("Value:", dynObj.get("value"));
-println("Missing:", dynObj.get("missing"));
+
+const nameResult = dynObj.get("name");
+if (nameResult != "Dynamic") {
+    throw("Expected 'Dynamic' but got " + nameResult);
+}
+println("Name:", nameResult);
+
+const valueResult = dynObj.get("value");
+if (valueResult != 42) {
+    throw("Expected 42 but got " + valueResult);
+}
+println("Value:", valueResult);
+
+const missingResult = dynObj.get("missing");
+if (missingResult != null) {
+    throw("Expected null for missing property but got " + missingResult);
+}
+println("Missing:", missingResult);
 
 // Test 9: Class method assignment
 class Vehicle {
     func init(self, type) {
+        if (type == null) {
+            throw("Vehicle type cannot be null");
+        }
         self.type = type;
     }
 
     func start(self) {
+        if (self.type == null) {
+            throw("Vehicle type is null, cannot start");
+        }
         println(self.type, "is starting");
     }
 
     func stop(self) {
+        if (self.type == null) {
+            throw("Vehicle type is null, cannot stop");
+        }
         println(self.type, "is stopping");
     }
 }
@@ -373,11 +524,17 @@ println("\n=== Class Stress Test Complete ===");
 
 class T {
     func init(self, a, b) {
+        if (a == null || b == null) {
+            throw("T constructor requires non-null a and b values");
+        }
         self.a = a;
         self.b = b;
     }
 
     func add(self) {
+        if (self.a == null || self.b == null) {
+            throw("T instance has null values, cannot add");
+        }
         return self.a + self.b;
     }
 }
@@ -388,4 +545,7 @@ const a = [1,2,3];
 T.add = a.push;
 
 t.add(4);
+if (a.length() != 4 || a[3] != 4) {
+    throw("Method reassignment test failed - array should contain [1,2,3,4]");
+}
 println(a); // [1,2,3,4]

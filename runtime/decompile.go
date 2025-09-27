@@ -240,6 +240,16 @@ func Decompile(code *AtomCode) string {
 		case OpPopTop:
 			builder.WriteString("POP_TOP\n")
 
+		case OpEnterBlock:
+			depth := ReadInt(code.Code, pc)
+			pc += 4
+			builder.WriteString(fmt.Sprintf("ENTER_BLOCK (depth = %d)\n", depth))
+
+		case OpExitBlock:
+			depth := ReadInt(code.Code, pc)
+			pc += 4
+			builder.WriteString(fmt.Sprintf("EXIT_BLOCK (depth = %d)\n", depth))
+
 		case OpRot2:
 			builder.WriteString("ROT2\n")
 

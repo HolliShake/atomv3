@@ -1,5 +1,7 @@
 package runtime
 
+import "unsafe"
+
 type AtomObject struct {
 	Freeze   bool
 	Elements map[string]*AtomValue
@@ -22,9 +24,38 @@ func (o *AtomObject) Len() int {
 }
 
 func (o *AtomObject) HashValue() int {
+	return o.hashValueWithVisited(make(map[*AtomObject]bool))
+}
+
+func (o *AtomObject) hashValueWithVisited(visited map[*AtomObject]bool) int {
+	// Check if we've already visited this object to prevent infinite recursion
+	if visited[o] {
+		// Return a consistent hash for already-visited objects
+		return int(uintptr(unsafe.Pointer(o)))
+	}
+
+	// Mark this object as visited
+	visited[o] = true
+
 	hash := 0
-	for _, value := range o.Elements {
-		hash = hash*31 + value.HashValue()
+	for key, value := range o.Elements {
+		// Include the key in the hash calculation to ensure different objects
+		// with the same values but different keys have different hashes
+		keyHash := 0
+		for _, char := range key {
+			keyHash = keyHash*31 + int(char)
+		}
+
+		valueHash := 0
+		if CheckType(value, AtomTypeObj) {
+			// Use the recursive helper for object values
+			valueHash = value.Value.(*AtomObject).hashValueWithVisited(visited)
+		} else {
+			// For non-object values, use the regular HashValue method
+			valueHash = value.HashValue()
+		}
+
+		hash = hash*31 + keyHash + valueHash
 	}
 	return hash
 }

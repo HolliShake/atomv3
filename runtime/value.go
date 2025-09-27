@@ -237,7 +237,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		// Check for self-reference
 		ptr := uintptr(unsafe.Pointer(v))
 		if visited[ptr] {
-			return SelfRefStr
+			return "SelfRefStr"
 		}
 		visited[ptr] = true
 		defer delete(visited, ptr)
@@ -271,7 +271,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		// Check for self-reference
 		ptr := uintptr(unsafe.Pointer(v))
 		if visited[ptr] {
-			return SelfRefStr
+			return "[[self]]"
 		}
 		visited[ptr] = true
 		defer delete(visited, ptr)
