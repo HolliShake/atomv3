@@ -1,0 +1,214 @@
+import [print, println] from "atom:std";
+
+// For loop stress test
+println("=== FOR LOOP STRESS TEST ===");
+
+// Basic for loop
+var forResult = [];
+for (local i = 0; i < 5; i++) {
+    forResult.push(i * 2);
+
+}
+std.println(forResult);
+println("Basic for loop result:", forResult);
+if (forResult[0] != 0 || forResult[4] != 8) {
+    std.throw("Basic for loop failed");
+}
+
+// Nested for loops
+var nestedSum = 0;
+for (local i = 1; i <= 3; i++) {
+    for (local j = 1; j <= 3; j++) {
+        nestedSum += i * j;
+    }
+}
+println("Nested for loop sum:", nestedSum);
+if (nestedSum != 36) {
+    std.throw("Nested for loop failed, expected 36, got " + nestedSum);
+}
+
+// For loop with break
+var breakResult = [];
+for (local i = 0; i < 10; i++) {
+    if (i == 5) {
+        break;
+    }
+    breakResult.push(i);
+}
+println("For loop with break:", breakResult);
+if (breakResult.length() != 5) {
+    std.throw("For loop with break failed");
+} else {
+    println("For loop with break passed");
+}
+
+// For loop with continue
+var continueResult = [];
+for (local i = 0; i < 10; i++) {
+    if (i % 2 == 0) {
+        continue;
+    }
+    continueResult.push(i);
+}
+println("For loop with continue (odds only):", continueResult);
+if (continueResult[0] != 1 || continueResult[4] != 9) {
+    std.throw("For loop with continue failed");
+}
+
+// While loop stress test
+println("\n=== WHILE LOOP STRESS TEST ===");
+
+// Basic while loop
+var whileCounter = 0;
+var whileSum = 0;
+while (whileCounter < 5) {
+    whileSum += whileCounter;
+    whileCounter++;
+}
+println("While loop sum:", whileSum);
+if (whileSum != 10) {
+    std.throw("Basic while loop failed, expected 10, got " + whileSum);
+}
+
+// While loop with break
+var whileBreakCounter = 0;
+var whileBreakSum = 0;
+while (true) {
+    if (whileBreakCounter >= 7) {
+        break;
+    }
+    whileBreakSum += whileBreakCounter;
+    whileBreakCounter++;
+}
+println("While loop with break sum:", whileBreakSum);
+if (whileBreakSum != 21) {
+    std.throw("While loop with break failed, expected 21, got " + whileBreakSum);
+}
+
+// While loop with continue
+var whileContinueCounter = 0;
+var whileContinueSum = 0;
+while (whileContinueCounter < 10) {
+    whileContinueCounter++;
+    if (whileContinueCounter % 3 == 0) {
+        continue;
+    }
+    whileContinueSum += whileContinueCounter;
+}
+println("While loop with continue sum:", whileContinueSum);
+if (whileContinueSum != 37) {
+    std.throw("While loop with continue failed, expected 37, got " + whileContinueSum);
+}
+
+// Do-while loop stress test
+println("\n=== DO-WHILE LOOP STRESS TEST ===");
+
+// Basic do-while loop
+var doWhileCounter = 0;
+var doWhileProduct = 1;
+do {
+    doWhileCounter++;
+    doWhileProduct *= doWhileCounter;
+} while (doWhileCounter < 4);
+println("Do-while factorial of 4:", doWhileProduct);
+if (doWhileProduct != 24) {
+    std.throw("Basic do-while loop failed, expected 24, got " + doWhileProduct);
+}
+
+// Do-while loop that executes at least once even with false condition
+var doWhileOnce = 0;
+do {
+    doWhileOnce = 42;
+} while (false);
+println("Do-while executes once:", doWhileOnce);
+if (doWhileOnce != 42) {
+    std.throw("Do-while execute once failed");
+}
+
+// Do-while with break
+var doWhileBreakCounter = 0;
+var doWhileBreakSum = 0;
+do {
+    doWhileBreakSum += doWhileBreakCounter;
+    doWhileBreakCounter++;
+    if (doWhileBreakCounter == 6) {
+        break;
+    }
+} while (doWhileBreakCounter < 100);
+println("Do-while with break sum:", doWhileBreakSum);
+if (doWhileBreakSum != 15) {
+    std.throw("Do-while with break failed, expected 15, got " + doWhileBreakSum);
+}
+
+// Do-while with continue
+var doWhileContinueCounter = 0;
+var doWhileContinueSum = 0;
+do {
+    doWhileContinueCounter++;
+    if (doWhileContinueCounter % 2 == 0) {
+        continue;
+    }
+    doWhileContinueSum += doWhileContinueCounter;
+} while (doWhileContinueCounter < 8);
+println("Do-while with continue sum:", doWhileContinueSum);
+if (doWhileContinueSum != 16) {
+    std.throw("Do-while with continue failed, expected 16, got " + doWhileContinueSum);
+}
+
+// Complex nested loops test
+println("\n=== COMPLEX NESTED LOOPS TEST ===");
+
+var matrix = [null, null, null];
+for (local i = 0; i < 3; i++) {
+    matrix[i] = [null, null, null];
+    for (local j = 0; j < 3; j++) {
+        matrix[i][j] = i * 3 + j;
+    }
+}
+
+var matrixSum = 0;
+var row = 0;
+while (row < 3) {
+    local col = 0;
+    do {
+        matrixSum += matrix[row][col];
+        col++;
+    } while (col < 3);
+    row++;
+}
+println("Matrix sum:", matrixSum);
+if (matrixSum != 36) {
+    std.throw("Complex nested loops failed, expected 36, got " + matrixSum);
+}
+
+// Loop with function calls
+println("\n=== LOOPS WITH FUNCTION CALLS ===");
+
+func fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+var fibSum = 0;
+for (local i = 0; i < 8; i++) {
+    fibSum += fibonacci(i);
+}
+println("Sum of first 8 fibonacci numbers:", fibSum);
+if (fibSum != 33) {
+    std.throw("Fibonacci loop failed, expected 33, got " + fibSum);
+}
+
+// Performance test with large iterations
+println("\n=== PERFORMANCE TEST ===");
+
+var perfCounter = 0;
+var startTime = 0; // Would need actual time function
+for (local i = 0; i < 10000; i++) {
+    perfCounter++;
+}
+println("Performance test counter:", perfCounter);
+if (perfCounter != 10000) {
+    std.throw("Performance test failed, expected 10000, got " + perfCounter);
+}
+
+println("\n=== ALL LOOP STRESS TESTS PASSED! ===");
