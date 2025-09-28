@@ -116,9 +116,9 @@ import "atom:math";
 println(math.pow(2, 3)); // 8
 
 // Test math functions with closures
-func createMathClosure(base) {
+func createMathClosure(b) {
     return func(exponent) {
-        return math.pow(base, exponent);
+        return math.pow(b, exponent);
     };
 }
 

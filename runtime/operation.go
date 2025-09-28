@@ -42,6 +42,23 @@ func DoLoadNull(interpreter *AtomInterpreter, frame *AtomCallFrame) {
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
+func DoLoadBase(interpreter *AtomInterpreter, frame *AtomCallFrame) {
+	// Get base from the "self"
+	self := frame.Env.Get("self")
+	if self == nil {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "self not defined, cannot get base"),
+		))
+		return
+	}
+	base := self.Value.(*AtomClassInstance).Prototype
+	if base == nil {
+		frame.Stack.Push(interpreter.State.NullValue)
+		return
+	}
+	frame.Stack.Push(base.Value.(*AtomClass).Base)
+}
+
 func DoLoadArray(frame *AtomCallFrame, size int) {
 	cleanup := func() {
 		for range size {

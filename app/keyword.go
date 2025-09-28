@@ -29,4 +29,5 @@ const (
 	KeyNew      = "new"
 	KeyTypeof   = "typeof"
 	KeyAwait    = "await"
+	KeyBase     = "base"
 )

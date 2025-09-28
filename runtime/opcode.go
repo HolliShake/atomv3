@@ -9,6 +9,7 @@ const (
 	OpLoadStr                              // with N bytes argument
 	OpLoadBool                             //
 	OpLoadNull                             //
+	OpLoadBase                             //
 	OpLoadArray                            // with 4 bytes argument
 	OpLoadObject                           // with 4 bytes argument
 	OpLoadName                             // with 4 bytes argument

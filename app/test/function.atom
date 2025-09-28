@@ -94,14 +94,14 @@ func test_recursive_functions() {
     };
     
     local power = null;
-    power = func(base, exp) {
+    power = func(b, exp) {
         if (exp == 0) {
             return 1;
         }
         if (exp == 1) {
-            return base;
+            return b;
         }
-        return base * power(base, exp - 1);
+        return b * power(b, exp - 1);
     };
     
     local gcd = null;

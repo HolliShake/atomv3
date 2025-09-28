@@ -449,6 +449,20 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 		c.emitLine(fn, ast.Position)
 		c.emit(fn, runtime.OpLoadNull)
 
+	case AstTypeBase:
+		// Guard
+		if !scope.InSide(AtomScopeTypeClass, true) && !scope.InSide(AtomScopeTypeFunction, true) && !scope.InSide(AtomScopeTypeAsyncFunction, true) {
+			Error(
+				c.parser.tokenizer.file,
+				c.parser.tokenizer.data,
+				"Base must be in class, function, or async function scope",
+				ast.Position,
+			)
+		}
+
+		c.emitLine(fn, ast.Position)
+		c.emit(fn, runtime.OpLoadBase)
+
 	case AstTypeArray:
 		{
 			for i := 0; i < len(ast.Arr0); i++ {

@@ -25,6 +25,7 @@ const (
 	AstTypeStr
 	AstTypeBool
 	AstTypeNull
+	AstTypeBase
 	AstTypeArray
 	AstTypeObject
 	AstTypeKeyValue

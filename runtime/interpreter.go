@@ -94,6 +94,9 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 		case OpLoadNull:
 			frame.Stack.Push(i.State.NullValue)
 
+		case OpLoadBase:
+			DoLoadBase(i, frame)
+
 		case OpLoadArray:
 			size := ReadInt(code.Code, strt)
 			DoLoadArray(frame, size)

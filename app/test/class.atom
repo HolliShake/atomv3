@@ -549,3 +549,38 @@ if (a.length() != 4 || a[3] != 4) {
     throw("Method reassignment test failed - array should contain [1,2,3,4]");
 }
 println(a); // [1,2,3,4]
+
+
+// Base Test
+
+class A {
+    func init(self) {
+        println("A init");
+        self.other = "Other";
+    }
+
+    func getProp(self) {
+        return self.prop;
+    } 
+
+    func override(self) {
+        return "A override";
+    }
+}
+
+class B extends A {
+
+    func init(self, prop) {
+        println(base.init(self));
+        self.prop = prop;
+    }
+
+    func override(self) {
+        // return "B override";
+        return base.override(self);
+    }
+
+}
+
+const b = new B("Property");
+println(b, b.getProp(), b.override());
