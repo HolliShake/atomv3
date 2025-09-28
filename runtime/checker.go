@@ -1,7 +1,7 @@
 package runtime
 
 func IsNumberType(value *AtomValue) bool {
-	return CheckType(value, AtomTypeInt) || CheckType(value, AtomTypeNum)
+	return CheckType(value, AtomTypeInt) || CheckType(value, AtomTypeNum) || CheckType(value, AtomTypeBigInt)
 }
 
 func IsInteger(value float64) bool {

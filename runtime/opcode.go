@@ -6,6 +6,7 @@ const (
 	OpMakeModule        OpCode = iota + 69 // with 4 bytes argument
 	OpLoadInt                              //
 	OpLoadNum                              //
+	OpLoadBigInt                           // with N bytes argument
 	OpLoadStr                              // with N bytes argument
 	OpLoadBool                             //
 	OpLoadNull                             //

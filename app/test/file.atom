@@ -1,0 +1,7 @@
+import "atom:file";
+import [println] from "atom:std";
+
+
+const runes = file.read(__dir__ + "/" + "async.atom", "string");
+
+println(runes);

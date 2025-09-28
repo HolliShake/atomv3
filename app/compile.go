@@ -38,12 +38,13 @@ func NewAtomCompile(parser *AtomParser, state *runtime.AtomState) *AtomCompile {
 
 func isConstant(ast *AtomAst) bool {
 	switch ast.AstType {
-	case AstTypeInt,
-		AstTypeNum,
+	case AstTypeNum,
 		AstTypeStr,
 		AstTypeBool,
 		AstTypeNull:
 		return true
+	case AstTypeInt:
+		return !strings.HasSuffix(ast.Str0, "n") && !strings.HasSuffix(ast.Str0, "N")
 	case AstTypeBinaryMul,
 		AstTypeBinaryDiv,
 		AstTypeBinaryMod,
@@ -354,9 +355,16 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 
 	case AstTypeInt:
 		c.emitLine(fn, ast.Position)
+
+		if strings.HasSuffix(ast.Str0, "n") || strings.HasSuffix(ast.Str0, "N") {
+			ast.Str0 = strings.TrimSuffix(ast.Str0, "n")
+			ast.Str0 = strings.TrimSuffix(ast.Str0, "N")
+			c.emitStr(fn, runtime.OpLoadBigInt, ast.Str0)
+			return
+		}
+
 		intValue, err := strconv.Atoi(ast.Str0)
 		var overflowed bool
-
 		if after, ok := strings.CutPrefix(ast.Str0, "0x"); ok {
 			_intValue, _err := strconv.ParseInt(after, 16, 64)
 			if _intValue > math.MaxInt32 || _intValue < math.MinInt32 {

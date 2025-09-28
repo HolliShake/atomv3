@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ type AtomType int
 const (
 	AtomTypeInt AtomType = iota
 	AtomTypeNum
+	AtomTypeBigInt
 	AtomTypeBool
 	AtomTypeStr
 	AtomTypeNull
@@ -76,6 +78,12 @@ func NewAtomValueNum(value float64) *AtomValue {
 	return obj
 }
 
+func NewAtomValueBigInt(value *big.Int) *AtomValue {
+	obj := NewAtomValue(AtomTypeBigInt)
+	obj.Value = value
+	return obj
+}
+
 func NewAtomValueFalse() *AtomValue {
 	obj := NewAtomValue(AtomTypeBool)
 	obj.Value = false
@@ -125,6 +133,10 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 	case AtomTypeNum:
 		// Fast path: direct conversion without fmt.Sprintf
 		return strconv.FormatFloat(v.Value.(float64), 'g', -1, 64)
+
+	case AtomTypeBigInt:
+		// Fast path: direct conversion without fmt.Sprintf
+		return v.Value.(*big.Int).Text(10)
 
 	case AtomTypeBool:
 		// Fast path: pre-allocated strings
@@ -395,6 +407,14 @@ func (v *AtomValue) HashValue() int {
 		bits := math.Float64bits(v.Value.(float64))
 		return int(bits ^ (bits >> 32))
 
+	case AtomTypeBigInt:
+		str := v.Value.(*big.Int).String()
+		hash := 0
+		for _, b := range []byte(str) {
+			hash = ((hash << 5) + hash) + int(b)
+		}
+		return hash
+
 	case AtomTypeBool:
 		// Branchless boolean to int conversion
 		return int(*(*uint8)(unsafe.Pointer(&v.Value)))
@@ -482,6 +502,8 @@ func GetTypeString(value *AtomValue) string {
 		return "int"
 	case AtomTypeNum:
 		return "number"
+	case AtomTypeBigInt:
+		return "big number"
 	case AtomTypeBool:
 		return "bool"
 	case AtomTypeStr:

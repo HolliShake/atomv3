@@ -211,6 +211,8 @@ func (t *AtomTokenizer) readString() (string, error) {
 // readNumber reads a numeric literal
 func (t *AtomTokenizer) readNumber() string {
 	var result []rune
+	var hasDecimal bool
+	var hasScientific bool
 
 	// Handle special number formats starting with 0
 	if t.current() == '0' && t.pos+1 < len(t.data) {
@@ -223,6 +225,11 @@ func (t *AtomTokenizer) readNumber() string {
 			result = append(result, t.current())
 			t.advance()
 			for t.pos < len(t.data) && t.isHexDigit(t.current()) {
+				result = append(result, t.current())
+				t.advance()
+			}
+			// Check for BigNum suffix
+			if t.pos < len(t.data) && (t.current() == 'n' || t.current() == 'N') {
 				result = append(result, t.current())
 				t.advance()
 			}
@@ -239,6 +246,11 @@ func (t *AtomTokenizer) readNumber() string {
 				result = append(result, t.current())
 				t.advance()
 			}
+			// Check for BigNum suffix
+			if t.pos < len(t.data) && (t.current() == 'n' || t.current() == 'N') {
+				result = append(result, t.current())
+				t.advance()
+			}
 			return string(result)
 		}
 
@@ -249,6 +261,11 @@ func (t *AtomTokenizer) readNumber() string {
 			result = append(result, t.current())
 			t.advance()
 			for t.pos < len(t.data) && t.isOctalDigit(t.current()) {
+				result = append(result, t.current())
+				t.advance()
+			}
+			// Check for BigNum suffix
+			if t.pos < len(t.data) && (t.current() == 'n' || t.current() == 'N') {
 				result = append(result, t.current())
 				t.advance()
 			}
@@ -264,6 +281,7 @@ func (t *AtomTokenizer) readNumber() string {
 
 	// Handle decimal point
 	if t.current() == '.' && t.pos+1 < len(t.data) && t.isDigit(t.peek()) {
+		hasDecimal = true
 		result = append(result, t.current())
 		t.advance()
 		for t.pos < len(t.data) && t.isDigit(t.current()) {
@@ -274,6 +292,7 @@ func (t *AtomTokenizer) readNumber() string {
 
 	// Handle scientific notation
 	if t.pos < len(t.data) && (t.current() == 'e' || t.current() == 'E') {
+		hasScientific = true
 		result = append(result, t.current())
 		t.advance()
 		if t.pos < len(t.data) && (t.current() == '+' || t.current() == '-') {
@@ -284,6 +303,12 @@ func (t *AtomTokenizer) readNumber() string {
 			result = append(result, t.current())
 			t.advance()
 		}
+	}
+
+	// Check for BigNum suffix - only allow if no decimal or scientific notation
+	if t.pos < len(t.data) && (t.current() == 'n' || t.current() == 'N') && !hasDecimal && !hasScientific {
+		result = append(result, t.current())
+		t.advance()
 	}
 
 	return string(result)

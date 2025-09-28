@@ -1,0 +1,161 @@
+import "atom:std";
+
+std.println("=== BigInt Test ===");
+
+// ---------------------------------------------------
+// Helpers
+func assertEqual(actual, expected, message) {
+    if (actual != expected) {
+        std.throw(message + ": expected " + expected + ", got " + actual);
+    }
+}
+
+// ---------------------------------------------------
+// Setup test values
+const a = 123n;
+const b = 987n;
+const c = 1000000000000000000000000000000n; // Large integer
+const small_int = 42;
+const small_float = 3.14;
+
+std.println("Test values:");
+std.println("a =", a);
+std.println("b =", b);
+std.println("c =", c);
+std.println("small_int =", small_int);
+std.println("small_float =", small_float);
+
+// ---------------------------------------------------
+// Basic Arithmetic Tests
+std.println("\n--- Basic Arithmetic ---");
+
+// Addition
+const add_result = a + b;
+const expected_add = 1110n;
+std.println("Addition:", a, "+", b, "=", add_result);
+assertEqual(add_result, expected_add, "Addition test failed");
+
+// Subtraction
+const sub_result = b - a;
+const expected_sub = 864n;
+std.println("Subtraction:", b, "-", a, "=", sub_result);
+assertEqual(sub_result, expected_sub, "Subtraction test failed");
+
+// Multiplication
+const mult_result = a * b;
+const expected_mult = 121401n;
+std.println("Multiplication:", a, "*", b, "=", mult_result);
+assertEqual(mult_result, expected_mult, "Multiplication test failed");
+
+// Division (integer division)
+const div_result = b / a;
+const expected_div = 8n;
+std.println("Division:", b, "/", a, "=", div_result);
+assertEqual(div_result, expected_div, "Division test failed");
+
+// Modulus
+const mod_result = b % a;
+const expected_mod = 3n;
+std.println("Modulus:", b, "%", a, "=", mod_result);
+assertEqual(mod_result, expected_mod, "Modulus test failed");
+
+// ---------------------------------------------------
+// Large Number Tests
+std.println("\n--- Large Number Tests ---");
+
+const large_add = c + 1n;
+const expected_large_add = 1000000000000000000000000000001n;
+std.println("Large addition:", c, "+ 1 =", large_add);
+assertEqual(large_add, expected_large_add, "Large addition test failed");
+
+const large_mult = c * 2n;
+const expected_large_mult = 2000000000000000000000000000000n;
+std.println("Large multiplication:", c, "* 2 =", large_mult);
+assertEqual(large_mult, expected_large_mult, "Large multiplication test failed");
+
+const large_div = c / 1000n;
+const expected_large_div = 1000000000000000000000000000n;
+std.println("Large division:", c, "/ 1000 =", large_div);
+assertEqual(large_div, expected_large_div, "Large division test failed");
+
+// ---------------------------------------------------
+// Comparison Tests
+std.println("\n--- Comparison Tests ---");
+
+if (!(a < b)) {
+    std.throw("Comparison test failed: expected a < b");
+}
+if (!(b > a)) {
+    std.throw("Comparison test failed: expected b > a");
+}
+if (!(a <= a)) {
+    std.throw("Comparison test failed: expected a <= a");
+}
+if (!(b >= b)) {
+    std.throw("Comparison test failed: expected b >= b");
+}
+if (!(a != b)) {
+    std.throw("Comparison test failed: expected a != b");
+}
+if (!(c > b)) {
+    std.throw("Comparison test failed: expected c > b");
+}
+if (!(a == 123n)) {
+    std.throw("Comparison test failed: expected a == 123n");
+}
+
+std.println("All comparison tests passed");
+
+// ---------------------------------------------------
+// Mixed Type Operations
+std.println("\n--- Mixed Type Operations ---");
+
+const mixed1 = a + small_int; // BigInt + Int
+const expected_mixed1 = 165n;
+std.println("BigInt + Int:", a, "+", small_int, "=", mixed1);
+assertEqual(mixed1, expected_mixed1, "Mixed BigInt + Int test failed");
+
+const mixed2 = a * small_int; // BigInt * Int
+const expected_mixed2 = 5166n;
+std.println("BigInt * Int:", a, "*", small_int, "=", mixed2);
+assertEqual(mixed2, expected_mixed2, "Mixed BigInt * Int test failed");
+
+// BigInt with float should promote to float
+const mixed3 = a + small_float; // BigInt + Float
+std.println("BigInt + Float:", a, "+", small_float, "=", mixed3);
+// Result should be a float, not BigInt
+
+// ---------------------------------------------------
+// Edge Cases
+std.println("\n--- Edge Cases ---");
+
+const zero_big = 0n;
+const one_big = 1n;
+const negative_big = -123n;
+std.println("Negative big number:", negative_big);
+
+// Zero operations
+assertEqual(a + zero_big, a, "Addition with zero failed");
+assertEqual(a * zero_big, zero_big, "Multiplication with zero failed");
+assertEqual(zero_big / one_big, zero_big, "Zero division failed");
+
+// Negative operations
+const neg_result = a + negative_big;
+const expected_neg = 0n;
+std.println("Negative addition result:", neg_result);
+assertEqual(neg_result, expected_neg, "Negative addition test failed");
+
+// Absolute value test
+const abs_neg = negative_big * -1n;
+const expected_abs = 123n;
+std.println("Absolute value:", abs_neg);
+assertEqual(abs_neg, expected_abs, "Absolute value test failed");
+
+std.println("All BigInt tests passed ✅");
+
+// ---------------------------------------------------
+// Final demonstration
+const final_calc = (a * b) / 100n;
+const expected_final = 1214n;
+std.println("Final demonstration:", a, "*", b, "/ 100 =", final_calc);
+assertEqual(final_calc, expected_final, "Final calculation test failed");

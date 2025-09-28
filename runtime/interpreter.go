@@ -73,6 +73,11 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			frame.Stack.Push(NewAtomValueInt(value))
 			forwardIp(4)
 
+		case OpLoadBigInt:
+			value := ReadStr(code.Code, strt)
+			frame.Stack.Push(NewAtomValueBigInt(BigInt(value)))
+			forwardIp(len(value) + 1)
+
 		case OpLoadNum:
 			value := ReadNum(code.Code, strt)
 			frame.Stack.Push(NewAtomValueNum(value))
@@ -417,6 +422,7 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "math", EXPORT_MATH)
 	DefineModule(i, "path", EXPORT_PATH)
 	DefineModule(i, "os", EXPORT_OS)
+	DefineModule(i, "file", EXPORT_FILE)
 
 	// Run while the frame is not empty
 	i.ExecuteFrame(NewAtomCallFrame(nil, atomFunc, 0))

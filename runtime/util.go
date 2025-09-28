@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 )
 
@@ -29,8 +30,18 @@ func CoerceToInt(value *AtomValue) int32 {
 		return value.Value.(int32)
 	case AtomTypeNum:
 		return int32(value.Value.(float64))
+	case AtomTypeBigInt:
+		bigVal := value.Value.(*big.Int)
+		if !bigVal.IsInt64() {
+			return 0
+		}
+		val := bigVal.Int64()
+		if val > math.MaxInt32 || val < math.MinInt32 {
+			return 0
+		}
+		return int32(val)
 	case AtomTypeStr:
-		val, err := strconv.Atoi(value.Value.(string))
+		val, err := strconv.ParseInt(value.Value.(string), 10, 32)
 		if err != nil {
 			return 0
 		}
@@ -51,6 +62,13 @@ func CoerceToLong(value *AtomValue) int64 {
 		return int64(value.Value.(int32))
 	case AtomTypeNum:
 		return int64(value.Value.(float64))
+	case AtomTypeBigInt:
+		bigVal := value.Value.(*big.Int)
+		if !bigVal.IsInt64() {
+			return 0
+		}
+		val := bigVal.Int64()
+		return val
 	case AtomTypeStr:
 		val, err := strconv.ParseInt(value.Value.(string), 10, 64)
 		if err != nil {
@@ -73,6 +91,13 @@ func CoerceToNum(value *AtomValue) float64 {
 		return float64(value.Value.(int32))
 	case AtomTypeNum:
 		return value.Value.(float64)
+	case AtomTypeBigInt:
+		bigVal := value.Value.(*big.Int)
+		if !bigVal.IsInt64() {
+			return 0
+		}
+		val := bigVal.Int64()
+		return float64(val)
 	case AtomTypeStr:
 		val, err := strconv.ParseFloat(value.Value.(string), 64)
 		if err != nil {
@@ -89,12 +114,34 @@ func CoerceToNum(value *AtomValue) float64 {
 	}
 }
 
+func CoerceToBigInt(value *AtomValue) *big.Int {
+	switch value.Type {
+	case AtomTypeInt:
+		return BigInt(strconv.FormatInt(int64(value.Value.(int32)), 10))
+	case AtomTypeNum:
+		return BigInt(strconv.FormatFloat(value.Value.(float64), 'g', -1, 64))
+	case AtomTypeBigInt:
+		return value.Value.(*big.Int)
+	case AtomTypeStr:
+		return BigInt(value.Value.(string))
+	case AtomTypeBool:
+		if value.Value.(bool) {
+			return BigInt("1")
+		}
+		return BigInt("0")
+	default:
+		return BigInt("0")
+	}
+}
+
 func CoerceToBool(value *AtomValue) bool {
 	switch value.Type {
 	case AtomTypeInt:
 		return value.Value.(int32) != 0
 	case AtomTypeNum:
 		return value.Value.(float64) != 0
+	case AtomTypeBigInt:
+		return value.Value.(*big.Int).Sign() != 0
 	case AtomTypeStr:
 		return value.Value.(string) != ""
 	case AtomTypeBool:
@@ -132,4 +179,14 @@ func BinarySearch(lines []AtomDebugLine, ip int) int {
 	}
 
 	return result
+}
+
+func BigInt(v string) *big.Int {
+	// Set precision to a very high value to simulate Python's arbitrary precision
+	// Python's int has unlimited precision, so we use a very high precision for big.Float
+	val, ok := big.NewInt(0).SetString(v, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+	return val
 }

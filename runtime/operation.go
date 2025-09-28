@@ -427,6 +427,17 @@ func DoNeg(frame *AtomCallFrame, val *AtomValue) {
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
+
+	// Big?
+	if CheckType(val, AtomTypeBigInt) {
+		bigInt := CoerceToBigInt(val)
+		newBig := BigInt("-0").Neg(bigInt)
+		frame.Stack.Push(NewAtomValueBigInt(
+			newBig,
+		))
+		return
+	}
+
 	frame.Stack.Push(NewAtomValueNum(-CoerceToNum(val)))
 }
 
@@ -436,7 +447,18 @@ func DoPos(frame *AtomCallFrame, val *AtomValue) {
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
-	frame.Stack.Push(NewAtomValueNum(CoerceToNum(val)))
+
+	// Big?
+	if CheckType(val, AtomTypeBigInt) {
+		bigInt := CoerceToBigInt(val)
+		newBig := BigInt("0").Abs(bigInt)
+		frame.Stack.Push(NewAtomValueBigInt(
+			newBig,
+		))
+		return
+	}
+
+	frame.Stack.Push(NewAtomValueNum(+CoerceToNum(val)))
 }
 
 func DoTypeof(frame *AtomCallFrame, val *AtomValue) {
@@ -618,6 +640,29 @@ func DoMultiplication(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 		return
 	}
 
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		result := BigInt("0").Mul(lhsBig, rhsBig)
+
+		// Result can be stored as int?
+		if result.IsInt64() {
+			value := result.Int64()
+			if value >= math.MinInt32 && value <= math.MaxInt32 {
+				frame.Stack.Push(NewAtomValueInt(int(value)))
+				return
+			}
+			// Promote as float64
+			frame.Stack.Push(NewAtomValueNum(float64(value)))
+			return
+		}
+
+		frame.Stack.Push(NewAtomValueBigInt(result))
+		return
+	}
+
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
@@ -650,6 +695,37 @@ func DoDivision(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := FormatError(frame, fmt.Sprintf("Error: cannot divide types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+
+		// Check for division by zero
+		if rhsBig.Sign() == 0 {
+			message := FormatError(frame, "division by zero")
+			frame.Stack.Push(NewAtomValueError(message))
+			return
+		}
+
+		result := BigInt("0").Quo(lhsBig, rhsBig)
+
+		// Result can be stored as int?
+		if result.IsInt64() {
+			value := result.Int64()
+			if value >= math.MinInt32 && value <= math.MaxInt32 {
+				frame.Stack.Push(NewAtomValueInt(int(value)))
+				return
+			}
+			// Promote as float64
+			frame.Stack.Push(NewAtomValueNum(float64(value)))
+			return
+		}
+
+		frame.Stack.Push(NewAtomValueBigInt(result))
 		return
 	}
 
@@ -690,6 +766,29 @@ func DoModulus(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := FormatError(frame, fmt.Sprintf("Error: cannot modulo types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		result := BigInt("0").Mod(lhsBig, rhsBig)
+
+		// Result can be stored as int?
+		if result.IsInt64() {
+			value := result.Int64()
+			if value >= math.MinInt32 && value <= math.MaxInt32 {
+				frame.Stack.Push(NewAtomValueInt(int(value)))
+				return
+			}
+			// Promote as float64
+			frame.Stack.Push(NewAtomValueNum(float64(value)))
+			return
+		}
+
+		frame.Stack.Push(NewAtomValueBigInt(result))
 		return
 	}
 
@@ -751,6 +850,29 @@ func DoAddition(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 		return
 	}
 
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		result := BigInt("0").Add(lhsBig, rhsBig)
+
+		// Result can be stored as int?
+		if result.IsInt64() {
+			value := result.Int64()
+			if value >= math.MinInt32 && value <= math.MaxInt32 {
+				frame.Stack.Push(NewAtomValueInt(int(value)))
+				return
+			}
+			// Promote as float64
+			frame.Stack.Push(NewAtomValueNum(float64(value)))
+			return
+		}
+
+		frame.Stack.Push(NewAtomValueBigInt(result))
+		return
+	}
+
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
@@ -786,6 +908,29 @@ func DoSubtraction(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 		return
 	}
 
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		result := BigInt("0").Sub(lhsBig, rhsBig)
+
+		// Result can be stored as int?
+		if result.IsInt64() {
+			value := result.Int64()
+			if value >= math.MinInt32 && value <= math.MaxInt32 {
+				frame.Stack.Push(NewAtomValueInt(int(value)))
+				return
+			}
+			// Promote as float64
+			frame.Stack.Push(NewAtomValueNum(float64(value)))
+			return
+		}
+
+		frame.Stack.Push(NewAtomValueBigInt(result))
+		return
+	}
+
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
@@ -813,6 +958,29 @@ func DoShiftLeft(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := FormatError(frame, fmt.Sprintf("Error: cannot shift left types: %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		result := BigInt("0").Lsh(lhsBig, uint(rhsBig.Uint64()))
+
+		// Result can be stored as int?
+		if result.IsInt64() {
+			value := result.Int64()
+			if value >= math.MinInt32 && value <= math.MaxInt32 {
+				frame.Stack.Push(NewAtomValueInt(int(value)))
+				return
+			}
+			// Promote as float64
+			frame.Stack.Push(NewAtomValueNum(float64(value)))
+			return
+		}
+
+		frame.Stack.Push(NewAtomValueBigInt(result))
 		return
 	}
 
@@ -846,6 +1014,29 @@ func DoShiftRight(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 		return
 	}
 
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		result := BigInt("0").Rsh(lhsBig, uint(rhsBig.Uint64()))
+
+		// Result can be stored as int?
+		if result.IsInt64() {
+			value := result.Int64()
+			if value >= math.MinInt32 && value <= math.MaxInt32 {
+				frame.Stack.Push(NewAtomValueInt(int(value)))
+				return
+			}
+			// Promote as float64
+			frame.Stack.Push(NewAtomValueNum(float64(value)))
+			return
+		}
+
+		frame.Stack.Push(NewAtomValueBigInt(result))
+		return
+	}
+
 	// Fallback path using coercion
 	lhsValue := CoerceToNum(val0)
 	rhsValue := CoerceToNum(val1)
@@ -860,6 +1051,19 @@ func DoShiftRight(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 }
 
 func DoCmpLt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		if lhsBig.Cmp(rhsBig) == -1 {
+			frame.Stack.Push(interpreter.State.TrueValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.FalseValue)
+		return
+	}
+
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := FormatError(frame, fmt.Sprintf("Error: cannot compare less than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
@@ -879,6 +1083,19 @@ func DoCmpLt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 }
 
 func DoCmpLte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		if lhsBig.Cmp(rhsBig) <= 0 {
+			frame.Stack.Push(interpreter.State.TrueValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.FalseValue)
+		return
+	}
+
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := FormatError(frame, fmt.Sprintf("Error: cannot compare less than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
@@ -898,6 +1115,19 @@ func DoCmpLte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValu
 }
 
 func DoCmpGt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		if lhsBig.Cmp(rhsBig) > 0 {
+			frame.Stack.Push(interpreter.State.TrueValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.FalseValue)
+		return
+	}
+
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := FormatError(frame, fmt.Sprintf("Error: cannot compare greater than type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
@@ -917,6 +1147,19 @@ func DoCmpGt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 }
 
 func DoCmpGte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		if lhsBig.Cmp(rhsBig) >= 0 {
+			frame.Stack.Push(interpreter.State.TrueValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.FalseValue)
+		return
+	}
+
 	if !IsNumberType(val0) || !IsNumberType(val1) {
 		message := FormatError(frame, fmt.Sprintf("Error: cannot compare greater than or equal to type(s) %s and %s", GetTypeString(val0), GetTypeString(val1)))
 		frame.Stack.Push(NewAtomValueError(message))
@@ -936,6 +1179,19 @@ func DoCmpGte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValu
 }
 
 func DoCmpEq(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		if lhsBig.Text(10) == rhsBig.Text(10) {
+			frame.Stack.Push(interpreter.State.TrueValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.FalseValue)
+		return
+	}
+
 	if IsNumberType(val0) && IsNumberType(val1) {
 		lhsValue := CoerceToLong(val0)
 		rhsValue := CoerceToLong(val1)
@@ -973,6 +1229,20 @@ func DoCmpEq(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 }
 
 func DoCmpNe(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
+	// Big?
+	if (CheckType(val0, AtomTypeBigInt) || CheckType(val1, AtomTypeBigInt)) && (IsNumberType(val0) && IsNumberType(val1)) {
+		// Both numbers possible big number
+		lhsBig := CoerceToBigInt(val0)
+		rhsBig := CoerceToBigInt(val1)
+		// Not effiecient, fix later
+		if lhsBig.Text(10) == rhsBig.Text(10) {
+			frame.Stack.Push(interpreter.State.FalseValue)
+			return
+		}
+		frame.Stack.Push(interpreter.State.TrueValue)
+		return
+	}
+
 	if IsNumberType(val0) && IsNumberType(val1) {
 		lhsValue := CoerceToLong(val0)
 		rhsValue := CoerceToLong(val1)

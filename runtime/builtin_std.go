@@ -110,7 +110,7 @@ func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 			builder.WriteString("\n")
 		}
 	}
-	fmt.Fprintln(os.Stderr, builder.String())
+	fmt.Fprintln(os.Stderr, color.RedString(builder.String()))
 	os.Exit(1)
 }
 
