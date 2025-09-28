@@ -1,0 +1,157 @@
+import "atom:math";
+import [print, println] from "atom:std";
+
+// Test rand function
+var result = math.rand(100);
+println("Random number (0-99): " + result);
+
+// Test abs function
+println("abs(-5): " + math.abs(-5));
+println("abs(3.14): " + math.abs(3.14));
+println("abs(-3.14): " + math.abs(-3.14));
+
+// Test floor function
+println("floor(3.7): " + math.floor(3.7));
+println("floor(-3.7): " + math.floor(-3.7));
+
+// Test ceil function
+println("ceil(3.2): " + math.ceil(3.2));
+println("ceil(-3.2): " + math.ceil(-3.2));
+
+// Test round function
+println("round(3.4): " + math.round(3.4));
+println("round(3.6): " + math.round(3.6));
+println("round(-3.4): " + math.round(-3.4));
+println("round(-3.6): " + math.round(-3.6));
+
+// Test pow function
+println("pow(2, 3): " + math.pow(2, 3));
+println("pow(4, 0.5): " + math.pow(4, 0.5));
+println("pow(10, -2): " + math.pow(10, -2));
+
+// Test sqrt function
+println("sqrt(16): " + math.sqrt(16));
+println("sqrt(2): " + math.sqrt(2));
+println("sqrt(100): " + math.sqrt(100));
+
+// Test log function
+println("log(1): " + math.log(1));
+println("log(2.718281828): " + math.log(2.718281828));
+println("log(10): " + math.log(10));
+
+// Edge cases and error testing
+println("Testing error cases:");
+
+// Test with wrong number of arguments (should cause errors)
+math.abs() catch(err) {
+    println("abs() with no args error: " + err);
+};
+
+math.pow(2) catch(err) {
+    println("pow() with 1 arg error: " + err);
+};
+
+// Test with non-numeric arguments (should cause errors)
+math.abs("not a number") catch(err) {
+    println("abs() with string error: " + err);
+};
+
+math.sqrt("invalid") catch(err) {
+    println("sqrt() with string error: " + err);
+};
+
+// Stress test with multiple calls
+println("Stress testing with multiple calls:");
+for (local i = 0; i < 10; i++) {
+    local r = math.rand(1000);
+    local a = math.abs(r - 500);
+    local s = math.sqrt(a);
+    local f = math.floor(s);
+    local c = math.ceil(s);
+    println("Iteration " + i + ": rand=" + r + ", abs=" + a + ", sqrt=" + s + ", floor=" + f + ", ceil=" + c);
+}
+
+// Test mathematical properties
+println("Testing mathematical properties:");
+var x = 25;
+var sqrt_pow_result = math.sqrt(math.pow(x, 2));
+println("sqrt(pow(" + x + ", 2)) = " + sqrt_pow_result + " (should equal " + x + ")");
+if (sqrt_pow_result != x) {
+    std.throw("Mathematical property failed: sqrt(pow(25, 2)) should equal 25");
+}
+
+var y = 3.7;
+var floor_ceil_sum = math.floor(y) + math.ceil(y);
+println("floor(" + y + ") + ceil(" + y + ") = " + floor_ceil_sum + " (should be 7)");
+if (floor_ceil_sum != 7) {
+    std.throw("Mathematical property failed: floor(3.7) + ceil(3.7) should equal 7");
+}
+
+// Test with negative numbers
+println("Testing with negative numbers:");
+var abs_neg = math.abs(-42);
+println("abs(-42): " + abs_neg);
+if (abs_neg != 42) {
+    std.throw("abs(-42) should equal 42");
+}
+
+var pow_neg = math.pow(-2, 3);
+println("pow(-2, 3): " + pow_neg);
+if (pow_neg != -8) {
+    std.throw("pow(-2, 3) should equal -8");
+}
+
+var floor_neg = math.floor(-2.3);
+println("floor(-2.3): " + floor_neg);
+if (floor_neg != -3) {
+    std.throw("floor(-2.3) should equal -3");
+}
+
+var ceil_neg = math.ceil(-2.7);
+println("ceil(-2.7): " + ceil_neg);
+if (ceil_neg != -2) {
+    std.throw("ceil(-2.7) should equal -2");
+}
+
+// Test specific expected values
+var abs_test = math.abs(-5);
+if (abs_test != 5) {
+    std.throw("abs(-5) should equal 5, got " + abs_test);
+}
+
+var floor_test = math.floor(3.7);
+if (floor_test != 3) {
+    std.throw("floor(3.7) should equal 3, got " + floor_test);
+}
+
+var ceil_test = math.ceil(3.2);
+if (ceil_test != 4) {
+    std.throw("ceil(3.2) should equal 4, got " + ceil_test);
+}
+
+var round_test1 = math.round(3.4);
+if (round_test1 != 3) {
+    std.throw("round(3.4) should equal 3, got " + round_test1);
+}
+
+var round_test2 = math.round(3.6);
+if (round_test2 != 4) {
+    std.throw("round(3.6) should equal 4, got " + round_test2);
+}
+
+var pow_test = math.pow(2, 3);
+if (pow_test != 8) {
+    std.throw("pow(2, 3) should equal 8, got " + pow_test);
+}
+
+var sqrt_test = math.sqrt(16);
+if (sqrt_test != 4) {
+    std.throw("sqrt(16) should equal 4, got " + sqrt_test);
+}
+
+var log_test = math.log(1);
+if (log_test != 0) {
+    std.throw("log(1) should equal 0, got " + log_test);
+}
+
+println("Math library stress test completed successfully!");
