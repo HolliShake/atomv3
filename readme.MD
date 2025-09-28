@@ -526,7 +526,7 @@ When you run Atom without arguments, it displays an impressive ASCII art banner:
 ║  License:  MIT License                                                       ║
 ║  GitHub:   https://github.com/HolliShake/atomv3                              ║
 ║                                                                              ║
-║  usage: atom [<file.atom> | --test                                           ║
+║  usage: atom [<file.atom> | --test]                                          ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
