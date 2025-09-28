@@ -1,0 +1,11 @@
+import "atom:std";
+
+
+
+std.println("lib/gui:: imported");
+
+
+
+func getName() {
+    return "DoyDoy";
+}
