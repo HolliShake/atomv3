@@ -1613,12 +1613,23 @@ func (c *AtomCompile) returnStatement(scope *AtomScope, fn *runtime.AtomValue, a
 		)
 		return
 	}
+
 	if ast.Ast0 != nil {
 		c.expression(scope, fn, ast.Ast0)
 	} else {
 		c.emitLine(fn, ast.Position)
 		c.emit(fn, runtime.OpLoadNull)
 	}
+
+	depth := 0
+	for block := currentBlock(scope); block != nil && block.Type == AtomScopeTypeBlock; block = block.Parent {
+		depth++
+	}
+	if depth != 0 {
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpExitBlock, depth)
+	}
+
 	c.emitLine(fn, ast.Position)
 	c.emit(fn, runtime.OpReturn)
 }

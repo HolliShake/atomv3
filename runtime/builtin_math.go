@@ -185,6 +185,47 @@ func math_log(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	frame.Stack.Push(NewAtomValueNum(math.Log(val)))
 }
 
+func math_cos(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "cos expects 1 argument"),
+		))
+		return
+	}
+
+	arg := frame.Stack.Pop()
+
+	if !IsNumberType(arg) {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "cos expects number"),
+		))
+		return
+	}
+
+	val := CoerceToNum(arg)
+	frame.Stack.Push(NewAtomValueNum(math.Cos(val)))
+}
+
+func math_sin(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "sin expects 1 argument"),
+		))
+		return
+	}
+
+	arg := frame.Stack.Pop()
+	if !IsNumberType(arg) {
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "sin expects number"),
+		))
+		return
+	}
+
+	val := CoerceToNum(arg)
+	frame.Stack.Push(NewAtomValueNum(math.Sin(val)))
+}
+
 var EXPORT_MATH = map[string]*AtomValue{
 	"rand": NewAtomGenericValue(
 		AtomTypeNativeFunc,
@@ -217,5 +258,13 @@ var EXPORT_MATH = map[string]*AtomValue{
 	"log": NewAtomGenericValue(
 		AtomTypeNativeFunc,
 		NewNativeFunc("log", 1, math_log),
+	),
+	"cos": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("cos", 1, math_cos),
+	),
+	"sin": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("sin", 1, math_sin),
 	),
 }

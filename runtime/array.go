@@ -74,9 +74,6 @@ func ArrayAll(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		}
 	}
 
-	arg0 := frame.Stack.GetOffset(argc, 0)
-	arg1 := frame.Stack.GetOffset(argc, 1)
-
 	// Fast path validation
 	if argc != 2 {
 		cleanup()
@@ -85,6 +82,10 @@ func ArrayAll(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		))
 		return
 	}
+
+	arg0 := frame.Stack.GetOffset(argc, 0)
+	arg1 := frame.Stack.GetOffset(argc, 1)
+
 	if !CheckType(arg0, AtomTypeArray) {
 		cleanup()
 		frame.Stack.Push(NewAtomValueError(
