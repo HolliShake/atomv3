@@ -2553,10 +2553,18 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 	} else {
 		single := NewAtomScope(loopScope, AtomScopeTypeSingle)
 		c.statement(single, fn, ast.Ast1)
+
+		// Modify opcodes for continue
+		for _, continueAddress := range loopScope.Continues {
+			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			c.label(fn, continueAddress)
+		}
+
 		// check condition
 		c.expression(loopScope, fn, ast.Ast0)
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
+
 		// jump to start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
