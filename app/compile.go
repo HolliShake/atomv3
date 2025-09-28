@@ -254,8 +254,6 @@ func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast
 		name,
 		global,
 		constant,
-		0,
-		nil,
 	)
 
 	c.emitLine(atomFunc, ast.Position)
