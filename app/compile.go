@@ -1921,22 +1921,22 @@ func (c *AtomCompile) function(scope *AtomScope, fn *runtime.AtomValue, ast *Ato
 }
 
 func (c *AtomCompile) block(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
-	blockScope := NewAtomScope(scope, AtomScopeTypeBlock)
-	if !hasDeclairation(ast.Arr0) {
+	var blockScope *AtomScope
+	var dec = hasDeclairation(ast.Arr0)
+	if dec {
+		blockScope = NewAtomScope(scope, AtomScopeTypeBlock)
+		c.emitInt(fn, runtime.OpEnterBlock, 1)
+	} else {
 		blockScope = NewAtomScope(scope, AtomScopeTypeBlockNoEnv)
-		for _, stmt := range ast.Arr0 {
-			c.statement(blockScope, fn, stmt)
-		}
-		return
 	}
-	/*
-		Block scope with declairation.
-	*/
-	c.emitInt(fn, runtime.OpEnterBlock, 1)
+
 	for _, stmt := range ast.Arr0 {
 		c.statement(blockScope, fn, stmt)
 	}
-	c.emitInt(fn, runtime.OpExitBlock, 1)
+
+	if dec {
+		c.emitInt(fn, runtime.OpExitBlock, 1)
+	}
 }
 
 func (c *AtomCompile) varStatement(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAst) {
