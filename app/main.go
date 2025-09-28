@@ -65,6 +65,7 @@ func printStartupBanner() {
 	fmt.Println("║  Author:   Philipp Andrew Redondo                                            ║")
 	fmt.Println("║  License:  MIT License                                                       ║")
 	fmt.Println("║  GitHub:   https://github.com/HolliShake/atomv3                              ║")
+	fmt.Printf("║  Version:  %s                                                             ║\n", VERSION)
 	fmt.Println("║                                                                              ║")
 	fmt.Println("║  usage: atom [<file.atom> | --test]                                          ║")
 	fmt.Println("╚══════════════════════════════════════════════════════════════════════════════╝")
