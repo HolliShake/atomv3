@@ -30,9 +30,8 @@ if (nestedSum != 36) {
 // For loop with break
 var breakResult = [];
 for (local i = 0; i < 10; i++) {
-    if (i == 5) {
+    if (i == 5)
         break;
-    }
     breakResult.push(i);
 }
 println("For loop with break:", breakResult);
