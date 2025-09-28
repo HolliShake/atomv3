@@ -1929,7 +1929,9 @@ func (c *AtomCompile) block(scope *AtomScope, fn *runtime.AtomValue, ast *AtomAs
 		}
 		return
 	}
-
+	/*
+		Block scope with declairation.
+	*/
 	c.emitInt(fn, runtime.OpEnterBlock, 1)
 	for _, stmt := range ast.Arr0 {
 		c.statement(blockScope, fn, stmt)
@@ -2598,28 +2600,87 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 	// body
 	single := NewAtomScope(loopScope, AtomScopeTypeSingle)
-	c.statement(single, fn, body)
+	if body.AstType == AstTypeBlock && hasDeclairation(body.Arr0) {
+		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
+		c.emitInt(fn, runtime.OpEnterBlock, 1)
+		for _, stmt := range body.Arr0 {
+			c.statement(blockScope, fn, stmt)
+		}
 
-	// Modify opcodes for continue
-	for _, continueAddress := range loopScope.Continues {
-		fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
-		c.label(fn, continueAddress)
-	}
+		// Modify opcodes for continue
+		for _, continueAddress := range loopScope.Continues {
+			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			c.label(fn, continueAddress)
+		}
 
-	// Updater
-	if updater != nil {
-		c.expression(loopScope, fn, updater)
-		c.emitLine(fn, updater.Position)
-		c.emit(fn, runtime.OpPopTop)
-	}
+		// Updater
+		if updater != nil {
+			c.expression(loopScope, fn, updater)
+			c.emitLine(fn, updater.Position)
+			c.emit(fn, runtime.OpPopTop)
+		}
 
-	// Loop
-	c.emitLine(fn, ast.Position)
-	c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+		// Loop
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
 
-	// End loop
-	if condition != nil {
-		c.label(fn, jump0)
+		// End loop
+		if condition != nil {
+			c.label(fn, jump0)
+		}
+
+		c.emitInt(fn, runtime.OpExitBlock, 1)
+	} else if body.AstType == AstTypeBlock {
+		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlockNoEnv)
+		for _, stmt := range body.Arr0 {
+			c.statement(blockScope, fn, stmt)
+		}
+
+		// Modify opcodes for continue
+		for _, continueAddress := range loopScope.Continues {
+			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			c.label(fn, continueAddress)
+		}
+
+		// Updater
+		if updater != nil {
+			c.expression(loopScope, fn, updater)
+			c.emitLine(fn, updater.Position)
+			c.emit(fn, runtime.OpPopTop)
+		}
+
+		// Loop
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
+		if condition != nil {
+			c.label(fn, jump0)
+		}
+	} else {
+		c.statement(single, fn, body)
+
+		// Modify opcodes for continue
+		for _, continueAddress := range loopScope.Continues {
+			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			c.label(fn, continueAddress)
+		}
+
+		// Updater
+		if updater != nil {
+			c.expression(loopScope, fn, updater)
+			c.emitLine(fn, updater.Position)
+			c.emit(fn, runtime.OpPopTop)
+		}
+
+		// Loop
+		c.emitLine(fn, ast.Position)
+		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
+		if condition != nil {
+			c.label(fn, jump0)
+		}
 	}
 
 	for _, breakAddress := range loopScope.Breaks {

@@ -33,6 +33,7 @@ func runTests() {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
+	success := 0
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -41,7 +42,10 @@ func runTests() {
 			continue
 		}
 		runFile(filepath.Join(testsDir, file.Name()))
+		success++
 	}
+	// Will stop if has error on tests
+	fmt.Println("Success:", success, "Total:", success)
 }
 
 func printStartupBanner() {
