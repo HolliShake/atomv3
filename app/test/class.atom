@@ -571,7 +571,7 @@ class A {
 class B extends A {
 
     func init(self, prop) {
-        println(base.init(self));
+        base.init(self);
         self.prop = prop;
     }
 
