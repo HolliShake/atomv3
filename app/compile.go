@@ -1219,6 +1219,7 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 					break
 				}
 			}
+
 			if !visibleReturn {
 				c.emitLine(atomFunc, ast.Position)
 				c.emit(atomFunc, runtime.OpLoadNull)
@@ -1789,6 +1790,7 @@ func (c *AtomCompile) classFunction(scope *AtomScope, fn *runtime.AtomValue, ast
 			break
 		}
 	}
+
 	if !visibleReturn {
 		c.emitLine(atomFunc, ast.Position)
 		c.emit(atomFunc, runtime.OpLoadNull)
