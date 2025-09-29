@@ -1,0 +1,31 @@
+app ICON "atom.ico"
+
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+FILEFLAGSMASK   0x3fL
+FILEFLAGS       0x0L
+FILEOS          0x40004L
+FILETYPE        0x1L
+FILESUBTYPE     0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"  // Language & codepage (US English, Unicode)
+        BEGIN
+            VALUE "CompanyName",      "Philipp Andrew Redondo\0"
+            VALUE "FileDescription",  "Atom Programming Language - A Custom Programming Language Implemented in Go\0"
+            VALUE "FileVersion",      "1.0.0\0"
+            VALUE "InternalName",     "atom.exe\0"
+            VALUE "OriginalFilename", "atom.exe\0"
+            VALUE "ProductName",      "Atom Programming Language\0"
+            VALUE "ProductVersion",   "1.0.0\0"
+            VALUE "LegalCopyright",   "© 2025 Philipp Andrew Redondo. Licensed under MIT License\0"
+            VALUE "Comments",         "Features: Dynamic Typing • OOP • Functions • Arrays • Objects • Classes • Async/Await\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

@@ -206,6 +206,12 @@ if [[ "$RELEASE_MODE" == true ]]; then
         cp atom.ico release/
     fi
     
+    # Copy app.rc file if building for Windows
+    if [[ "$TARGET_OS" == "win" ]] && [[ -f "app.rc" ]]; then
+        echo "Copying app.rc..."
+        cp app.rc release/
+    fi
+    
     # Set build environment variables for architecture
     BUILD_CMD="go build"
     ARCH_SUFFIX=""
@@ -233,6 +239,17 @@ if [[ "$RELEASE_MODE" == true ]]; then
         OS_SUFFIX="-win"
         EXECUTABLE="atom.exe"
         echo "Building for Windows..."
+        
+        # Generate Windows resource file
+        if [[ -f "app.rc" ]]; then
+            echo "Generating Windows resource file..."
+            x86_64-w64-mingw32-windres app.rc -O coff -o app.syso
+            if [[ $? -eq 0 ]]; then
+                echo "Windows resource file generated successfully"
+            else
+                echo "Warning: Failed to generate Windows resource file"
+            fi
+        fi
     elif [[ "$TARGET_OS" == "linux" ]]; then
         export GOOS=linux
         OS_SUFFIX="-linux"
@@ -286,13 +303,39 @@ if [[ "$RELEASE_MODE" == true ]]; then
         tar -czf "$ARCHIVE_NAME" -C release .
     fi
     
-    # Clean up release folder
+    # Clean up release folder and Windows resource file
     echo "Cleaning up release folder..."
     rm -rf release
+    if [[ "$TARGET_OS" == "win" ]] && [[ -f "app.syso" ]]; then
+        echo "Cleaning up Windows resource file..."
+        rm -f app.syso
+    fi
     
     echo "Release build complete! Created $ARCHIVE_NAME"
 else
     # Normal build mode
+    # Generate Windows resource file if building for Windows
+    if [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        if [[ -f "app.rc" ]]; then
+            echo "Generating Windows resource file..."
+            x86_64-w64-mingw32-windres app.rc -O coff -o app.syso
+            if [[ $? -eq 0 ]]; then
+                echo "Windows resource file generated successfully"
+            else
+                echo "Warning: Failed to generate Windows resource file"
+            fi
+        fi
+    fi
+    
     go build -o "$EXECUTABLE" .
+    
+    # Clean up Windows resource file after build
+    if [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        if [[ -f "app.syso" ]]; then
+            echo "Cleaning up Windows resource file..."
+            rm -f app.syso
+        fi
+    fi
+    
     echo "Build complete! $EXECUTABLE created."
 fi

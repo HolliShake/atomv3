@@ -96,9 +96,9 @@ func (e *AtomEnv) Dump() {
 				format := fmt.Sprintf("%s = %s", name, render(value))
 				vars = append(vars, format)
 			}
-			sorted := []string{}
+
 			// Bubble sort
-			sorted = make([]string, len(vars))
+			sorted := make([]string, len(vars))
 			copy(sorted, vars)
 			for i := 0; i < len(sorted); i++ {
 				for j := 0; j < len(sorted)-1-i; j++ {
