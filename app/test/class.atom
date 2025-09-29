@@ -586,8 +586,9 @@ const b = new B("Property");
 println(b, b.getProp(), b.override(), typeof(b));
 
 
-class Fish {
+class Fish extends Animal {
     func init(self, _a, _b, _c) {
+        base.init(self, "Nemo", "Fish");
         self.one = _a;
         self.two = _b;
         self.three = _c;
@@ -600,3 +601,5 @@ class Fish {
 
 const c = new Fish(1,2,3);
 c.speak();
+
+println(std.decompile(Fish.speak));
