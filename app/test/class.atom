@@ -584,3 +584,19 @@ class B extends A {
 
 const b = new B("Property");
 println(b, b.getProp(), b.override(), typeof(b));
+
+
+class Fish {
+    func init(self, _a, _b, _c) {
+        self.one = _a;
+        self.two = _b;
+        self.three = _c;
+    }
+
+    func speak(self) {
+        println(self, "Meow");
+    }
+}
+
+const c = new Fish(1,2,3);
+c.speak();

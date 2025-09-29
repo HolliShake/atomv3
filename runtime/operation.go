@@ -223,6 +223,7 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 
 	// Call initializers from base to derived (reverse order)
 	if len(initializers) == 0 {
+		cleanupStack()
 		frame.Stack.Push(
 			this,
 		)
