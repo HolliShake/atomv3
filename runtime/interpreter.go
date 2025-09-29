@@ -404,6 +404,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 		case OpReturn:
 			if frame.Stack.Len() != 1 {
+				frame.Stack.Dump()
 				panic(fmt.Sprintf("%s: Return with more than 1 value on the stack %d", frame.Fn.Value.(*AtomCode).Name, frame.Stack.Len()))
 			}
 			i.Scheduler.Resolve(frame)
@@ -423,6 +424,8 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "path", EXPORT_PATH)
 	DefineModule(i, "os", EXPORT_OS)
 	DefineModule(i, "file", EXPORT_FILE)
+	DefineModule(i, "string", EXPORT_STRING)
+	DefineModule(i, "number", EXPORT_NUMBER)
 
 	// Run while the frame is not empty
 	i.ExecuteFrame(NewAtomCallFrame(nil, atomFunc, 0))

@@ -1,0 +1,98 @@
+import [print, println, sleep] from "atom:std";
+import [cos, sin, floor] from "atom:math";
+import [len] from "atom:string";
+import [exec] from "atom:os";
+import "atom:number";
+
+const PI = 3.141592653589793;
+
+var screen = [];
+var zbuffer = [];
+const width = 80;
+const height = 24;
+
+func initBuffers() {
+    screen = [];
+    zbuffer = [];
+    for (local i = 0; i < height; i++) {
+        local row = [];
+        local zrow = [];
+        for (local j = 0; j < width; j++) {
+            row.push(" ");
+            zrow.push(0);
+        }
+        screen.push(row);
+        zbuffer.push(zrow);
+    }
+}
+
+func renderDonut(A, B) {
+    initBuffers();
+
+    local cosA = cos(A);
+    local sinA = sin(A);
+    local cosB = cos(B);
+    local sinB = sin(B);
+    
+    for (local theta = 0; theta < 2 * PI; theta += 0.07) {
+        local cosTheta = cos(theta);
+        local sinTheta = sin(theta);
+        
+        for (local phi = 0; phi < 2 * PI; phi += 0.02) {    
+            local cosPhi = cos(phi);
+            local sinPhi = sin(phi);
+            
+            local circleX = cosTheta;
+            local circleY = sinTheta;
+            
+            local x = (2 + circleX) * cosPhi;
+            local y = (2 + circleX) * sinPhi;
+            local z = circleY;
+            
+            local ooz = 1 / (z + 5);
+            
+            local xp = floor(width / 2 + 30 * ooz * (x * cosB - y * sinB));
+            local yp = floor(height / 2 + 15 * ooz * (x * sinB + y * cosB + z * cosA));
+            
+            if (xp >= 0 && xp < width && yp >= 0 && yp < height) {
+                local L = cosPhi * cosTheta * sinB - cosA * cosTheta * sinPhi 
+                          - sinA * sinTheta + cosB * (cosA * sinTheta - cosTheta * sinPhi * sinA);
+                
+                if (L > 0) {
+                    if (ooz > zbuffer[yp][xp]) {
+                        zbuffer[yp][xp] = ooz;
+                        local luminance = floor(L * 8);
+                        local chars = ".,-~:;=!*#$@";
+                        if (luminance >= 0 && luminance < len(chars)) {
+                            screen[yp][xp] = chars[luminance];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // clear screen and print result
+
+    for (local i = 0; i < height; i++) {
+        local line = "";
+        for (local j = 0; j < width; j++) {
+            line += screen[i][j];
+        }
+        println(line);
+    }
+}
+
+// Animation loop
+var A = 0.0;
+var B = 0.0;
+const frames = number.parseInt(std.readLine("Doughnut Frames>")) catch (err) {
+    return 1;
+};
+for (local frame = 0; frame < frames; frame++) {
+    renderDonut(A, B);
+    A += 0.02;
+    B += 0.01;
+}
+println("Done with ", frames, "frames");
+

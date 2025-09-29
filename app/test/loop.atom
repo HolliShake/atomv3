@@ -1,213 +1,176 @@
-import [print, println] from "atom:std";
+import [println] from "atom:std";
 
-// For loop stress test
-println("=== FOR LOOP STRESS TEST ===");
+// Variable scoping in loops stress test
+println("\n=== VARIABLE SCOPING IN LOOPS STRESS TEST ===");
 
-// Basic for loop
-var forResult = [];
-for (local i = 0; i < 5; i++) {
-    forResult.push(i * 2);
-
+// Test 1: Local variables in for loop don't leak outside
+var outsideVar = "outside";
+for (local i = 0; i < 3; i++) {
+    local insideVar = "inside_" + i;
+    outsideVar += "_" + i;
 }
-std.println(forResult);
-println("Basic for loop result:", forResult);
-if (forResult[0] != 0 || forResult[4] != 8) {
-    std.throw("Basic for loop failed");
+// insideVar should not be accessible here
+// i should not be accessible here
+println("Outside var after for loop:", outsideVar);
+if (outsideVar != "outside_0_1_2") {
+    std.throw("For loop scoping test 1 failed -> " + outsideVar);
 }
 
-// Nested for loops
-var nestedSum = 0;
-for (local i = 1; i <= 3; i++) {
-    for (local j = 1; j <= 3; j++) {
-        nestedSum += i * j;
+// Test 2: Variable shadowing in nested loops
+var shadowVar = "global";
+for (local i = 0; i < 2; i++) {
+    local shadowVar = "outer_" + i;
+    for (local j = 0; j < 2; j++) {
+        local shadowVar = "inner_" + i + "_" + j;
+        // innermost shadowVar should be used
     }
+    // outer shadowVar should be used here
 }
-println("Nested for loop sum:", nestedSum);
-if (nestedSum != 36) {
-    std.throw("Nested for loop failed, expected 36, got " + nestedSum);
-}
-
-// For loop with break
-var breakResult = [];
-for (local i = 0; i < 10; i++) {
-    if (i == 5)
-        break;
-    breakResult.push(i);
-}
-println("For loop with break:", breakResult);
-if (breakResult.length() != 5) {
-    std.throw("For loop with break failed");
-} else {
-    println("For loop with break passed");
+// global shadowVar should still be "global"
+println("Shadow var after nested loops:", shadowVar);
+if (shadowVar != "global") {
+    std.throw("Variable shadowing test failed -> " + shadowVar);
 }
 
-// For loop with continue
-var continueResult = [];
-for (local i = 0; i < 10; i++) {
-    if (i % 2 == 0) {
-        continue;
-    }
-    continueResult.push(i);
+// Test 3: Loop counter reuse in separate loops
+var counterSum = 0;
+for (local i = 0; i < 3; i++) {
+    counterSum += i;
 }
-println("For loop with continue (odds only):", continueResult);
-if (continueResult[0] != 1 || continueResult[4] != 9) {
-    std.throw("For loop with continue failed");
+for (local i = 10; i < 13; i++) {
+    counterSum += i;
+}
+println("Counter reuse sum:", counterSum);
+if (counterSum != 36) { // (0+1+2) + (10+11+12) = 3 + 33 = 36
+    std.throw("Counter reuse test failed, expected 36, got " + counterSum);
 }
 
-// While loop stress test
-println("\n=== WHILE LOOP STRESS TEST ===");
+// Test 4: Variables declared before loop vs inside loop
+var beforeLoop = 0;
+for (local i = 0; i < 3; i++) {
+    beforeLoop += i;
+    local duringLoop = i * 2;
+    beforeLoop += duringLoop;
+}
+// beforeLoop should be accessible, duringLoop should not
+println("Before loop variable:", beforeLoop);
+if (beforeLoop != 9) { // (0+0) + (1+2) + (2+4) = 0 + 3 + 6 = 9
+    std.throw("Before/during loop scope test failed");
+}
 
-// Basic while loop
+// Test 5: While loop variable scoping
+var whileOutside = "start";
 var whileCounter = 0;
-var whileSum = 0;
-while (whileCounter < 5) {
-    whileSum += whileCounter;
+while (whileCounter < 3) {
+    local whileInside = "while_" + whileCounter;
+    whileOutside += "_" + whileInside;
     whileCounter++;
 }
-println("While loop sum:", whileSum);
-if (whileSum != 10) {
-    std.throw("Basic while loop failed, expected 10, got " + whileSum);
+println("While loop scoping:", whileOutside);
+if (whileOutside != "start_while_0_while_1_while_2") {
+    std.throw("While loop scoping test failed");
 }
 
-// While loop with break
-var whileBreakCounter = 0;
-var whileBreakSum = 0;
-while (true) {
-    if (whileBreakCounter >= 7) {
-        break;
-    }
-    whileBreakSum += whileBreakCounter;
-    whileBreakCounter++;
-}
-println("While loop with break sum:", whileBreakSum);
-if (whileBreakSum != 21) {
-    std.throw("While loop with break failed, expected 21, got " + whileBreakSum);
-}
-
-// While loop with continue
-var whileContinueCounter = 0;
-var whileContinueSum = 0;
-while (whileContinueCounter < 10) {
-    whileContinueCounter++;
-    if (whileContinueCounter % 3 == 0) {
-        continue;
-    }
-    whileContinueSum += whileContinueCounter;
-}
-println("While loop with continue sum:", whileContinueSum);
-if (whileContinueSum != 37) {
-    std.throw("While loop with continue failed, expected 37, got " + whileContinueSum);
-}
-
-// Do-while loop stress test
-println("\n=== DO-WHILE LOOP STRESS TEST ===");
-
-// Basic do-while loop
-var doWhileCounter = 0;
-var doWhileProduct = 1;
+// Test 6: Do-while loop variable scoping
+var doWhileResult = [];
+var doCounter = 0;
 do {
-    doWhileCounter++;
-    doWhileProduct *= doWhileCounter;
-} while (doWhileCounter < 4);
-println("Do-while factorial of 4:", doWhileProduct);
-if (doWhileProduct != 24) {
-    std.throw("Basic do-while loop failed, expected 24, got " + doWhileProduct);
+    local doLocal = doCounter * 3;
+    doWhileResult.push(doLocal);
+    doCounter++;
+} while (doCounter < 4);
+println("Do-while scoping result:", doWhileResult);
+if (doWhileResult.length() != 4 || doWhileResult[3] != 9) {
+    std.throw("Do-while scoping test failed");
 }
 
-// Do-while loop that executes at least once even with false condition
-var doWhileOnce = 0;
-do {
-    doWhileOnce = 42;
-} while (false);
-println("Do-while executes once:", doWhileOnce);
-if (doWhileOnce != 42) {
-    std.throw("Do-while execute once failed");
-}
-
-// Do-while with break
-var doWhileBreakCounter = 0;
-var doWhileBreakSum = 0;
-do {
-    doWhileBreakSum += doWhileBreakCounter;
-    doWhileBreakCounter++;
-    if (doWhileBreakCounter == 6) {
-        break;
-    }
-} while (doWhileBreakCounter < 100);
-println("Do-while with break sum:", doWhileBreakSum);
-if (doWhileBreakSum != 15) {
-    std.throw("Do-while with break failed, expected 15, got " + doWhileBreakSum);
-}
-
-// Do-while with continue
-var doWhileContinueCounter = 0;
-var doWhileContinueSum = 0;
-do {
-    doWhileContinueCounter++;
-    if (doWhileContinueCounter % 2 == 0) {
-        continue;
-    }
-    doWhileContinueSum += doWhileContinueCounter;
-} while (doWhileContinueCounter < 8);
-println("Do-while with continue sum:", doWhileContinueSum);
-if (doWhileContinueSum != 16) {
-    std.throw("Do-while with continue failed, expected 16, got " + doWhileContinueSum);
-}
-
-// Complex nested loops test
-println("\n=== COMPLEX NESTED LOOPS TEST ===");
-
-var matrix = [null, null, null];
+// Test 7: Nested function scoping within loops
+var funcScopeResult = [];
 for (local i = 0; i < 3; i++) {
-    matrix[i] = [null, null, null];
-    for (local j = 0; j < 3; j++) {
-        matrix[i][j] = i * 3 + j;
+    local loopVar = "loop_" + i;
+    
+    local innerFunc = func() {
+        // Should capture loopVar from enclosing scope
+        return loopVar + "_func";
+    };
+    
+    funcScopeResult.push(innerFunc());
+}
+println("Function scoping in loops:", funcScopeResult);
+if (funcScopeResult.length() != 3) {
+    std.throw("Function scoping in loops test failed");
+}
+
+// Test 8: Variable modification across loop iterations
+var modifyTest = [1, 2, 3, 4, 5];
+for (local i = 0; i < modifyTest.length(); i++) {
+    local temp = modifyTest[i];
+    modifyTest[i] = temp * 2;
+    if (i > 0) {
+        // Access previous iteration's result
+        local prev = modifyTest[i - 1];
+        modifyTest[i] += prev;
     }
 }
-
-var matrixSum = 0;
-var row = 0;
-while (row < 3) {
-    local col = 0;
-    do {
-        matrixSum += matrix[row][col];
-        col++;
-    } while (col < 3);
-    row++;
-}
-println("Matrix sum:", matrixSum);
-if (matrixSum != 36) {
-    std.throw("Complex nested loops failed, expected 36, got " + matrixSum);
+println("Variable modification test:", modifyTest);
+// Expected: [2, 6, 12, 20, 30]
+if (modifyTest[0] != 2 || modifyTest[4] != 30) {
+    std.throw("Variable modification test failed");
 }
 
-// Loop with function calls
-println("\n=== LOOPS WITH FUNCTION CALLS ===");
-
-func fibonacci(n) {
-    if (n <= 1) return n;
-    return fibonacci(n - 1) + fibonacci(n - 2);
+// Test 9: Break and continue with local variables
+var breakContinueResult = [];
+for (local i = 0; i < 10; i++) {
+    local processed = false;
+    
+    if (i % 3 == 0 && i != 0) {
+        local skipMsg = "skipped_" + i;
+        breakContinueResult.push(skipMsg);
+        continue;
+    }
+    
+    if (i > 6) {
+        local breakMsg = "break_at_" + i;
+        breakContinueResult.push(breakMsg);
+        break;
+    }
+    
+    processed = true;
+    if (processed) {
+        breakContinueResult.push("processed_" + i);
+    }
+}
+println("Break/continue scoping:", breakContinueResult);
+if (breakContinueResult.length() < 3) {
+    std.throw("Break/continue scoping test failed");
 }
 
-var fibSum = 0;
-for (local i = 0; i < 8; i++) {
-    fibSum += fibonacci(i);
-}
-println("Sum of first 8 fibonacci numbers:", fibSum);
-if (fibSum != 33) {
-    std.throw("Fibonacci loop failed, expected 33, got " + fibSum);
-}
-
-// Performance test with large iterations
-println("\n=== PERFORMANCE TEST ===");
-
-var perfCounter = 0;
-var startTime = 0; // Would need actual time function
-for (local i = 0; i < 10000; i++) {
-    perfCounter++;
-}
-println("Performance test counter:", perfCounter);
-if (perfCounter != 10000) {
-    std.throw("Performance test failed, expected 10000, got " + perfCounter);
+// Test 10: Complex nested scoping with same variable names
+var complexResult = 0;
+for (local x = 1; x <= 2; x++) {
+    local sum = 0;
+    for (local y = 1; y <= 2; y++) {
+        local sum = x * y; // shadows outer sum
+        for (local z = 1; z <= 2; z++) {
+            local sum = x + y + z; // shadows middle sum
+            complexResult += sum;
+        }
+        // middle sum should be x * y here
+        complexResult += sum;
+    }
+    // outer sum should still be 0 here
+    complexResult += sum;
 }
 
-println("\n=== ALL LOOP STRESS TESTS PASSED! ===");
+println("Complex nested scoping result:", complexResult);
+// Calculate expected: inner sums + middle sums + outer sums
+// Inner loop sums: (1+1+1)+(1+1+2)+(1+2+1)+(1+2+2)+(2+1+1)+(2+1+2)+(2+2+1)+(2+2+2) = 3+4+4+5+4+5+5+6 = 36
+// Middle sums: (1*1)+(1*2)+(2*1)+(2*2) = 1+2+2+4 = 9
+// Outer sums: 0+0 = 0
+// Total: 36 + 9 + 0 = 45
+var expected = 45;
+if (complexResult != 45) {
+    std.throw("Complex nested scoping failed, expected 45, got " + complexResult);
+}
+
+println("=== ALL VARIABLE SCOPING TESTS PASSED! ===");

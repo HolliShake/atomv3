@@ -1071,8 +1071,8 @@ func DoCmpLt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 	}
 
 	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 
 	// Compare the long values
 	if lhsValue < rhsValue {
@@ -1103,8 +1103,8 @@ func DoCmpLte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValu
 	}
 
 	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 
 	// Compare the long values
 	if lhsValue <= rhsValue {
@@ -1135,8 +1135,8 @@ func DoCmpGt(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 	}
 
 	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 
 	// Compare the long values
 	if lhsValue > rhsValue {
@@ -1167,8 +1167,8 @@ func DoCmpGte(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValu
 	}
 
 	// Coerce to long to avoid floating point comparisons
-	lhsValue := CoerceToLong(val0)
-	rhsValue := CoerceToLong(val1)
+	lhsValue := CoerceToNum(val0)
+	rhsValue := CoerceToNum(val1)
 
 	// Compare the long values
 	if lhsValue >= rhsValue {

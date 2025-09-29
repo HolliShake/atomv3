@@ -6,14 +6,8 @@ import (
 )
 
 func file_read(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "read expects 2 arguments"),
 		))
@@ -24,7 +18,7 @@ func file_read(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg1 := frame.Stack.GetOffset(argc, 1) // mode
 
 	if !CheckType(arg0, AtomTypeStr) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "read expects a string path"),
 		))
@@ -32,7 +26,7 @@ func file_read(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 
 	if !CheckType(arg1, AtomTypeStr) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "read expects a string mode"),
 		))
@@ -42,7 +36,7 @@ func file_read(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	path := arg0.Value.(string)
 	mode := arg1.Value.(string)
 
-	cleanup()
+	CleanupStack(frame, argc)
 
 	content, err := os.ReadFile(path)
 	if err != nil {

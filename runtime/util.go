@@ -190,3 +190,9 @@ func BigInt(v string) *big.Int {
 	}
 	return val
 }
+
+func CleanupStack(frame *AtomCallFrame, count int) {
+	for range count {
+		frame.Stack.Pop()
+	}
+}

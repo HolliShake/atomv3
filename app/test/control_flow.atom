@@ -1,0 +1,290 @@
+import [println, throw] from "atom:std";
+
+// Control Flow Stress Test with Variable Scoping
+println("=== CONTROL FLOW STRESS TEST ===");
+
+// Test 1: Nested loops with break/continue and variable scoping
+var nestedResult = [];
+for (local i = 0; i < 3; i++) {
+    local outerVar = "outer_" + i;
+    for (local j = 0; j < 3; j++) {
+        local innerVar = "inner_" + j;
+        
+        if (i == 1 && j == 1) {
+            local skipVar = "skip_" + i + "_" + j;
+            nestedResult.push(skipVar);
+            continue;
+        }
+        
+        if (i == 2 && j == 2) {
+            local breakVar = "break_" + i + "_" + j;
+            nestedResult.push(breakVar);
+            break;
+        }
+        
+        nestedResult.push(outerVar + "_" + innerVar);
+    }
+}
+println("Nested loop result:", nestedResult);
+if (nestedResult.length() != 9) {
+    std.throw("Nested loop test failed, expected 7 items, got " + nestedResult.length());
+}
+
+// Test 2: While loop with complex break/continue conditions
+var whileResult = [];
+var counter = 0;
+while (counter < 10) {
+    local loopVar = "loop_" + counter;
+    counter++;
+    
+    if (counter % 2 == 0) {
+        local evenVar = "even_" + counter;
+        if (counter == 6) {
+            whileResult.push(evenVar + "_special");
+            continue;
+        }
+        whileResult.push(evenVar);
+        continue;
+    }
+    
+    if (counter > 7) {
+        local breakVar = "break_at_" + counter;
+        whileResult.push(breakVar);
+        break;
+    }
+    
+    whileResult.push(loopVar);
+}
+println("While loop result:", whileResult);
+if (whileResult.length() < 5) {
+    std.throw("While loop test failed");
+}
+
+// Test 3: Do-while with variable shadowing
+var doWhileResult = [];
+var x = 0;
+do {
+    local x = "shadow_" + x; // shadows outer x
+    doWhileResult.push(x);
+    
+    if (doWhileResult.length() == 3) {
+        local breakCondition = true;
+        if (breakCondition) {
+            break;
+        }
+    }
+    
+    x++; // this should affect outer x, not local x
+} while (x < 5);
+println("Do-while shadowing result:", doWhileResult);
+if (doWhileResult[0] != "shadow_0" || doWhileResult.length() != 3) {
+    std.throw("Do-while shadowing test failed");
+}
+
+// Test 4: Switch statement with loop interaction 
+var switchLoopResult = [];
+for (local i = 0; i < 5; i++) {
+    local caseVar = "case_" + i;
+    switch (i) {
+        case(0): {
+            local zeroVar = caseVar + "_zero";
+            switchLoopResult.push(zeroVar);
+        }
+        case(1): {
+            local oneVar = caseVar + "_one";
+            switchLoopResult.push(oneVar);
+            continue; // continue the for loop
+        }
+        case(2): {
+            local twoVar = caseVar + "_two";
+            switchLoopResult.push(twoVar);
+            if (true) {
+                local innerTwo = "inner_two";
+                switchLoopResult.push(innerTwo);
+            }
+        }
+        case(3): {
+            local threeVar = caseVar + "_three";
+            switchLoopResult.push(threeVar);
+            break; // break from for loop
+        }
+        default: {
+            local defaultVar = caseVar + "_default";
+            switchLoopResult.push(defaultVar);
+        }
+    }
+}
+println("Switch-loop interaction:", switchLoopResult);
+if (switchLoopResult.length() != 5) {
+    std.throw("Switch-loop interaction test failed, expected 5, got " + switchLoopResult.length());
+}
+
+// Test 5: Complex nested scoping with same variable names
+println("TEST 5");
+var scopeStressResult = 0;
+for (local level = 1; level <= 2; level++) {
+    local value = level * 10;
+    println(level);
+    
+    for (local level = 1; level <= 2; level++) { // shadows outer level
+        local value = level * 100; // shadows outer value
+        println(level);
+        
+        // std.throw(value);
+
+        while (value > 50) {
+            println("V1>", value);
+            local level = value / 50; // shadows middle level
+            local value = level + 1; // shadows middle value
+            scopeStressResult += value;
+            println("V2>", value);
+            if (value > 3) {
+                break;
+            }
+            value += 200; // this won't execute due to break
+            
+            if (value > 100) {
+                break;
+            }
+        }
+        
+        scopeStressResult += value; // middle value (100 or 200)
+    }
+    
+    scopeStressResult += value; // outer value (10 or 20)
+}
+println("Scope stress result:", scopeStressResult);
+var expectedScope = (3 + 5 + 200 + 10) + (3 + 5 + 200 + 20); // 218 + 228 = 646
+if (scopeStressResult != 646) {
+    std.throw("Scope stress test failed, expected 646, got " + scopeStressResult);
+}
+
+// Test 6: Loop environment cleanup test
+var cleanupTest = [];
+for (local i = 0; i < 3; i++) {
+    local temp = [];
+    
+    for (local j = 0; j < 2; j++) {
+        local item = "item_" + i + "_" + j;
+        temp.push(item);
+        
+        if (j == 1) {
+            local finalItem = "final_" + i;
+            temp.push(finalItem);
+        }
+    }
+    
+    cleanupTest.push(temp);
+}
+println("Cleanup test result:", cleanupTest);
+if (cleanupTest.length() != 3 || cleanupTest[0].length() != 3) {
+    std.throw("Cleanup test failed");
+}
+
+// Test 7: Function calls within control flow with scoping
+func createCounter(start) {
+    return func(increment) {
+        return start + increment;
+    };
+}
+
+var functionScopeResult = [];
+for (local i = 0; i < 3; i++) {
+    local counter = createCounter(i * 10);
+    
+    for (local j = 0; j < 2; j++) {
+        local result = counter(j);
+        functionScopeResult.push(result);
+        
+        if (result > 15) {
+            local highValue = "high_" + result;
+            functionScopeResult.push(highValue);
+            continue;
+        }
+    }
+}
+println("Function scope in loops:", functionScopeResult);
+if (functionScopeResult.length() < 6) {
+    std.throw("Function scope test failed");
+}
+
+// Test 8: Loop control flow with conditional logic
+var controlFlowResult = [];
+for (local i = 0; i < 5; i++) {
+    local safeValue = "safe_" + i;
+    
+    if (i == 2) {
+        local skipValue = "skip_" + i;
+        controlFlowResult.push(skipValue);
+        continue;
+    }
+    
+    if (i == 4) {
+        local breakValue = "break_" + i;
+        controlFlowResult.push(breakValue);
+        break;
+    }
+    
+    controlFlowResult.push(safeValue);
+}
+println("Control flow result:", controlFlowResult);
+if (controlFlowResult.length() != 5) {
+    std.throw("Control flow test failed");
+}
+
+// Test 9: Memory stress test with many local variables
+var memoryStressResult = 0;
+for (local outer = 0; outer < 10; outer++) {
+    local a = outer;
+    local b = outer * 2;
+    local c = outer * 3;
+    
+    for (local inner = 0; inner < 5; inner++) {
+        local x = inner;
+        local y = inner * 2;
+        local z = inner * 3;
+        local sum = a + b + c + x + y + z;
+        
+        if (sum > 50) {
+            local overflow = "overflow";
+            memoryStressResult += 1;
+            continue;
+        }
+        
+        memoryStressResult += sum;
+    }
+}
+println("Memory stress result:", memoryStressResult);
+if (memoryStressResult <= 0) {
+    std.throw("Memory stress test failed");
+}
+
+// Test 10: Variable lifetime across control flow boundaries
+var lifetimeResult = [];
+{
+    local blockVar = "block_start";
+    lifetimeResult.push(blockVar);
+    
+    for (local i = 0; i < 2; i++) {
+        local loopVar = blockVar + "_loop_" + i;
+        
+        if (i == 0) {
+            local condVar = loopVar + "_cond";
+            lifetimeResult.push(condVar);
+        } else {
+            local elseVar = loopVar + "_else";
+            lifetimeResult.push(elseVar);
+        }
+        
+        lifetimeResult.push(loopVar);
+    }
+    
+    local blockEnd = "block_end";
+    lifetimeResult.push(blockEnd);
+}
+println("Variable lifetime result:", lifetimeResult);
+if (lifetimeResult.length() != 6) {
+    std.throw("Variable lifetime test failed, expected 6, got " + lifetimeResult.length());
+}
+
+println("=== ALL CONTROL FLOW STRESS TESTS PASSED! ===");

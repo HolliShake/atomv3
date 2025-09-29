@@ -206,7 +206,12 @@ if "%RELEASE_MODE%"=="true" goto :release_build
 
 :: Normal build mode
 echo Building for Windows...
-go build -o "%EXECUTABLE%" .
+if exist atom.ico (
+    echo Using atom.ico for Windows executable...
+    go build -ldflags="-H windowsgui" -o "%EXECUTABLE%" .
+) else (
+    go build -o "%EXECUTABLE%" .
+)
 echo Build complete! %EXECUTABLE% created.
 exit /b 0
 
@@ -301,7 +306,16 @@ if "%TARGET_ARCH%"=="arm" (
 )
 
 :: Build the Go application in release folder
-%BUILD_CMD% -o release\%EXECUTABLE% .
+if "%TARGET_OS%"=="win" (
+    if exist atom.ico (
+        echo Using atom.ico for Windows executable...
+        %BUILD_CMD% -ldflags="-H windowsgui" -o release\%EXECUTABLE% .
+    ) else (
+        %BUILD_CMD% -o release\%EXECUTABLE% .
+    )
+) else (
+    %BUILD_CMD% -o release\%EXECUTABLE% .
+)
 
 :: Create timestamp
 for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"

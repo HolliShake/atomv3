@@ -7,6 +7,7 @@ import (
 
 func math_rand(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "rand expects 1 argument"),
 		))
@@ -16,6 +17,7 @@ func math_rand(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "rand expects integer"),
 		))
@@ -28,6 +30,7 @@ func math_rand(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func math_abs(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "abs expects 1 argument"),
 		))
@@ -37,6 +40,7 @@ func math_abs(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "abs expects number"),
 		))
@@ -48,7 +52,9 @@ func math_abs(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func math_floor(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "floor expects 1 argument"),
 		))
@@ -58,6 +64,7 @@ func math_floor(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "floor expects number"),
 		))
@@ -70,6 +77,7 @@ func math_floor(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func math_ceil(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "ceil expects 1 argument"),
 		))
@@ -79,6 +87,7 @@ func math_ceil(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "ceil expects number"),
 		))
@@ -91,6 +100,7 @@ func math_ceil(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func math_round(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "round expects 1 argument"),
 		))
@@ -100,6 +110,7 @@ func math_round(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "round expects number"),
 		))
@@ -111,14 +122,8 @@ func math_round(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func math_pow(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "pow expects 2 arguments"),
 		))
@@ -129,7 +134,7 @@ func math_pow(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg2 := frame.Stack.GetOffset(argc, 1)
 
 	if !IsNumberType(arg1) || !IsNumberType(arg2) {
-		cleanup()
+		CleanupStack(frame, argc-2)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "pow expects number"),
 		))
@@ -139,12 +144,13 @@ func math_pow(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	val1 := CoerceToNum(arg1)
 	val2 := CoerceToNum(arg2)
 
-	cleanup()
+	CleanupStack(frame, argc)
 	frame.Stack.Push(NewAtomValueNum(math.Pow(val1, val2)))
 }
 
 func math_sqrt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "sqrt expects 1 argument"),
 		))
@@ -154,6 +160,7 @@ func math_sqrt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "sqrt expects number"),
 		))
@@ -166,6 +173,7 @@ func math_sqrt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func math_log(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "log expects 1 argument"),
 		))
@@ -175,6 +183,7 @@ func math_log(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "log expects number"),
 		))
@@ -187,6 +196,7 @@ func math_log(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func math_cos(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "cos expects 1 argument"),
 		))
@@ -196,6 +206,7 @@ func math_cos(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg := frame.Stack.Pop()
 
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "cos expects number"),
 		))
@@ -208,6 +219,7 @@ func math_cos(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func math_sin(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "sin expects 1 argument"),
 		))
@@ -215,7 +227,9 @@ func math_sin(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 
 	arg := frame.Stack.Pop()
+
 	if !IsNumberType(arg) {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "sin expects number"),
 		))

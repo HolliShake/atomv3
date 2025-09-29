@@ -2,17 +2,21 @@ package runtime
 
 func obj_freeze(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "freeze expects 1 argument"),
 		))
 		return
 	}
+
 	obj := frame.Stack.Pop()
+
 	if CheckType(obj, AtomTypeObj) {
 		obj.Value.(*AtomObject).Freeze = true
 	} else if CheckType(obj, AtomTypeArray) {
 		obj.Value.(*AtomArray).Freeze = true
 	} else {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "cannot freeze non-object"),
 		))
@@ -23,6 +27,7 @@ func obj_freeze(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "keys expects 1 argument"),
 		))
@@ -30,6 +35,7 @@ func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 
 	obj := frame.Stack.Pop()
+
 	if CheckType(obj, AtomTypeObj) {
 		keys := []*AtomValue{}
 		for key := range obj.Value.(*AtomObject).Elements {
@@ -40,18 +46,22 @@ func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 			NewAtomArray(keys),
 		))
 	} else {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(FormatError(frame, "cannot keys non-object")))
 	}
 }
 
 func obj_values(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "values expects 1 argument"),
 		))
 		return
 	}
+
 	obj := frame.Stack.Pop()
+
 	if CheckType(obj, AtomTypeObj) {
 		values := []*AtomValue{}
 		for _, value := range obj.Value.(*AtomObject).Elements {
@@ -62,6 +72,7 @@ func obj_values(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 			NewAtomArray(values),
 		))
 	} else {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(FormatError(frame, "cannot values non-object")))
 	}
 }

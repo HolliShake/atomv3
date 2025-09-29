@@ -2497,44 +2497,91 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 	loopScope := NewAtomScope(scope, AtomScopeTypeLoop)
 	loopStart := c.here(fn)
 	if ast.Ast1.AstType == AstTypeBlock && hasDeclairation(ast.Ast1.Arr0) {
-		c.emitInt(fn, runtime.OpEnterBlock, 1)
+		// Condition
 		c.expression(loopScope, fn, ast.Ast0)
+
+		// Check
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
+
+		// Body
 		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
+		c.emitInt(fn, runtime.OpEnterBlock, 1)
+
 		for _, stmt := range ast.Ast1.Arr0 {
 			c.statement(blockScope, fn, stmt)
 		}
+
+		// Modify opcodes for continue
+		for _, continueAddress := range loopScope.Continues {
+			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			c.label(fn, continueAddress)
+		}
+
+		// Exit block
+		if len(loopScope.Continues) == 0 {
+			c.emitInt(fn, runtime.OpExitBlock, 1)
+		}
+
+		// Loop start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
 		c.label(fn, toEnd)
-		c.emitInt(fn, runtime.OpExitBlock, 1)
 	} else if ast.Ast1.AstType == AstTypeBlock {
+		// Condition
 		c.expression(loopScope, fn, ast.Ast0)
+
+		// Check
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
+
+		// Body
 		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlockNoEnv)
 		for _, stmt := range ast.Ast1.Arr0 {
 			c.statement(blockScope, fn, stmt)
 		}
+
+		// Modify opcodes for continue
+		for _, continueAddress := range loopScope.Continues {
+			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			c.label(fn, continueAddress)
+		}
+
+		// Loop start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
 		c.label(fn, toEnd)
 	} else {
+		// Condition
 		c.expression(loopScope, fn, ast.Ast0)
+
+		// Check
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
+
+		// Body
 		single := NewAtomScope(loopScope, AtomScopeTypeSingle)
 		c.statement(single, fn, ast.Ast1)
+
+		// Modify opcodes for continue
+		for _, continueAddress := range loopScope.Continues {
+			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			c.label(fn, continueAddress)
+		}
+
+		// Loop start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
 		c.label(fn, toEnd)
 	}
 	for _, breakAddress := range loopScope.Breaks {
 		c.label(fn, breakAddress)
-	}
-	for _, continueAddress := range loopScope.Continues {
-		c.labelContinue(fn, continueAddress, loopStart)
 	}
 }
 
@@ -2544,6 +2591,8 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 	if ast.Ast1.AstType == AstTypeBlock && hasDeclairation(ast.Ast1.Arr0) {
 		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
 		c.emitInt(fn, runtime.OpEnterBlock, 1)
+
+		// Body
 		for _, stmt := range ast.Ast1.Arr0 {
 			c.statement(blockScope, fn, stmt)
 		}
@@ -2554,16 +2603,24 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 			c.label(fn, continueAddress)
 		}
 
-		// check condition
+		if len(loopScope.Continues) == 0 {
+			c.emitInt(fn, runtime.OpExitBlock, 1)
+		}
+
+		// Condition
 		c.expression(loopScope, fn, ast.Ast0)
+
+		// Check
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 
-		// jump to start
+		// Loop start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
 		c.label(fn, toEnd)
-		c.emitInt(fn, runtime.OpExitBlock, 1)
+
 	} else if ast.Ast1.AstType == AstTypeBlock {
 		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlockNoEnv)
 		for _, stmt := range ast.Ast1.Arr0 {
@@ -2576,17 +2633,22 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 			c.label(fn, continueAddress)
 		}
 
-		// check condition
+		// Condition
 		c.expression(loopScope, fn, ast.Ast0)
+
+		// Check
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 
-		// jump to start
+		// Loop start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
 		c.label(fn, toEnd)
 	} else {
 		single := NewAtomScope(loopScope, AtomScopeTypeSingle)
+		// Body
 		c.statement(single, fn, ast.Ast1)
 
 		// Modify opcodes for continue
@@ -2595,14 +2657,18 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 			c.label(fn, continueAddress)
 		}
 
-		// check condition
+		// Condition
 		c.expression(loopScope, fn, ast.Ast0)
+
+		// Check
 		c.emitLine(fn, ast.Position)
 		toEnd := c.emitJump(fn, runtime.OpPopJumpIfFalse)
 
-		// jump to start
+		// Loop start
 		c.emitLine(fn, ast.Position)
 		c.emitInt(fn, runtime.OpAbsoluteJump, loopStart)
+
+		// End loop
 		c.label(fn, toEnd)
 	}
 	for _, breakAddress := range loopScope.Breaks {
@@ -2635,7 +2701,9 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 	single := NewAtomScope(loopScope, AtomScopeTypeSingle)
 	if body.AstType == AstTypeBlock && hasDeclairation(body.Arr0) {
 		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlock)
+
 		c.emitInt(fn, runtime.OpEnterBlock, 1)
+
 		for _, stmt := range body.Arr0 {
 			c.statement(blockScope, fn, stmt)
 		}
@@ -2644,6 +2712,11 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 		for _, continueAddress := range loopScope.Continues {
 			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
+		}
+
+		// Exit block
+		if len(loopScope.Continues) == 0 {
+			c.emitInt(fn, runtime.OpExitBlock, 1)
 		}
 
 		// Updater
@@ -2662,7 +2735,6 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 			c.label(fn, jump0)
 		}
 
-		c.emitInt(fn, runtime.OpExitBlock, 1)
 	} else if body.AstType == AstTypeBlock {
 		blockScope := NewAtomScope(loopScope, AtomScopeTypeBlockNoEnv)
 		for _, stmt := range body.Arr0 {

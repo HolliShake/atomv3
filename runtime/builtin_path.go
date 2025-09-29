@@ -7,6 +7,7 @@ import (
 
 func path_cwd(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 0 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "cwd expects 0 arguments"),
 		))
@@ -14,6 +15,7 @@ func path_cwd(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 	wd, err := os.Getwd()
 	if err != nil {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "cwd failed to get working directory"),
 		))
@@ -23,13 +25,8 @@ func path_cwd(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func path_join(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "join expects at least 2 arguments"),
 		))
@@ -39,12 +36,13 @@ func path_join(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	for i := range argc {
 		parts = append(parts, frame.Stack.GetOffset(argc, i).String())
 	}
-	cleanup()
+	CleanupStack(frame, argc)
 	frame.Stack.Push(NewAtomValueStr(filepath.Join(parts...)))
 }
 
 func path_isDir(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "isDir expects 1 argument"),
 		))
@@ -53,6 +51,7 @@ func path_isDir(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 	stat, err := os.Stat(frame.Stack.Pop().String())
 	if err != nil {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "isDir failed to get stat"),
 		))
@@ -68,6 +67,7 @@ func path_isDir(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func path_isFile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "isFile expects 1 argument"),
 		))
@@ -76,6 +76,7 @@ func path_isFile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 	stat, err := os.Stat(frame.Stack.Pop().String())
 	if err != nil {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(interpreter.State.FalseValue)
 		return
 	}
@@ -89,6 +90,7 @@ func path_isFile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 func path_exists(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "exists expects 1 argument"),
 		))

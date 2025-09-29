@@ -882,6 +882,10 @@ func (p *AtomParser) catchExpression() *AtomAst {
 
 	ast := p.switchExpression()
 
+	if ast == nil {
+		return nil
+	}
+
 	if !(p.checkT(TokenTypeKey) && p.checkV(KeyCatch)) {
 		return ast
 	}

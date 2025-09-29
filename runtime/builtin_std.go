@@ -12,13 +12,14 @@ import (
 
 func std_decompile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "decompile expects 1 argument"),
 		))
 		return
 	}
 	if !CheckType(frame.Stack.Peek(), AtomTypeFunc) {
-		frame.Stack.Pop()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "decompile expects a function"),
 		))
@@ -28,12 +29,6 @@ func std_decompile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)
 }
 
 func std_println(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	writer := bufio.NewWriter(os.Stdout)
 	for i := range argc {
 		top := frame.Stack.GetOffset(argc, i)
@@ -46,17 +41,11 @@ func std_println(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	fmt.Fprintln(writer)
 	writer.Flush()
 
-	cleanup()
+	CleanupStack(frame, argc)
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
 func std_print(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	writer := bufio.NewWriter(os.Stdout)
 	for i := range argc {
 		top := frame.Stack.GetOffset(argc, i)
@@ -69,12 +58,27 @@ func std_print(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	fmt.Fprint(writer)
 	writer.Flush()
 
-	cleanup()
+	CleanupStack(frame, argc)
+	frame.Stack.Push(interpreter.State.NullValue)
+}
+
+func std_clear(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 0 {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "clear expects 0 arguments"),
+		))
+		return
+	}
+	writer := bufio.NewWriter(os.Stdout)
+	fmt.Fprint(writer, "\033[H\033[2J")
+	writer.Flush()
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
 func std_readLine(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "readLine expects 1 argument"),
 		))
@@ -84,6 +88,7 @@ func std_readLine(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) 
 	reader := bufio.NewReader(os.Stdin)
 	text, err := reader.ReadString('\n')
 	if err != nil {
+		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, err.Error()),
 		))
@@ -116,6 +121,7 @@ func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 
 func std_throw(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "throw expects 1 argument"),
 		))
@@ -126,7 +132,36 @@ func std_throw(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func std_epoch(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 0 {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "epoch expects 0 arguments"),
+		))
+		return
+	}
 	frame.Stack.Push(NewAtomValueNum(float64(time.Now().Unix())))
+}
+
+func std_sleep(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "sleep expects 1 argument"),
+		))
+		return
+	}
+	val := frame.Stack.Pop()
+	if !CheckType(val, AtomTypeInt) && !CheckType(val, AtomTypeNum) {
+		CleanupStack(frame, argc-1)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "sleep expects a number"),
+		))
+		return
+	}
+	// arg should be in milliseconds
+	num := CoerceToNum(val)
+	time.Sleep(time.Duration(num) * time.Millisecond)
+	frame.Stack.Push(interpreter.State.NullValue)
 }
 
 var EXPORT_STD = map[string]*AtomValue{
@@ -142,6 +177,10 @@ var EXPORT_STD = map[string]*AtomValue{
 		AtomTypeNativeFunc,
 		NewNativeFunc("print", Variadict, std_print),
 	),
+	"clear": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("clear", 0, std_clear),
+	),
 	"readLine": NewAtomGenericValue(
 		AtomTypeNativeFunc,
 		NewNativeFunc("readLine", 1, std_readLine),
@@ -153,5 +192,9 @@ var EXPORT_STD = map[string]*AtomValue{
 	"epoch": NewAtomGenericValue(
 		AtomTypeNativeFunc,
 		NewNativeFunc("epoch", 0, std_epoch),
+	),
+	"sleep": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("sleep", 1, std_sleep),
 	),
 }
