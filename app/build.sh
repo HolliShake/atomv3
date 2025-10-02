@@ -12,13 +12,16 @@ USAGE:
 DESCRIPTION:
     This script builds the Atom interpreter with various configuration options.
     In normal mode, it creates a development build for the current platform.
-    In release mode, it creates optimized builds with packaging for distribution.
+    In release mode, it creates super-optimized builds (stripped debug info and symbol table) with packaging for distribution.
+    In optimize mode, it creates an optimized build for the current machine (no symbol table, no debug info, same performance as release, but no packaging).
 
 OPTIONS:
     --help, -h          Show this help message and exit
 
-    --release           Enable release mode with optimized builds and packaging
+    --release           Enable release mode with super-optimized builds and packaging
                         Creates archives with lib/, test/ folders and atom.ico
+
+    --optimize          Build for current machine with optimizations (no symbol table, no debug info, same as release build performance, but no packaging)
 
 RELEASE MODE OPTIONS:
     -t <bits>           Target architecture bit width
@@ -39,6 +42,9 @@ RELEASE MODE OPTIONS:
 EXAMPLES:
     # Development build for current platform
     ./build.sh
+
+    # Optimized build for current machine (no debug info, no symbol table)
+    ./build.sh --optimize
 
     # Basic release build (64-bit Linux AMD/Intel)
     ./build.sh --release
@@ -62,6 +68,10 @@ OUTPUT:
     Development Mode:
         - Creates executable: atom.linux, atom.macos, or atom.exe
         - Based on current platform detection
+
+    Optimize Mode:
+        - Creates executable: atom.linux, atom.macos, or atom.exe
+        - Optimized for performance, no symbol table, no debug info
 
     Release Mode:
         - Creates timestamped archive: atom-release-[arch]-[os]-YYYYMMDD-HHMMSS.tar.gz/.zip
@@ -88,11 +98,13 @@ fi
 
 echo "Building Atom interpreter..."
 
-# Check for --release flag and architecture flag
+# Check for --release or --optimize flag and architecture flag
 RELEASE_MODE=false
+OPTIMIZE_MODE=false
 ARCH_MODE=""
 TARGET_ARCH=""
 TARGET_OS="linux"
+
 if [[ "$1" == "--release" ]]; then
     RELEASE_MODE=true
     echo "Release mode enabled"
@@ -160,6 +172,10 @@ if [[ "$1" == "--release" ]]; then
         TARGET_ARCH="amd"
         echo "Using default AMD/Intel architecture build"
     fi
+elif [[ "$1" == "--optimize" ]]; then
+    OPTIMIZE_MODE=true
+    echo "Optimize mode enabled"
+    shift # Remove --optimize from arguments
 fi
 
 # Detect OS and set appropriate executable name
@@ -179,7 +195,7 @@ fi
 
 if [[ "$RELEASE_MODE" == true ]]; then
     # Release mode
-    echo "Creating release build..."
+    echo "Creating super-optimized release build (stripped debug info and symbol table)..."
     
     # Delete previous release archives
     echo "Cleaning up previous releases..."
@@ -213,16 +229,16 @@ if [[ "$RELEASE_MODE" == true ]]; then
     fi
     
     # Set build environment variables for architecture
-    BUILD_CMD="go build"
+    BUILD_CMD="go build -ldflags \"-s -w\""
     ARCH_SUFFIX=""
     if [[ "$ARCH_MODE" == "32" ]]; then
         export GOARCH=386
-        BUILD_CMD="GOARCH=386 go build"
+        BUILD_CMD="GOARCH=386 go build -ldflags \"-s -w\""
         ARCH_SUFFIX="-32bit"
         echo "Building for 32-bit architecture..."
     elif [[ "$ARCH_MODE" == "64" ]]; then
         export GOARCH=amd64
-        BUILD_CMD="GOARCH=amd64 go build"
+        BUILD_CMD="GOARCH=amd64 go build -ldflags \"-s -w\""
         ARCH_SUFFIX="-64bit"
         echo "Building for 64-bit architecture..."
     fi
@@ -261,20 +277,20 @@ if [[ "$RELEASE_MODE" == true ]]; then
     TARGET_SUFFIX=""
     if [[ "$TARGET_ARCH" == "arm" ]]; then
         export GOARCH=arm
-        BUILD_CMD="GOOS=$GOOS GOARCH=arm go build"
+        BUILD_CMD="GOOS=$GOOS GOARCH=arm go build -ldflags \"-s -w\""
         TARGET_SUFFIX="-arm"
         EXECUTABLE="atom.arm"
         echo "Building for ARM architecture..."
     elif [[ "$TARGET_ARCH" == "riscv" ]]; then
         export GOARCH=riscv64
-        BUILD_CMD="GOOS=$GOOS GOARCH=riscv64 go build"
+        BUILD_CMD="GOOS=$GOOS GOARCH=riscv64 go build -ldflags \"-s -w\""
         TARGET_SUFFIX="-riscv"
         EXECUTABLE="atom.riscv"
         echo "Building for RISC-V architecture..."
     elif [[ "$TARGET_ARCH" == "wasm" ]]; then
         export GOOS=js
         export GOARCH=wasm
-        BUILD_CMD="GOOS=js GOARCH=wasm go build"
+        BUILD_CMD="GOOS=js GOARCH=wasm go build -ldflags \"-s -w\""
         TARGET_SUFFIX="-wasm"
         EXECUTABLE="atom.wasm"
         echo "Building for WebAssembly..."
@@ -283,12 +299,12 @@ if [[ "$RELEASE_MODE" == true ]]; then
         if [[ -z "$GOARCH" ]]; then
             export GOARCH=amd64
         fi
-        BUILD_CMD="GOOS=$GOOS GOARCH=$GOARCH go build"
+        BUILD_CMD="GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \"-s -w\""
         TARGET_SUFFIX="-amd"
         echo "Building for AMD/Intel architecture..."
     fi
     
-    # Build the Go application in release folder
+    # Build the Go application in release folder (super-optimized: strip debug info and symbol table)
     eval "$BUILD_CMD -o release/$EXECUTABLE ."
     
     # Create archive file based on target OS with architecture suffix
@@ -312,6 +328,34 @@ if [[ "$RELEASE_MODE" == true ]]; then
     fi
     
     echo "Release build complete! Created $ARCHIVE_NAME"
+elif [[ "$OPTIMIZE_MODE" == true ]]; then
+    # Optimize mode: build for current machine, optimized, no symbol table, no debug info, no packaging
+    echo "Creating optimized build for current machine (no symbol table, no debug info)..."
+    # Generate Windows resource file if building for Windows
+    if [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        if [[ -f "app.rc" ]]; then
+            echo "Generating Windows resource file..."
+            x86_64-w64-mingw32-windres app.rc -O coff -o app.syso
+            if [[ $? -eq 0 ]]; then
+                echo "Windows resource file generated successfully"
+            else
+                echo "Warning: Failed to generate Windows resource file"
+            fi
+        fi
+    fi
+
+    # Use Go build flags for optimization: -ldflags "-s -w"
+    go build -ldflags "-s -w" -o "$EXECUTABLE" .
+
+    # Clean up Windows resource file after build
+    if [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        if [[ -f "app.syso" ]]; then
+            echo "Cleaning up Windows resource file..."
+            rm -f app.syso
+        fi
+    fi
+
+    echo "Optimized build complete! $EXECUTABLE created."
 else
     # Normal build mode
     # Generate Windows resource file if building for Windows

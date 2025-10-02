@@ -68,15 +68,9 @@ func IsArrayMethod(methodName string) bool {
 }
 
 func ArrayAll(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	// Fast path validation
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("all expects 2 arguments, got %d", argc)),
 		))
@@ -87,23 +81,23 @@ func ArrayAll(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if !CheckType(arg0, AtomTypeArray) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "all expects array"),
 		))
 		return
 	}
 	if !CheckType(arg1, AtomTypeFunc) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "all expects function"),
 		))
 		return
 	}
 
-	cleanup()
+	CleanupStack(frame, argc)
 
-	array := arg0.Value.(*AtomArray)
+	array := arg0.Obj.(*AtomArray)
 	elements := array.Elements
 
 	// Early exit for empty arrays
@@ -142,7 +136,7 @@ func ArrayAny(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	array := this.Value.(*AtomArray)
+	array := this.Obj.(*AtomArray)
 	if array.Len() > 0 {
 		frame.Stack.Push(interpreter.State.TrueValue)
 	} else {
@@ -151,40 +145,34 @@ func ArrayAny(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func ArrayEach(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	arg0 := frame.Stack.GetOffset(argc, 0)
 	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("each expects 2 arguments, got %d", argc)),
 		))
 		return
 	}
 	if !CheckType(arg0, AtomTypeArray) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "each expects array"),
 		))
 		return
 	}
 	if !CheckType(arg1, AtomTypeFunc) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "each expects function"),
 		))
 		return
 	}
 
-	cleanup()
+	CleanupStack(frame, argc)
 
-	array := arg0.Value.(*AtomArray)
+	array := arg0.Obj.(*AtomArray)
 	elements := array.Elements
 
 	for index, element := range elements {
@@ -213,7 +201,7 @@ func ArrayLength(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	frame.Stack.Push(NewAtomValueInt(this.Value.(*AtomArray).Len()))
+	frame.Stack.Push(NewAtomValueInt(this.Obj.(*AtomArray).Len()))
 }
 
 func ArrayPeek(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
@@ -233,7 +221,7 @@ func ArrayPeek(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	array := this.Value.(*AtomArray)
+	array := this.Obj.(*AtomArray)
 
 	if array.Len() == 0 {
 		frame.Stack.Push(NewAtomValueError(
@@ -262,7 +250,7 @@ func ArrayPop(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	array := this.Value.(*AtomArray)
+	array := this.Obj.(*AtomArray)
 
 	if array.Len() == 0 {
 		frame.Stack.Push(NewAtomValueError(
@@ -278,72 +266,60 @@ func ArrayPop(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func ArrayPush(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	arg0 := frame.Stack.GetOffset(argc, 0)
 	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("push expects 1 argument, got %d", argc)),
 		))
 		return
 	}
 	if !CheckType(arg0, AtomTypeArray) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "push expects array"),
 		))
 		return
 	}
 
-	cleanup()
+	CleanupStack(frame, argc)
 
-	array := arg0.Value.(*AtomArray)
+	array := arg0.Obj.(*AtomArray)
 	array.Elements = append(array.Elements, arg1)
 	frame.Stack.Push(arg0)
 }
 
 func ArraySelect(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	arg0 := frame.Stack.GetOffset(argc, 0)
 	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("select expects 2 arguments, got %d", argc)),
 		))
 		return
 	}
 	if !CheckType(arg0, AtomTypeArray) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "select expects array"),
 		))
 		return
 	}
 	if !CheckType(arg1, AtomTypeFunc) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "select expects function"),
 		))
 		return
 	}
 
-	cleanup()
+	CleanupStack(frame, argc)
 
-	array := arg0.Value.(*AtomArray)
+	array := arg0.Obj.(*AtomArray)
 	sourceElements := array.Elements
 
 	// Pre-allocate result slice with known capacity
@@ -363,40 +339,34 @@ func ArraySelect(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func ArrayWhere(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	arg0 := frame.Stack.GetOffset(argc, 0)
 	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if argc != 2 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, fmt.Sprintf("where expects 2 arguments, got %d", argc)),
 		))
 		return
 	}
 	if !CheckType(arg0, AtomTypeArray) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "where expects array"),
 		))
 		return
 	}
 	if !CheckType(arg1, AtomTypeFunc) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "where expects function"),
 		))
 		return
 	}
 
-	cleanup()
+	CleanupStack(frame, argc)
 
-	array := arg0.Value.(*AtomArray)
+	array := arg0.Obj.(*AtomArray)
 	elements := array.Elements
 
 	resultElements := []*AtomValue{}

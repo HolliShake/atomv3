@@ -33,8 +33,8 @@ func file_read(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	path := arg0.Value.(string)
-	mode := arg1.Value.(string)
+	path := arg0.Str
+	mode := arg1.Str
 
 	CleanupStack(frame, argc)
 
@@ -82,14 +82,8 @@ func file_read(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 }
 
 func file_write(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
-	cleanup := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	if argc != 3 {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "write expects 2 arguments"),
 		))
@@ -101,7 +95,7 @@ func file_write(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	arg2 := frame.Stack.GetOffset(argc, 2) // mode
 
 	if !CheckType(arg0, AtomTypeStr) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "write expects a string path"),
 		))
@@ -109,7 +103,7 @@ func file_write(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 
 	if !CheckType(arg1, AtomTypeStr) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "write expects a string content"),
 		))
@@ -117,18 +111,18 @@ func file_write(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 
 	if !CheckType(arg2, AtomTypeStr) {
-		cleanup()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "write expects a string mode"),
 		))
 		return
 	}
 
-	path := arg0.Value.(string)
-	content := arg1.Value.(string)
-	mode := arg2.Value.(string)
+	path := arg0.Str
+	content := arg1.Str
+	mode := arg2.Str
 
-	cleanup()
+	CleanupStack(frame, argc)
 
 	switch mode {
 	case "w":

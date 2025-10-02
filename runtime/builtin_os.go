@@ -36,7 +36,7 @@ func os_exec(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	cmd := frame.Stack.Pop().Value.(string)
+	cmd := frame.Stack.Pop().Str
 	err := exec.Command(cmd).Run()
 
 	if err != nil {

@@ -8,7 +8,7 @@ type AtomStack struct {
 
 func NewAtomStack() *AtomStack {
 	return &AtomStack{
-		Stack: make([]*AtomValue, 0, 8), // Pre-allocate with capacity
+		Stack: make([]*AtomValue, 0, 8),
 	}
 }
 
@@ -16,18 +16,19 @@ func (s *AtomStack) Get(index int) *AtomValue {
 	return s.Stack[index]
 }
 
+func (s *AtomStack) GetN(offset int) []*AtomValue {
+	// No validation for offset
+	return s.Stack[len(s.Stack)-offset:]
+}
+
 func (s *AtomStack) GetOffset(offset int, index int) *AtomValue {
+	// No validation
 	return s.Stack[(len(s.Stack)-offset)+index]
 }
 
-func (s *AtomStack) SetOffset(offset int, index int, value *AtomValue) {
-	s.Stack[(len(s.Stack)-offset)+index] = value
-}
-
-func (s *AtomStack) Copy(Stack *AtomStack, size int) {
-	for i := range size {
-		s.Stack = append(s.Stack, Stack.Stack[len(Stack.Stack)-size+i])
-	}
+func (s *AtomStack) Copy(src *AtomStack, size int) {
+	start := len(src.Stack) - size
+	s.Stack = append(s.Stack, src.Stack[start:]...)
 }
 
 func (s *AtomStack) Clear() {
@@ -39,18 +40,16 @@ func (s *AtomStack) Push(obj *AtomValue) {
 }
 
 func (s *AtomStack) Pop() *AtomValue {
-	if len(s.Stack) == 0 {
-		panic("Pop on empty stack")
-	}
 	top := s.Stack[len(s.Stack)-1]
 	s.Stack = s.Stack[:len(s.Stack)-1]
 	return top
 }
 
+func (s *AtomStack) PopN(n int) {
+	s.Stack = s.Stack[:len(s.Stack)-n]
+}
+
 func (s *AtomStack) Peek() *AtomValue {
-	if len(s.Stack) == 0 {
-		panic("Peek on empty stack")
-	}
 	return s.Stack[len(s.Stack)-1]
 }
 

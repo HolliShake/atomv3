@@ -12,9 +12,9 @@ func obj_freeze(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	obj := frame.Stack.Pop()
 
 	if CheckType(obj, AtomTypeObj) {
-		obj.Value.(*AtomObject).Freeze = true
+		obj.Obj.(*AtomObject).Freeze = true
 	} else if CheckType(obj, AtomTypeArray) {
-		obj.Value.(*AtomArray).Freeze = true
+		obj.Obj.(*AtomArray).Freeze = true
 	} else {
 		CleanupStack(frame, argc-1)
 		frame.Stack.Push(NewAtomValueError(
@@ -38,7 +38,7 @@ func obj_keys(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 	if CheckType(obj, AtomTypeObj) {
 		keys := []*AtomValue{}
-		for key := range obj.Value.(*AtomObject).Elements {
+		for key := range obj.Obj.(*AtomObject).Elements {
 			keys = append(keys, NewAtomValueStr(key))
 		}
 		frame.Stack.Push(NewAtomGenericValue(
@@ -64,7 +64,7 @@ func obj_values(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 
 	if CheckType(obj, AtomTypeObj) {
 		values := []*AtomValue{}
-		for _, value := range obj.Value.(*AtomObject).Elements {
+		for _, value := range obj.Obj.(*AtomObject).Elements {
 			values = append(values, value)
 		}
 		frame.Stack.Push(NewAtomGenericValue(

@@ -15,7 +15,7 @@ func NewAtomCallFrame(caller *AtomCallFrame, fn *AtomValue, ip int) *AtomCallFra
 		Caller:  caller,
 		Fn:      fn,
 		Ip:      ip,
-		Env:     NewAtomEnv(fn.Value.(*AtomCode).Capture),
+		Env:     NewAtomEnv(fn.Obj.(*AtomCode).Capture),
 		Stack:   NewAtomStack(),
 		Promise: nil,
 	}

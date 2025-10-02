@@ -13,5 +13,5 @@ func CheckType(value *AtomValue, ttype AtomType) bool {
 }
 
 func CheckTypeAsync(value *AtomValue) bool {
-	return CheckType(value, AtomTypeFunc) && value.Value.(*AtomCode).Async
+	return CheckType(value, AtomTypeFunc) && value.Obj.(*AtomCode).Async
 }

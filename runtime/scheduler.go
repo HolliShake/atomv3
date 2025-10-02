@@ -22,7 +22,7 @@ func NewAtomScheduler(interpreter *AtomInterpreter) *AtomScheduler {
 }
 
 func (s *AtomScheduler) Running(frame *AtomCallFrame) {
-	if !frame.Fn.Value.(*AtomCode).Async {
+	if !frame.Fn.Obj.(*AtomCode).Async {
 		return
 	}
 	if frame.State == ExecIdle {
@@ -39,7 +39,7 @@ func (s *AtomScheduler) Running(frame *AtomCallFrame) {
 
 func (s *AtomScheduler) Await(frame *AtomCallFrame) (suspend bool) {
 	t := frame.Stack.Pop()
-	p := t.Value.(*AtomPromise)
+	p := t.Obj.(*AtomPromise)
 	if p.State == PromiseStateFulfilled {
 		frame.State = ExecRunning
 		// push the awaited value to the current frame's Stack
@@ -61,7 +61,7 @@ func (s *AtomScheduler) Await(frame *AtomCallFrame) (suspend bool) {
 
 func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 	// Handle synchronous functions
-	if !frame.Fn.Value.(*AtomCode).Async {
+	if !frame.Fn.Obj.(*AtomCode).Async {
 		if frame.Caller != nil {
 			frame.Caller.Stack.Push(
 				frame.Stack.Pop(),
@@ -78,12 +78,12 @@ func (s *AtomScheduler) Resolve(frame *AtomCallFrame) {
 	frame.State = ExecCompleted
 
 	// Get the promise and fulfill it with the return value
-	promise := frame.Promise.Value.(*AtomPromise)
+	promise := frame.Promise.Obj.(*AtomPromise)
 	promise.State = PromiseStateFulfilled
 	promise.Value = frame.Stack.Pop()
 
 	// Push the fulfilled promise to caller's stack
-	if frame.Caller != nil && !frame.Caller.Fn.Value.(*AtomCode).Async {
+	if frame.Caller != nil && !frame.Caller.Fn.Obj.(*AtomCode).Async {
 		frame.Caller.Stack.Push(
 			promise.Value,
 		)

@@ -25,7 +25,7 @@ func std_decompile(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)
 		))
 		return
 	}
-	frame.Stack.Push(NewAtomValueStr(Decompile(frame.Stack.Pop().Value.(*AtomCode))))
+	frame.Stack.Push(NewAtomValueStr(Decompile(frame.Stack.Pop().Obj.(*AtomCode))))
 }
 
 func std_println(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
@@ -110,7 +110,7 @@ func std_throw_error(frame *AtomCallFrame, err *AtomValue) {
 	}
 
 	for current := frame.Caller; current != nil; current = current.Caller {
-		builder.WriteString(FormatError(current, current.Fn.Value.(*AtomCode).Name))
+		builder.WriteString(FormatError(current, current.Fn.Obj.(*AtomCode).Name))
 		if current.Caller != nil {
 			builder.WriteString("\n")
 		}

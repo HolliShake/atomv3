@@ -21,7 +21,7 @@ func number_parseInt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc in
 		return
 	}
 
-	str := value.Value.(string)
+	str := value.Str
 
 	intValue, err := strconv.Atoi(str)
 	if err != nil {
@@ -53,7 +53,7 @@ func number_parseFloat(interpreter *AtomInterpreter, frame *AtomCallFrame, argc 
 		return
 	}
 
-	str := value.Value.(string)
+	str := value.Str
 
 	floatValue, err := strconv.ParseFloat(str, 64)
 	if err != nil {

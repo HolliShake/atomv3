@@ -49,7 +49,7 @@ func (o *AtomObject) hashValueWithVisited(visited map[*AtomObject]bool) int {
 		valueHash := 0
 		if CheckType(value, AtomTypeObj) {
 			// Use the recursive helper for object values
-			valueHash = value.Value.(*AtomObject).hashValueWithVisited(visited)
+			valueHash = value.Obj.(*AtomObject).hashValueWithVisited(visited)
 		} else {
 			// For non-object values, use the regular HashValue method
 			valueHash = value.HashValue()
@@ -62,7 +62,7 @@ func (o *AtomObject) hashValueWithVisited(visited map[*AtomObject]bool) int {
 
 func (o *AtomObject) ContainsValue(object *AtomValue) bool {
 	for _, value := range o.Elements {
-		for _, objectValue := range object.Value.(*AtomObject).Elements {
+		for _, objectValue := range object.Obj.(*AtomObject).Elements {
 			if value.HashValue() == objectValue.HashValue() {
 				return true
 			}

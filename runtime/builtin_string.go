@@ -19,7 +19,7 @@ func string_len(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	str := arg.Value.(string)
+	str := arg.Str
 	frame.Stack.Push(NewAtomValueNum(float64(len(str))))
 }
 

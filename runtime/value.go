@@ -53,8 +53,11 @@ const (
 )
 
 type AtomValue struct {
-	Type  AtomType
-	Value any
+	Type AtomType
+	I32  int32
+	F64  float64
+	Str  string
+	Obj  any // only for complex cases
 }
 
 type NativeFunction func(intereter *AtomInterpreter, argc int)
@@ -62,61 +65,60 @@ type NativeFunction func(intereter *AtomInterpreter, argc int)
 func NewAtomValue(atomType AtomType) *AtomValue {
 	obj := &AtomValue{}
 	obj.Type = atomType
-	obj.Value = nil
 	return obj
 }
 
 func NewAtomValueInt(value int) *AtomValue {
 	obj := NewAtomValue(AtomTypeInt)
-	obj.Value = int32(value)
+	obj.I32 = int32(value)
 	return obj
 }
 
 func NewAtomValueNum(value float64) *AtomValue {
 	obj := NewAtomValue(AtomTypeNum)
-	obj.Value = value
+	obj.F64 = value
 	return obj
 }
 
 func NewAtomValueBigInt(value *big.Int) *AtomValue {
 	obj := NewAtomValue(AtomTypeBigInt)
-	obj.Value = value
+	obj.Obj = value
 	return obj
 }
 
 func NewAtomValueFalse() *AtomValue {
 	obj := NewAtomValue(AtomTypeBool)
-	obj.Value = false
+	obj.I32 = 0
 	return obj
 }
 
 func NewAtomValueTrue() *AtomValue {
 	obj := NewAtomValue(AtomTypeBool)
-	obj.Value = true
+	obj.I32 = 1
 	return obj
 }
 
 func NewAtomValueStr(value string) *AtomValue {
 	obj := NewAtomValue(AtomTypeStr)
-	obj.Value = value
+	obj.Str = value
 	return obj
 }
 
 func NewAtomValueNull() *AtomValue {
 	obj := NewAtomValue(AtomTypeNull)
-	obj.Value = nil
+	obj.I32 = 0
 	return obj
 }
 
 func NewAtomValueError(message string) *AtomValue {
 	obj := NewAtomValue(AtomTypeErr)
-	obj.Value = message
+	obj.Str = message
 	return obj
 }
 
 func NewAtomGenericValue(atomType AtomType, value any) *AtomValue {
 	obj := NewAtomValue(atomType)
-	obj.Value = value
+	obj.Obj = value
 	return obj
 }
 
@@ -128,26 +130,26 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 	switch v.Type {
 	case AtomTypeInt:
 		// Fast path: direct conversion without fmt.Sprintf
-		return strconv.FormatInt(int64(v.Value.(int32)), 10)
+		return strconv.FormatInt(int64(v.I32), 10)
 
 	case AtomTypeNum:
 		// Fast path: direct conversion without fmt.Sprintf
-		return strconv.FormatFloat(v.Value.(float64), 'g', -1, 64)
+		return strconv.FormatFloat(v.F64, 'g', -1, 64)
 
 	case AtomTypeBigInt:
 		// Fast path: direct conversion without fmt.Sprintf
-		return v.Value.(*big.Int).Text(10)
+		return v.Obj.(*big.Int).Text(10)
 
 	case AtomTypeBool:
 		// Fast path: pre-allocated strings
-		if v.Value.(bool) {
+		if v.I32 == 1 {
 			return TrueStr
 		}
 		return FalseStr
 
 	case AtomTypeStr:
 		// Fast path: direct return
-		return v.Value.(string)
+		return v.Str
 
 	case AtomTypeNull:
 		// Fast path: pre-allocated string
@@ -155,7 +157,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 
 	case AtomTypeClass:
 		// Optimized: avoid fmt.Sprintf, use helper function
-		atomClass := v.Value.(*AtomClass)
+		atomClass := v.Obj.(*AtomClass)
 		return BuildString(func(b *strings.Builder) {
 			b.WriteString("<class.")
 			b.WriteString(atomClass.Name)
@@ -171,9 +173,9 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		visited[ptr] = true
 		defer delete(visited, ptr)
 
-		classInstance := v.Value.(*AtomClassInstance)
-		prototype := classInstance.Prototype.Value.(*AtomClass)
-		properties := classInstance.Property.Value.(*AtomObject).Elements
+		classInstance := v.Obj.(*AtomClassInstance)
+		prototype := classInstance.Prototype.Obj.(*AtomClass)
+		properties := classInstance.Property.Obj.(*AtomObject).Elements
 
 		if len(properties) == 0 {
 			// Fast path for empty class instance
@@ -220,7 +222,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		visited[ptr] = true
 		defer delete(visited, ptr)
 
-		enumElements := v.Value.(*AtomObject).Elements
+		enumElements := v.Obj.(*AtomObject).Elements
 		if len(enumElements) == 0 {
 			return EmptyEnumStr
 		}
@@ -254,7 +256,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		visited[ptr] = true
 		defer delete(visited, ptr)
 
-		objElements := v.Value.(*AtomObject).Elements
+		objElements := v.Obj.(*AtomObject).Elements
 		if len(objElements) == 0 {
 			return EmptyObjStr
 		}
@@ -288,7 +290,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		visited[ptr] = true
 		defer delete(visited, ptr)
 
-		elements := v.Value.(*AtomArray).Elements
+		elements := v.Obj.(*AtomArray).Elements
 		if len(elements) == 0 {
 			return EmptyArrStr
 		}
@@ -312,10 +314,10 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		return result
 
 	case AtomTypeMethod:
-		method := v.Value.(*AtomMethod)
+		method := v.Obj.(*AtomMethod)
 		fnValue := method.Fn
 		if CheckType(fnValue, AtomTypeFunc) {
-			atomCode := fnValue.Value.(*AtomCode)
+			atomCode := fnValue.Obj.(*AtomCode)
 			return BuildString(func(b *strings.Builder) {
 				b.WriteString("<bound method ")
 				b.WriteString(GetTypeString(method.This))
@@ -326,7 +328,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 				b.WriteByte('>')
 			})
 		} else if CheckType(fnValue, AtomTypeNativeFunc) {
-			nativeFunc := fnValue.Value.(*AtomNativeFunc)
+			nativeFunc := fnValue.Obj.(*AtomNativeFunc)
 			return BuildString(func(b *strings.Builder) {
 				b.WriteString("<bound method ")
 				b.WriteString(GetTypeString(method.This))
@@ -340,7 +342,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		return "<bound method>"
 
 	case AtomTypeNativeMethod:
-		nativeMethod := v.Value.(*AtomNativeMethod)
+		nativeMethod := v.Obj.(*AtomNativeMethod)
 		return BuildString(func(b *strings.Builder) {
 			b.WriteString("<bound method ")
 			b.WriteString(nativeMethod.Name)
@@ -351,7 +353,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 
 	case AtomTypeFunc:
 		// Optimized: avoid fmt.Sprintf, use helper function
-		atomCode := v.Value.(*AtomCode)
+		atomCode := v.Obj.(*AtomCode)
 		return BuildString(func(b *strings.Builder) {
 			b.WriteString("<function ")
 			b.WriteString(atomCode.Name)
@@ -362,7 +364,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 
 	case AtomTypeNativeFunc:
 		// Optimized: use helper function
-		nativeFunc := v.Value.(*AtomNativeFunc)
+		nativeFunc := v.Obj.(*AtomNativeFunc)
 		return BuildString(func(b *strings.Builder) {
 			b.WriteString("<built-in function ")
 			b.WriteString(nativeFunc.Name)
@@ -371,10 +373,10 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 
 	case AtomTypeErr:
 		// Fast path: direct string conversion
-		return v.Value.(string)
+		return v.Str
 
 	case AtomTypePromise:
-		promise := v.Value.(*AtomPromise)
+		promise := v.Obj.(*AtomPromise)
 		return BuildString(func(b *strings.Builder) {
 			b.WriteString("Promise { ")
 			if promise.State == PromiseStateFulfilled {
@@ -393,22 +395,22 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 
 	default:
 		// Fallback to fmt.Sprintf only when necessary
-		return fmt.Sprintf("%v", v.Value)
+		return fmt.Sprintf("%v", v.Obj)
 	}
 }
 
 func (v *AtomValue) HashValue() int {
 	switch v.Type {
 	case AtomTypeInt:
-		return int(v.Value.(int32))
+		return int(v.I32)
 
 	case AtomTypeNum:
 		// Use math.Float64bits for consistent hashing of float64
-		bits := math.Float64bits(v.Value.(float64))
+		bits := math.Float64bits(v.F64)
 		return int(bits ^ (bits >> 32))
 
 	case AtomTypeBigInt:
-		str := v.Value.(*big.Int).String()
+		str := v.Obj.(*big.Int).String()
 		hash := 0
 		for _, b := range []byte(str) {
 			hash = ((hash << 5) + hash) + int(b)
@@ -417,11 +419,11 @@ func (v *AtomValue) HashValue() int {
 
 	case AtomTypeBool:
 		// Branchless boolean to int conversion
-		return int(*(*uint8)(unsafe.Pointer(&v.Value)))
+		return int(*(*uint8)(unsafe.Pointer(&v.I32)))
 
 	case AtomTypeStr:
 		// Use a stable hash function for strings
-		str := v.Value.(string)
+		str := v.Str
 		if len(str) == 0 {
 			return 0
 		}
@@ -435,21 +437,21 @@ func (v *AtomValue) HashValue() int {
 		return 0
 
 	case AtomTypeClass:
-		atomClass := v.Value.(*AtomClass)
+		atomClass := v.Obj.(*AtomClass)
 		return int(uintptr(unsafe.Pointer(atomClass)))
 
 	case AtomTypeClassInstance:
-		instance := v.Value.(*AtomClassInstance)
+		instance := v.Obj.(*AtomClassInstance)
 		return int(uintptr(unsafe.Pointer(instance)))
 
 	case AtomTypeEnum:
-		return v.Value.(*AtomObject).HashValue()
+		return v.Obj.(*AtomObject).HashValue()
 
 	case AtomTypeObj:
-		return v.Value.(*AtomObject).HashValue()
+		return v.Obj.(*AtomObject).HashValue()
 
 	case AtomTypeArray:
-		elements := v.Value.(*AtomArray).Elements
+		elements := v.Obj.(*AtomArray).Elements
 		if len(elements) == 0 {
 			return 0
 		}
@@ -460,23 +462,23 @@ func (v *AtomValue) HashValue() int {
 		return hash
 
 	case AtomTypeMethod:
-		nfn := v.Value.(*AtomMethod).Fn
-		return nfn.Value.(*AtomCode).HashValue()
+		nfn := v.Obj.(*AtomMethod).Fn
+		return nfn.Obj.(*AtomCode).HashValue()
 
 	case AtomTypeNativeMethod:
-		fn := v.Value.(*AtomNativeMethod)
+		fn := v.Obj.(*AtomNativeMethod)
 		return int(reflect.ValueOf(fn.Callable).Pointer())
 
 	case AtomTypeFunc:
-		return v.Value.(*AtomCode).HashValue()
+		return v.Obj.(*AtomCode).HashValue()
 
 	case AtomTypeNativeFunc:
-		f := v.Value.(AtomNativeFunc)
+		f := v.Obj.(AtomNativeFunc)
 		return int(reflect.ValueOf(f.Callable).Pointer())
 
 	case AtomTypeErr:
 		// Use unsafe string to bytes conversion to avoid allocation
-		str := v.Value.(string)
+		str := v.Str
 		if len(str) == 0 {
 			return 0
 		}
@@ -488,7 +490,7 @@ func (v *AtomValue) HashValue() int {
 		return hash
 
 	case AtomTypePromise:
-		promise := v.Value.(*AtomPromise)
+		promise := v.Obj.(*AtomPromise)
 		return promise.Value.HashValue()
 
 	default:
@@ -513,8 +515,8 @@ func GetTypeString(value *AtomValue) string {
 	case AtomTypeClass:
 		return "class"
 	case AtomTypeClassInstance:
-		instance := value.Value.(*AtomClassInstance)
-		return instance.Prototype.Value.(*AtomClass).Name
+		instance := value.Obj.(*AtomClassInstance)
+		return instance.Prototype.Obj.(*AtomClass).Name
 	case AtomTypeEnum:
 		return "enum"
 	case AtomTypeObj:
@@ -552,7 +554,7 @@ func BuildString(fn func(*strings.Builder)) string {
 func ValueToString(v *AtomValue) string {
 	if CheckType(v, AtomTypeStr) {
 		// Fast path: add quotes directly
-		return "'" + v.Value.(string) + "'"
+		return "'" + v.Str + "'"
 	}
 	return v.String()
 }
@@ -561,7 +563,7 @@ func ValueToString(v *AtomValue) string {
 func ValueToStringWithVisited(v *AtomValue, visited map[uintptr]bool) string {
 	if CheckType(v, AtomTypeStr) {
 		// Fast path: add quotes directly
-		return "'" + v.Value.(string) + "'"
+		return "'" + v.Str + "'"
 	}
 	return v.StringWithVisited(visited)
 }

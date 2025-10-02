@@ -184,3 +184,6 @@ func run_all_tests() {
 if (__name__ == "script") {
     run_all_tests();
 }
+
+
+println([1,2,3]);

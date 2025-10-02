@@ -27,11 +27,11 @@ func ReadStr(data []OpCode, offset int) string {
 func CoerceToInt(value *AtomValue) int32 {
 	switch value.Type {
 	case AtomTypeInt:
-		return value.Value.(int32)
+		return value.I32
 	case AtomTypeNum:
-		return int32(value.Value.(float64))
+		return int32(value.F64)
 	case AtomTypeBigInt:
-		bigVal := value.Value.(*big.Int)
+		bigVal := value.Obj.(*big.Int)
 		if !bigVal.IsInt64() {
 			return 0
 		}
@@ -41,13 +41,13 @@ func CoerceToInt(value *AtomValue) int32 {
 		}
 		return int32(val)
 	case AtomTypeStr:
-		val, err := strconv.ParseInt(value.Value.(string), 10, 32)
+		val, err := strconv.ParseInt(value.Str, 10, 32)
 		if err != nil {
 			return 0
 		}
 		return int32(val)
 	case AtomTypeBool:
-		if value.Value.(bool) {
+		if value.I32 == 1 {
 			return 1
 		}
 		return 0
@@ -59,24 +59,24 @@ func CoerceToInt(value *AtomValue) int32 {
 func CoerceToLong(value *AtomValue) int64 {
 	switch value.Type {
 	case AtomTypeInt:
-		return int64(value.Value.(int32))
+		return int64(value.I32)
 	case AtomTypeNum:
-		return int64(value.Value.(float64))
+		return int64(value.F64)
 	case AtomTypeBigInt:
-		bigVal := value.Value.(*big.Int)
+		bigVal := value.Obj.(*big.Int)
 		if !bigVal.IsInt64() {
 			return 0
 		}
 		val := bigVal.Int64()
 		return val
 	case AtomTypeStr:
-		val, err := strconv.ParseInt(value.Value.(string), 10, 64)
+		val, err := strconv.ParseInt(value.Str, 10, 64)
 		if err != nil {
 			return 0
 		}
 		return val
 	case AtomTypeBool:
-		if value.Value.(bool) {
+		if value.I32 == 1 {
 			return 1
 		}
 		return 0
@@ -88,24 +88,24 @@ func CoerceToLong(value *AtomValue) int64 {
 func CoerceToNum(value *AtomValue) float64 {
 	switch value.Type {
 	case AtomTypeInt:
-		return float64(value.Value.(int32))
+		return float64(value.I32)
 	case AtomTypeNum:
-		return value.Value.(float64)
+		return value.F64
 	case AtomTypeBigInt:
-		bigVal := value.Value.(*big.Int)
+		bigVal := value.Obj.(*big.Int)
 		if !bigVal.IsInt64() {
 			return 0
 		}
 		val := bigVal.Int64()
 		return float64(val)
 	case AtomTypeStr:
-		val, err := strconv.ParseFloat(value.Value.(string), 64)
+		val, err := strconv.ParseFloat(value.Str, 64)
 		if err != nil {
 			return 0
 		}
 		return val
 	case AtomTypeBool:
-		if value.Value.(bool) {
+		if value.I32 == 1 {
 			return 1
 		}
 		return 0
@@ -117,15 +117,15 @@ func CoerceToNum(value *AtomValue) float64 {
 func CoerceToBigInt(value *AtomValue) *big.Int {
 	switch value.Type {
 	case AtomTypeInt:
-		return BigInt(strconv.FormatInt(int64(value.Value.(int32)), 10))
+		return BigInt(strconv.FormatInt(int64(value.I32), 10))
 	case AtomTypeNum:
-		return BigInt(strconv.FormatFloat(value.Value.(float64), 'g', -1, 64))
+		return BigInt(strconv.FormatFloat(value.F64, 'g', -1, 64))
 	case AtomTypeBigInt:
-		return value.Value.(*big.Int)
+		return value.Obj.(*big.Int)
 	case AtomTypeStr:
-		return BigInt(value.Value.(string))
+		return BigInt(value.Str)
 	case AtomTypeBool:
-		if value.Value.(bool) {
+		if value.I32 == 1 {
 			return BigInt("1")
 		}
 		return BigInt("0")
@@ -137,15 +137,15 @@ func CoerceToBigInt(value *AtomValue) *big.Int {
 func CoerceToBool(value *AtomValue) bool {
 	switch value.Type {
 	case AtomTypeInt:
-		return value.Value.(int32) != 0
+		return value.I32 != 0
 	case AtomTypeNum:
-		return value.Value.(float64) != 0
+		return value.F64 != 0
 	case AtomTypeBigInt:
-		return value.Value.(*big.Int).Sign() != 0
+		return value.Obj.(*big.Int).Sign() != 0
 	case AtomTypeStr:
-		return value.Value.(string) != ""
+		return value.Str != ""
 	case AtomTypeBool:
-		return value.Value.(bool)
+		return value.I32 == 1
 	case AtomTypeNull:
 		return false
 	default:
@@ -154,12 +154,12 @@ func CoerceToBool(value *AtomValue) bool {
 }
 
 func FormatError(frame *AtomCallFrame, message string) string {
-	file := frame.Fn.Value.(*AtomCode).File
+	file := frame.Fn.Obj.(*AtomCode).File
 
 	ip := frame.Ip
 
 	// binary search the line
-	line := BinarySearch(frame.Fn.Value.(*AtomCode).Line, ip)
+	line := BinarySearch(frame.Fn.Obj.(*AtomCode).Line, ip)
 
 	return fmt.Sprintf("[%s:%d]::Error: %s", file, line, message)
 }
@@ -192,7 +192,5 @@ func BigInt(v string) *big.Int {
 }
 
 func CleanupStack(frame *AtomCallFrame, count int) {
-	for range count {
-		frame.Stack.Pop()
-	}
+	frame.Stack.PopN(count)
 }

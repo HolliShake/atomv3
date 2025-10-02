@@ -116,11 +116,11 @@ func sendContinue(scope *AtomScope, jumpAddress int) {
 func (c *AtomCompile) emitByRuntimeValue(fn, obj *runtime.AtomValue) {
 	switch obj.Type {
 	case runtime.AtomTypeInt:
-		c.emitInt(fn, runtime.OpLoadInt, int(obj.Value.(int32)))
+		c.emitInt(fn, runtime.OpLoadInt, int(obj.I32))
 	case runtime.AtomTypeNum:
-		c.emitNum(fn, runtime.OpLoadNum, obj.Value.(float64))
+		c.emitNum(fn, runtime.OpLoadNum, obj.F64)
 	case runtime.AtomTypeStr:
-		c.emitStr(fn, runtime.OpLoadStr, obj.Value.(string))
+		c.emitStr(fn, runtime.OpLoadStr, obj.Str)
 	case runtime.AtomTypeBool:
 		if runtime.CoerceToBool(obj) {
 			c.emitInt(fn, runtime.OpLoadBool, 1)
@@ -135,8 +135,8 @@ func (c *AtomCompile) emitByRuntimeValue(fn, obj *runtime.AtomValue) {
 }
 
 func (c *AtomCompile) emit(atomFunc *runtime.AtomValue, opcode runtime.OpCode) {
-	atomFunc.Value.(*runtime.AtomCode).Code =
-		append(atomFunc.Value.(*runtime.AtomCode).Code, opcode)
+	atomFunc.Obj.(*runtime.AtomCode).Code =
+		append(atomFunc.Obj.(*runtime.AtomCode).Code, opcode)
 }
 
 func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode, intValue int) {
@@ -144,8 +144,8 @@ func (c *AtomCompile) emitInt(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 	bytes := []byte{0, 0, 0, 0}
 	binary.LittleEndian.PutUint32(bytes, uint32(intValue))
 
-	atomFunc.Value.(*runtime.AtomCode).Code = append(
-		append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
+	atomFunc.Obj.(*runtime.AtomCode).Code = append(
+		append(atomFunc.Obj.(*runtime.AtomCode).Code, opcode),
 		runtime.OpCode(bytes[0]),
 		runtime.OpCode(bytes[1]),
 		runtime.OpCode(bytes[2]),
@@ -157,8 +157,8 @@ func (c *AtomCompile) emitNum(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 	bytes := []byte{0, 0, 0, 0, 0, 0, 0, 0}
 	binary.LittleEndian.PutUint64(bytes, uint64(math.Float64bits(numValue)))
 
-	atomFunc.Value.(*runtime.AtomCode).Code = append(
-		append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
+	atomFunc.Obj.(*runtime.AtomCode).Code = append(
+		append(atomFunc.Obj.(*runtime.AtomCode).Code, opcode),
 		runtime.OpCode(bytes[0]),
 		runtime.OpCode(bytes[1]),
 		runtime.OpCode(bytes[2]),
@@ -179,9 +179,9 @@ func (c *AtomCompile) emitStr(atomFunc *runtime.AtomValue, opcode runtime.OpCode
 	}
 	opcodes[len(bytes)] = '\x00' // Null byte
 
-	atomFunc.Value.(*runtime.AtomCode).Code =
+	atomFunc.Obj.(*runtime.AtomCode).Code =
 		append(
-			append(atomFunc.Value.(*runtime.AtomCode).Code, opcode),
+			append(atomFunc.Obj.(*runtime.AtomCode).Code, opcode),
 			opcodes...,
 		)
 }
@@ -195,16 +195,16 @@ func (c *AtomCompile) emitWord(atomFunc *runtime.AtomValue, strValue string) {
 	}
 	opcodes[len(bytes)] = '\x00' // Null byte
 
-	atomFunc.Value.(*runtime.AtomCode).Code =
+	atomFunc.Obj.(*runtime.AtomCode).Code =
 		append(
-			atomFunc.Value.(*runtime.AtomCode).Code,
+			atomFunc.Obj.(*runtime.AtomCode).Code,
 			opcodes...,
 		)
 }
 
 func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCode) int {
 	c.emit(atomFunc, opcode)
-	start := len(atomFunc.Value.(*runtime.AtomCode).Code)
+	start := len(atomFunc.Obj.(*runtime.AtomCode).Code)
 	// Emit 4 placeholder bytes for the jump address
 	for range 4 {
 		c.emit(atomFunc, 0)
@@ -213,8 +213,8 @@ func (c *AtomCompile) emitJump(atomFunc *runtime.AtomValue, opcode runtime.OpCod
 }
 
 func (c *AtomCompile) emitLine(atomFunc *runtime.AtomValue, pos AtomPosition) {
-	address := len(atomFunc.Value.(*runtime.AtomCode).Code)
-	atomFunc.Value.(*runtime.AtomCode).Line = append(atomFunc.Value.(*runtime.AtomCode).Line, runtime.AtomDebugLine{
+	address := len(atomFunc.Obj.(*runtime.AtomCode).Code)
+	atomFunc.Obj.(*runtime.AtomCode).Line = append(atomFunc.Obj.(*runtime.AtomCode).Line, runtime.AtomDebugLine{
 		Line:    pos.LineStart,
 		Address: address,
 	})
@@ -262,20 +262,20 @@ func (c *AtomCompile) emitVar(atomFunc *runtime.AtomValue, scope *AtomScope, ast
 }
 
 func (c *AtomCompile) here(atomFunc *runtime.AtomValue) int {
-	return len(atomFunc.Value.(*runtime.AtomCode).Code)
+	return len(atomFunc.Obj.(*runtime.AtomCode).Code)
 }
 
 func (c *AtomCompile) label(atomFunc *runtime.AtomValue, jumpAddress int) {
-	current := len(atomFunc.Value.(*runtime.AtomCode).Code)
+	current := len(atomFunc.Obj.(*runtime.AtomCode).Code)
 	for i := range 4 {
-		atomFunc.Value.(*runtime.AtomCode).Code[i+jumpAddress] =
+		atomFunc.Obj.(*runtime.AtomCode).Code[i+jumpAddress] =
 			runtime.OpCode((current >> (8 * i)) & 0xFF)
 	}
 }
 
 func (c *AtomCompile) labelContinue(atomFunc *runtime.AtomValue, continueStart int, to int) {
 	for i := range 4 {
-		atomFunc.Value.(*runtime.AtomCode).Code[i+continueStart] =
+		atomFunc.Obj.(*runtime.AtomCode).Code[i+continueStart] =
 			runtime.OpCode((to >> (8 * i)) & 0xFF)
 	}
 }
@@ -2514,7 +2514,7 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2545,7 +2545,7 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2569,7 +2569,7 @@ func (c *AtomCompile) whileStatement(scope *AtomScope, fn *runtime.AtomValue, as
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2599,7 +2599,7 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2629,7 +2629,7 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2653,7 +2653,7 @@ func (c *AtomCompile) doWhileStatement(scope *AtomScope, fn *runtime.AtomValue, 
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2710,7 +2710,7 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2743,7 +2743,7 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 
@@ -2767,7 +2767,7 @@ func (c *AtomCompile) forStatement(scope *AtomScope, fn *runtime.AtomValue, ast 
 
 		// Modify opcodes for continue
 		for _, continueAddress := range loopScope.Continues {
-			fn.Value.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
+			fn.Obj.(*runtime.AtomCode).Code[continueAddress-1] = runtime.OpJump
 			c.label(fn, continueAddress)
 		}
 

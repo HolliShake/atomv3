@@ -89,8 +89,8 @@ func Eval(compiler *AtomCompile, ast *AtomAst) *runtime.AtomValue {
 
 			// Fast path for strings
 			if runtime.CheckType(lhs, runtime.AtomTypeStr) && runtime.CheckType(rhs, runtime.AtomTypeStr) {
-				lhsStr := lhs.Value.(string)
-				rhsStr := rhs.Value.(string)
+				lhsStr := lhs.Str
+				rhsStr := rhs.Str
 				result := lhsStr + rhsStr
 				return runtime.NewAtomValueStr(result)
 			}
@@ -451,8 +451,8 @@ func Eval(compiler *AtomCompile, ast *AtomAst) *runtime.AtomValue {
 			}
 
 			if runtime.CheckType(lhs, runtime.AtomTypeStr) && runtime.CheckType(rhs, runtime.AtomTypeStr) {
-				lhsStr := lhs.Value.(string)
-				rhsStr := rhs.Value.(string)
+				lhsStr := lhs.Str
+				rhsStr := rhs.Str
 				if lhsStr == rhsStr {
 					return compiler.state.TrueValue
 				}
@@ -486,8 +486,8 @@ func Eval(compiler *AtomCompile, ast *AtomAst) *runtime.AtomValue {
 			}
 
 			if runtime.CheckType(lhs, runtime.AtomTypeStr) && runtime.CheckType(rhs, runtime.AtomTypeStr) {
-				lhsStr := lhs.Value.(string)
-				rhsStr := rhs.Value.(string)
+				lhsStr := lhs.Str
+				rhsStr := rhs.Str
 				if lhsStr != rhsStr {
 					return compiler.state.TrueValue
 				}
@@ -518,8 +518,8 @@ func Eval(compiler *AtomCompile, ast *AtomAst) *runtime.AtomValue {
 
 			// Fast path for integers
 			if runtime.CheckType(lhs, runtime.AtomTypeInt) && runtime.CheckType(rhs, runtime.AtomTypeInt) {
-				a := lhs.Value.(int32)
-				b := rhs.Value.(int32)
+				a := lhs.I32
+				b := rhs.I32
 				result := a & b
 				return runtime.NewAtomValueInt(int(result))
 			}
@@ -552,8 +552,8 @@ func Eval(compiler *AtomCompile, ast *AtomAst) *runtime.AtomValue {
 
 			// Fast path for integers
 			if runtime.CheckType(lhs, runtime.AtomTypeInt) && runtime.CheckType(rhs, runtime.AtomTypeInt) {
-				a := lhs.Value.(int32)
-				b := rhs.Value.(int32)
+				a := lhs.I32
+				b := rhs.I32
 				result := a | b
 				return runtime.NewAtomValueInt(int(result))
 			}
@@ -586,8 +586,8 @@ func Eval(compiler *AtomCompile, ast *AtomAst) *runtime.AtomValue {
 
 			// Fast path for integers
 			if runtime.CheckType(lhs, runtime.AtomTypeInt) && runtime.CheckType(rhs, runtime.AtomTypeInt) {
-				a := lhs.Value.(int32)
-				b := rhs.Value.(int32)
+				a := lhs.I32
+				b := rhs.I32
 				result := a ^ b
 				return runtime.NewAtomValueInt(int(result))
 			}

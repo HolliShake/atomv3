@@ -51,26 +51,18 @@ func DoLoadBase(interpreter *AtomInterpreter, frame *AtomCallFrame) {
 		))
 		return
 	}
-	base := self.Value.(*AtomClassInstance).Prototype
+	base := self.Obj.(*AtomClassInstance).Prototype
 	if base == nil {
 		frame.Stack.Push(interpreter.State.NullValue)
 		return
 	}
-	frame.Stack.Push(base.Value.(*AtomClass).Base)
+	frame.Stack.Push(base.Obj.(*AtomClass).Base)
 }
 
 func DoLoadArray(frame *AtomCallFrame, size int) {
-	cleanup := func() {
-		for range size {
-			frame.Stack.Pop()
-		}
-	}
-
-	elements := []*AtomValue{}
-	for i := range size {
-		elements = append(elements, frame.Stack.GetOffset(size, i))
-	}
-	cleanup()
+	elements := make([]*AtomValue, size)
+	copy(elements, frame.Stack.GetN(size))
+	CleanupStack(frame, size)
 	frame.Stack.Push(NewAtomGenericValue(
 		AtomTypeArray,
 		NewAtomArray(elements),
@@ -79,12 +71,13 @@ func DoLoadArray(frame *AtomCallFrame, size int) {
 
 func DoLoadObject(frame *AtomCallFrame, size int) {
 	elements := map[string]*AtomValue{}
-	for range size {
-		k := frame.Stack.Pop()
-		v := frame.Stack.Pop()
+	items := frame.Stack.GetN(size * 2)
+	for i := size - 1; i >= 0; i-- {
+		k := items[i*2+1]
+		v := items[i*2]
 		elements[k.String()] = v
 	}
-
+	CleanupStack(frame, size*2)
 	frame.Stack.Push(NewAtomGenericValue(
 		AtomTypeObj,
 		NewAtomObject(elements),
@@ -115,7 +108,7 @@ func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name strin
 func DoLoadFunction(interpreter *AtomInterpreter, frame *AtomCallFrame, offset int) {
 	// Consider everything in the function table is a closure
 	templateFn := interpreter.State.FunctionTable.Get(offset)
-	templateCode := templateFn.Value.(*AtomCode)
+	templateCode := templateFn.Obj.(*AtomCode)
 	templateLocals := templateCode.Line
 	templateFile := templateCode.File
 	templateName := templateCode.Name
@@ -133,12 +126,13 @@ func DoLoadFunction(interpreter *AtomInterpreter, frame *AtomCallFrame, offset i
 
 func DoMakeClass(interpreter *AtomInterpreter, frame *AtomCallFrame, name string, size int) {
 	elements := map[string]*AtomValue{}
-
-	for range size {
-		k := frame.Stack.Pop()
-		v := frame.Stack.Pop()
+	items := frame.Stack.GetN(size * 2)
+	for i := size - 1; i >= 0; i-- {
+		k := items[i*2+1]
+		v := items[i*2]
 		elements[k.String()] = v
 	}
+	CleanupStack(frame, size*2)
 
 	frame.Stack.Push(NewAtomGenericValue(
 		AtomTypeClass,
@@ -154,17 +148,17 @@ func DoMakeClass(interpreter *AtomInterpreter, frame *AtomCallFrame, name string
 }
 
 func DoExtendClass(cls *AtomValue, ext *AtomValue) {
-	clsValue := cls.Value.(*AtomClass)
+	clsValue := cls.Obj.(*AtomClass)
 	clsValue.Base = ext
 }
 
 func DoMakeEnum(frame *AtomCallFrame, size int) {
 	elements := map[string]*AtomValue{}
+	items := frame.Stack.GetN(size * 2)
 	valueHashes := map[int]bool{}
-
-	for range size {
-		k := frame.Stack.Pop()
-		v := frame.Stack.Pop()
+	for i := size - 1; i >= 0; i-- {
+		k := items[i*2+1]
+		v := items[i*2]
 		key := k.String()
 
 		valueHash := v.HashValue()
@@ -175,7 +169,7 @@ func DoMakeEnum(frame *AtomCallFrame, size int) {
 			valueHashes[valueHash] = true
 		}
 	}
-
+	CleanupStack(frame, size*2)
 	frame.Stack.Push(NewAtomGenericValue(
 		AtomTypeEnum,
 		NewAtomObject(elements),
@@ -183,19 +177,14 @@ func DoMakeEnum(frame *AtomCallFrame, size int) {
 }
 
 func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *AtomValue, argc int) {
-	cleanupStack := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
 	if !CheckType(cls, AtomTypeClass) {
-		cleanupStack()
+		CleanupStack(frame, argc)
 		message := FormatError(frame, GetTypeString(cls)+" is not a constructor")
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
 
-	atomClass := cls.Value.(*AtomClass)
+	atomClass := cls.Obj.(*AtomClass)
 
 	// Create this
 	this := NewAtomGenericValue(
@@ -211,19 +200,19 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 	currentClass := atomClass
 
 	for currentClass != nil {
-		properties := currentClass.Proto.Value.(*AtomObject)
+		properties := currentClass.Proto.Obj.(*AtomObject)
 		if initializer := properties.Get("init"); initializer != nil {
 			initializers = append(initializers, initializer)
 		}
 		if currentClass.Base == nil {
 			break
 		}
-		currentClass = currentClass.Base.Value.(*AtomClass)
+		currentClass = currentClass.Base.Obj.(*AtomClass)
 	}
 
 	// Call initializers from base to derived (reverse order)
 	if len(initializers) == 0 {
-		cleanupStack()
+		CleanupStack(frame, argc)
 		frame.Stack.Push(
 			this,
 		)
@@ -237,7 +226,7 @@ func DoCallConstructor(interpreter *AtomInterpreter, frame *AtomCallFrame, cls *
 
 func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, argc int) {
 	if CheckType(fn, AtomTypeMethod) {
-		method := fn.Value.(*AtomMethod)
+		method := fn.Obj.(*AtomMethod)
 		/*
 			    [
 			      arg1, <- top
@@ -270,7 +259,7 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		fn = method.Fn
 
 	} else if CheckType(fn, AtomTypeNativeMethod) {
-		method := fn.Value.(*AtomNativeMethod)
+		method := fn.Obj.(*AtomNativeMethod)
 		/*
 			    [
 			      arg1, <- top
@@ -301,16 +290,10 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		}
 	}
 
-	cleanupStack := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	if CheckType(fn, AtomTypeFunc) {
-		code := fn.Value.(*AtomCode)
+		code := fn.Obj.(*AtomCode)
 		if argc != code.Argc {
-			cleanupStack()
+			CleanupStack(frame, argc)
 			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
@@ -319,16 +302,16 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		// Create a frame for the function
 		newFrame := NewAtomCallFrame(frame, fn, 0)
 		newFrame.Stack.Copy(frame.Stack, argc)
-		cleanupStack()
+		CleanupStack(frame, argc)
 		interpreter.ExecuteFrame(newFrame)
 
 		// For async functions, the frame will push a promise to the stack
 		// For non-async functions, the frame will push the return value to the stack
 
 	} else if CheckType(fn, AtomTypeNativeFunc) {
-		nativeFunc := fn.Value.(*AtomNativeFunc)
+		nativeFunc := fn.Obj.(*AtomNativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
-			cleanupStack()
+			CleanupStack(frame, argc)
 			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeFunc.Paramc, argc))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
@@ -337,9 +320,9 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		nativeFunc.Callable(interpreter, frame, argc)
 
 	} else if CheckType(fn, AtomTypeNativeMethod) {
-		nativeMethod := fn.Value.(*AtomNativeMethod)
+		nativeMethod := fn.Obj.(*AtomNativeMethod)
 		if nativeMethod.Paramc != argc && nativeMethod.Paramc != Variadict {
-			cleanupStack()
+			CleanupStack(frame, argc)
 			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", nativeMethod.Paramc, argc))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
@@ -347,19 +330,13 @@ func DoCall(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, a
 		nativeMethod.Callable(interpreter, frame, argc)
 
 	} else {
-		cleanupStack()
+		CleanupStack(frame, argc)
 		message := FormatError(frame, fmt.Sprintf("Error: %s is not a function", GetTypeString(fn)))
 		frame.Stack.Push(NewAtomValueError(message))
 	}
 }
 
 func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValue, this *AtomValue, argc int) {
-	cleanupStack := func() {
-		for range argc {
-			frame.Stack.Pop()
-		}
-	}
-
 	tmpStack := make([]*AtomValue, argc)
 	tmpStack[0] = this
 	for i := 1; i < argc; i++ {
@@ -373,9 +350,9 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValu
 	}
 
 	if CheckType(fn, AtomTypeFunc) {
-		code := fn.Value.(*AtomCode)
+		code := fn.Obj.(*AtomCode)
 		if argc != code.Argc {
-			cleanupStack()
+			CleanupStack(frame, argc)
 			message := FormatError(frame, fmt.Sprintf("Error: argument count mismatch, expected %d, got %d", code.Argc, argc))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
@@ -383,7 +360,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValu
 
 		newFrame := NewAtomCallFrame(frame, fn, 0)
 		newFrame.Stack.Copy(frame.Stack, argc)
-		cleanupStack()
+		CleanupStack(frame, argc)
 		interpreter.ExecuteFrame(newFrame)
 
 		// Pop return
@@ -392,9 +369,9 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValu
 		frame.Stack.Push(this)
 
 	} else if CheckType(fn, AtomTypeNativeFunc) {
-		nativeFunc := fn.Value.(*AtomNativeFunc)
+		nativeFunc := fn.Obj.(*AtomNativeFunc)
 		if nativeFunc.Paramc != argc && nativeFunc.Paramc != Variadict {
-			cleanupStack()
+			CleanupStack(frame, argc)
 			message := FormatError(frame, "Error: argument count mismatch")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
@@ -408,7 +385,7 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValu
 		frame.Stack.Push(this)
 
 	} else {
-		cleanupStack()
+		CleanupStack(frame, argc)
 		message := FormatError(frame, fmt.Sprintf("Error: %s is not a function", GetTypeString(fn)))
 		frame.Stack.Push(NewAtomValueError(message))
 	}
@@ -474,7 +451,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 			return
 		}
 
-		r := []rune(obj.Value.(string))
+		r := []rune(obj.Str)
 		indexValue := CoerceToLong(index)
 		if indexValue < 0 || indexValue >= int64(len(r)) {
 			message := FormatError(frame, fmt.Sprintf("index out of bounds: %d", indexValue))
@@ -499,7 +476,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 			return
 		}
 
-		array := obj.Value.(*AtomArray)
+		array := obj.Obj.(*AtomArray)
 		indexValue := CoerceToLong(index)
 
 		if !array.ValidIndex(int(indexValue)) {
@@ -512,7 +489,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		return
 
 	} else if CheckType(obj, AtomTypeObj) {
-		objValue := obj.Value.(*AtomObject)
+		objValue := obj.Obj.(*AtomObject)
 		indexValue := index.String()
 
 		value := objValue.Get(indexValue)
@@ -525,15 +502,15 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		return
 
 	} else if CheckType(obj, AtomTypeClass) {
-		class := obj.Value.(*AtomClass)
+		class := obj.Obj.(*AtomClass)
 
 		for class != nil {
-			if value := class.Proto.Value.(*AtomObject).Get(index.String()); value != nil {
+			if value := class.Proto.Obj.(*AtomObject).Get(index.String()); value != nil {
 				frame.Stack.Push(value)
 				return
 			}
 			if class.Base != nil {
-				class = class.Base.Value.(*AtomClass)
+				class = class.Base.Obj.(*AtomClass)
 			} else {
 				break
 			}
@@ -543,20 +520,20 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		return
 
 	} else if CheckType(obj, AtomTypeClassInstance) {
-		classInstance := obj.Value.(*AtomClassInstance)
+		classInstance := obj.Obj.(*AtomClassInstance)
 		property := classInstance.Property
 
 		// Direct property?
-		if property.Value.(*AtomObject).Get(index.String()) != nil {
-			frame.Stack.Push(property.Value.(*AtomObject).Get(index.String()))
+		if property.Obj.(*AtomObject).Get(index.String()) != nil {
+			frame.Stack.Push(property.Obj.(*AtomObject).Get(index.String()))
 			return
 		}
 
 		// Is prototype?
-		current := classInstance.Prototype.Value.(*AtomClass)
+		current := classInstance.Prototype.Obj.(*AtomClass)
 		for current != nil {
 			// Class direct prototype?
-			if attribute := current.Proto.Value.(*AtomObject).Get(index.String()); attribute != nil {
+			if attribute := current.Proto.Obj.(*AtomObject).Get(index.String()); attribute != nil {
 				if CheckType(attribute, AtomTypeFunc) {
 					frame.Stack.Push(NewAtomGenericValue(
 						AtomTypeMethod,
@@ -570,7 +547,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 			if current.Base == nil {
 				break
 			}
-			current = current.Base.Value.(*AtomClass)
+			current = current.Base.Obj.(*AtomClass)
 		}
 		frame.Stack.Push(interpreter.State.NullValue)
 		return
@@ -582,7 +559,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 			return
 		}
 
-		enumValue := obj.Value.(*AtomObject)
+		enumValue := obj.Obj.(*AtomObject)
 		indexValue := index.String()
 		value := enumValue.Get(indexValue)
 
@@ -608,7 +585,7 @@ func DoPluckAttribute(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *A
 		return
 	}
 
-	objValue := obj.Value.(*AtomObject)
+	objValue := obj.Obj.(*AtomObject)
 
 	if value := objValue.Get(attribute); value != nil {
 		frame.Stack.Push(value)
@@ -829,8 +806,8 @@ func DoAddition(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 	// Fast path for strings
 	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
-		lhs := val0.Value.(string)
-		rhs := val1.Value.(string)
+		lhs := val0.Str
+		rhs := val1.Str
 		result := lhs + rhs
 		frame.Stack.Push(NewAtomValueStr(result))
 		return
@@ -1205,8 +1182,8 @@ func DoCmpEq(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 	}
 
 	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
-		lhsStr := val0.Value.(string)
-		rhsStr := val1.Value.(string)
+		lhsStr := val0.Str
+		rhsStr := val1.Str
 		if lhsStr == rhsStr {
 			frame.Stack.Push(interpreter.State.TrueValue)
 			return
@@ -1256,8 +1233,8 @@ func DoCmpNe(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 	}
 
 	if CheckType(val0, AtomTypeStr) && CheckType(val1, AtomTypeStr) {
-		lhsStr := val0.Value.(string)
-		rhsStr := val1.Value.(string)
+		lhsStr := val0.Str
+		rhsStr := val1.Str
 		if lhsStr == rhsStr {
 			frame.Stack.Push(interpreter.State.FalseValue)
 			return
@@ -1283,8 +1260,8 @@ func DoCmpNe(interpreter *AtomInterpreter, frame *AtomCallFrame, val0 *AtomValue
 func DoAnd(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
+		a := val0.I32
+		b := val1.I32
 		result := a & b
 		frame.Stack.Push(NewAtomValueInt(int(result)))
 		return
@@ -1311,8 +1288,8 @@ func DoAnd(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 func DoOr(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
+		a := val0.I32
+		b := val1.I32
 		result := a | b
 		frame.Stack.Push(NewAtomValueInt(int(result)))
 		return
@@ -1339,8 +1316,8 @@ func DoOr(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 func DoXor(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 	// Fast path for integers
 	if CheckType(val0, AtomTypeInt) && CheckType(val1, AtomTypeInt) {
-		a := val0.Value.(int32)
-		b := val1.Value.(int32)
+		a := val0.I32
+		b := val1.I32
 		result := a ^ b
 		frame.Stack.Push(NewAtomValueInt(int(result)))
 		return
@@ -1366,7 +1343,7 @@ func DoXor(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 
 func DoStoreModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
 	module := frame.Stack.Pop()
-	module.Value.(*AtomObject).Set("__name__", NewAtomValueStr(name))
+	module.Obj.(*AtomObject).Set("__name__", NewAtomValueStr(name))
 	interpreter.ModuleTable[name] = module
 }
 
@@ -1384,30 +1361,25 @@ func DoStoreLocal(interpreter *AtomInterpreter, frame *AtomCallFrame, name strin
 }
 
 func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue, index *AtomValue) {
-	cleanupStack := func(size int) {
-		for range size {
-			frame.Stack.Pop()
-		}
-	}
 	if CheckType(obj, AtomTypeArray) {
 		if !IsNumberType(index) {
-			cleanupStack(1)
+			CleanupStack(frame, 1)
 			message := FormatError(frame, fmt.Sprintf("cannot set index type: %s with type: %s", GetTypeString(obj), GetTypeString(index)))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
-		array := obj.Value.(*AtomArray)
+		array := obj.Obj.(*AtomArray)
 		indexValue := CoerceToLong(index)
 
 		if array.Freeze {
-			cleanupStack(2)
+			CleanupStack(frame, 2)
 			message := FormatError(frame, "cannot set index on frozen array")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
 
 		if !array.ValidIndex(int(indexValue)) {
-			cleanupStack(2)
+			CleanupStack(frame, 2)
 			message := FormatError(frame, fmt.Sprintf("index out of bounds: %d", indexValue))
 			frame.Stack.Push(NewAtomValueError(message))
 			return
@@ -1417,28 +1389,28 @@ func DoSetIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomVal
 		return
 
 	} else if CheckType(obj, AtomTypeObj) {
-		if obj.Value.(*AtomObject).Freeze {
-			cleanupStack(2) // includes duplicate obj
+		if obj.Obj.(*AtomObject).Freeze {
+			CleanupStack(frame, 2) // includes duplicate obj
 			message := FormatError(frame, "cannot set index on frozen object")
 			frame.Stack.Push(NewAtomValueError(message))
 			return
 		}
 
-		objValue := obj.Value.(*AtomObject)
+		objValue := obj.Obj.(*AtomObject)
 		indexValue := index.String()
 		objValue.Set(indexValue, frame.Stack.Pop())
 		return
 
 	} else if CheckType(obj, AtomTypeClass) {
-		class := obj.Value.(*AtomClass)
-		class.Proto.Value.(*AtomObject).Set(index.String(), frame.Stack.Pop())
+		class := obj.Obj.(*AtomClass)
+		class.Proto.Obj.(*AtomObject).Set(index.String(), frame.Stack.Pop())
 		return
 	} else if CheckType(obj, AtomTypeClassInstance) {
-		classInstance := obj.Value.(*AtomClassInstance)
-		classInstance.Property.Value.(*AtomObject).Set(index.String(), frame.Stack.Pop())
+		classInstance := obj.Obj.(*AtomClassInstance)
+		classInstance.Property.Obj.(*AtomObject).Set(index.String(), frame.Stack.Pop())
 		return
 	} else {
-		cleanupStack(2)
+		CleanupStack(frame, 2)
 		message := FormatError(frame, fmt.Sprintf("cannot set index type: %s", GetTypeString(obj)))
 		frame.Stack.Push(NewAtomValueError(message))
 		return
