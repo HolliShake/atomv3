@@ -92,15 +92,8 @@ set TARGET_ARCH=
 set TARGET_OS=win
 set EXECUTABLE=atom.exe
 
-:: Check for --release flag
-if "%1"=="--release" (
-    set RELEASE_MODE=true
-    echo Release mode enabled
-    shift
-    goto :parse_args
-)
-
-goto :build
+:: Parse all arguments
+goto :parse_args
 
 :parse_args
 if "%1"=="" goto :build
@@ -109,10 +102,17 @@ if "%1"=="-t" (
     if "%2"=="32" (
         set ARCH_MODE=32
         echo 32-bit build enabled
-        shift
-        shift
-        goto :parse_args
-    ) else if "%2"=="64" (
+:parse_args
+if "%1"=="" goto :build
+
+if "%1"=="--release" (
+    set RELEASE_MODE=true
+    echo Release mode enabled
+    shift
+    goto :parse_args
+)
+
+if "%1"=="-t" (
         set ARCH_MODE=64
         echo 64-bit build enabled
         shift
@@ -277,19 +277,23 @@ if "%TARGET_OS%"=="mac" (
     echo Building for Linux...
 )
 
-:: Set target architecture environment variables
+:: Set target architecture environment variables (only if ARCH_MODE is not set)
 set TARGET_SUFFIX=
 if "%TARGET_ARCH%"=="arm" (
-    set GOARCH=arm
+    if "%ARCH_MODE%"=="" set GOARCH=arm
     set BUILD_CMD=go build
     set TARGET_SUFFIX=-arm
-    set EXECUTABLE=atom.arm
+    if "%TARGET_OS%"=="win" set EXECUTABLE=atom.exe
+    if "%TARGET_OS%"=="linux" set EXECUTABLE=atom.linux
+    if "%TARGET_OS%"=="mac" set EXECUTABLE=atom.macos
     echo Building for ARM architecture...
 ) else if "%TARGET_ARCH%"=="riscv" (
-    set GOARCH=riscv64
+    if "%ARCH_MODE%"=="" set GOARCH=riscv64
     set BUILD_CMD=go build
     set TARGET_SUFFIX=-riscv
-    set EXECUTABLE=atom.riscv
+    if "%TARGET_OS%"=="win" set EXECUTABLE=atom.exe
+    if "%TARGET_OS%"=="linux" set EXECUTABLE=atom.linux
+    if "%TARGET_OS%"=="mac" set EXECUTABLE=atom.macos
     echo Building for RISC-V architecture...
 ) else if "%TARGET_ARCH%"=="wasm" (
     set GOOS=js
@@ -299,7 +303,9 @@ if "%TARGET_ARCH%"=="arm" (
     set EXECUTABLE=atom.wasm
     echo Building for WebAssembly...
 ) else if "%TARGET_ARCH%"=="amd" (
-    if "%GOARCH%"=="" set GOARCH=amd64
+    if "%ARCH_MODE%"=="" (
+        if "%GOARCH%"=="" set GOARCH=amd64
+    )
     set BUILD_CMD=go build
     set TARGET_SUFFIX=-amd
     echo Building for AMD/Intel architecture...

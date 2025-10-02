@@ -174,3 +174,11 @@ if (complexResult != 45) {
 }
 
 println("=== ALL VARIABLE SCOPING TESTS PASSED! ===");
+
+
+var g = 0;
+for  (;;) {
+    g++;
+    if (g >= 54) break;
+    println(g);
+}

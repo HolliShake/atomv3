@@ -1654,9 +1654,14 @@ func (p *AtomParser) forInitializer() *AtomAst {
 	} else {
 		expression := p.expression()
 		p.acceptV(";")
+		if expression == nil {
+			return NewEmptyStatement(
+				p.lookahead.Position,
+			)
+		}
 		return NewExpressionStatement(
 			expression,
-			expression.Position,
+			p.lookahead.Position,
 		)
 	}
 }
