@@ -58,6 +58,17 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 		frame.Ip = offset
 	}
 
+	var stringCache = map[int]string{}
+
+	var writeString = func(offset int) string {
+		save := stringCache[offset]
+		if save == "" {
+			save = ReadStr(code.Code, offset)
+			stringCache[offset] = save
+		}
+		return save
+	}
+
 	for strt < size {
 		opCode := code.Code[strt]
 		forwardIp(1)
@@ -74,7 +85,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forwardIp(4)
 
 		case OpLoadBigInt:
-			value := ReadStr(code.Code, strt)
+			value := writeString(strt)
 			frame.Stack.Push(NewAtomValueBigInt(BigInt(value)))
 			forwardIp(len(value) + 1)
 
@@ -84,7 +95,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forwardIp(8)
 
 		case OpLoadStr:
-			value := ReadStr(code.Code, strt)
+			value := writeString(strt)
 			frame.Stack.Push(NewAtomValueStr(value))
 			forwardIp(len(value) + 1)
 
@@ -113,12 +124,12 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forwardIp(4)
 
 		case OpLoadName:
-			index := ReadStr(code.Code, strt)
+			index := writeString(strt)
 			DoLoadName(frame, index)
 			forwardIp(len(index) + 1)
 
 		case OpLoadModule:
-			name := ReadStr(code.Code, strt)
+			name := writeString(strt)
 			DoLoadModule(i, frame, name)
 			forwardIp(len(name) + 1)
 
@@ -129,7 +140,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 
 		case OpMakeClass:
 			size := ReadInt(code.Code, strt)
-			name := ReadStr(code.Code, strt+4)
+			name := writeString(strt + 4)
 			DoMakeClass(i, frame, name, size)
 			forwardIp(4 + len(name) + 1)
 
@@ -193,7 +204,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			DoIndex(i, frame, obj, idx)
 
 		case OpPluckAttribute:
-			att := ReadStr(code.Code, strt)
+			att := writeString(strt)
 			obj := frame.Stack.Peek()
 			DoPluckAttribute(i, frame, obj, att)
 			forwardIp(len(att) + 1)
@@ -279,18 +290,18 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			DoXor(frame, lhs, rhs)
 
 		case OpStoreModule:
-			name := ReadStr(code.Code, strt)
+			name := writeString(strt)
 			DoStoreModule(i, frame, name)
 			forwardIp(len(name) + 1)
 
 		case OpInitLocal:
-			index := ReadStr(code.Code, strt)
+			index := writeString(strt)
 			value := frame.Stack.Pop()
 			DoInitLocal(i, frame, index, value)
 			forwardIp(len(index) + 1)
 
 		case OpStoreLocal:
-			index := ReadStr(code.Code, strt)
+			index := writeString(strt)
 			value := frame.Stack.Pop()
 			DoStoreLocal(i, frame, index, value)
 			forwardIp(len(index) + 1)
