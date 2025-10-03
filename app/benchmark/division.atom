@@ -1,0 +1,8 @@
+import [print, println] from "atom:std";
+
+// Use fixed numbers for division
+const dividend = 1000;
+const divisor = 10;
+const result = dividend / divisor;
+
+println(dividend, "/", divisor, "=", result);

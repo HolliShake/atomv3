@@ -1,0 +1,19 @@
+import [print, println] from "atom:std";
+
+// Use more complex multiplication operations
+const a = 123;
+const b = 456;
+const c = 789;
+
+// Perform various multiplication operations
+const simple = a * b;
+const compound = a * b * c;
+const mixed = (a * b) + (b * c);
+const withDivision = (a * b) / c;
+
+// Print results
+println("Simple multiplication:", a, "*", b, "=", simple);
+println("Compound multiplication:", a, "*", b, "*", c, "=", compound);
+println("Mixed operations:", "(", a, "*", b, ") + (", b, "*", c, ") =", mixed);
+println("With division:", "(", a, "*", b, ") /", c, "=", withDivision);
+
