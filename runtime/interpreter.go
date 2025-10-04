@@ -59,12 +59,32 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 	}
 
 	var stringCache = map[int]string{}
+	var intCache = map[int]int{}
+	var numCache = map[int]float64{}
 
 	var writeString = func(offset int) string {
 		save := stringCache[offset]
 		if save == "" {
 			save = ReadStr(code.Code, offset)
 			stringCache[offset] = save
+		}
+		return save
+	}
+
+	var writeInt = func(offset int) int {
+		save := intCache[offset]
+		if save == 0 {
+			save = ReadInt(code.Code, offset)
+			intCache[offset] = save
+		}
+		return save
+	}
+
+	var writeNum = func(offset int) float64 {
+		save := numCache[offset]
+		if save == 0 {
+			save = ReadNum(code.Code, offset)
+			numCache[offset] = save
 		}
 		return save
 	}
@@ -80,7 +100,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forwardIp(4)
 
 		case OpLoadInt:
-			value := ReadInt(code.Code, strt)
+			value := writeInt(strt)
 			frame.Stack.Push(NewAtomValueInt(value))
 			forwardIp(4)
 
@@ -90,7 +110,7 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 			forwardIp(len(value) + 1)
 
 		case OpLoadNum:
-			value := ReadNum(code.Code, strt)
+			value := writeNum(strt)
 			frame.Stack.Push(NewAtomValueNum(value))
 			forwardIp(8)
 
