@@ -1,6 +1,63 @@
 import "atom:string";
-import [print, println] from "atom:std";
+import [print, println, throw] from "atom:std";
 
+// Test string.len
+println("string.len tests:");
+if (string.len("hello") != 5) throw("string.len('hello') should be 5");
+println(string.len("hello"));  // 5
+if (string.len("") != 0) throw("string.len('') should be 0");
+println(string.len(""));       // 0
+if (string.len("こんにちは") != 5) throw("string.len('こんにちは') should be 5");
+println(string.len("こんにちは")); // 5 (5 Unicode code points)
+println();
+
+// Test string.toUpper and string.toLower
+println("string.toUpper/toLower tests:");
+if (string.toUpper("hello") != "HELLO") throw("string.toUpper('hello') should be 'HELLO'");
+println(string.toUpper("hello"));  // HELLO
+if (string.toLower("WORLD") != "world") throw("string.toLower('WORLD') should be 'world'");
+println(string.toLower("WORLD"));  // world
+if (string.toUpper("Mixed Case") != "MIXED CASE") throw("string.toUpper('Mixed Case') should be 'MIXED CASE'");
+println(string.toUpper("Mixed Case")); // MIXED CASE
+println();
+
+// Test string.contains
+println("string.contains tests:");
+if (string.contains("hello world", "world") != true) throw("string.contains('hello world', 'world') should be true");
+println(string.contains("hello world", "world")); // true
+if (string.contains("hello world", "moon") != false) throw("string.contains('hello world', 'moon') should be false");
+println(string.contains("hello world", "moon"));  // false
+if (string.contains("", "") != true) throw("string.contains('', '') should be true");
+println(string.contains("", ""));                 // true
+println();
+
+// Test string.reverse
+println("string.reverse tests:");
+if (string.reverse("hello") != "olleh") throw("string.reverse('hello') should be 'olleh'");
+println(string.reverse("hello"));      // olleh
+if (string.reverse("") != "") throw("string.reverse('') should be ''");
+println(string.reverse(""));           // ""
+if (string.reverse("こんにちは") != "はちにんこ") throw("string.reverse('こんにちは') should be 'はちにんこ'");
+println(string.reverse("こんにちは"));    // はちにんこ
+println();
+
+// Test string.runes
+println("string.runes tests:");
+println(string.runes("ABC"));          // [65, 66, 67]
+println(string.runes("こ"));            // [12371]
+println();
+
+// Test string.bytes
+println("string.bytes tests:");
+println(string.bytes("ABC"));          // [65, 66, 67]
+println(string.bytes("こ"));            // [227, 129, 147] (UTF-8 bytes)
+println();
+
+// Test string.format
+println("string.format tests:");
+if (string.format("Hello, {}!", "World") != "Hello, World!") throw("string.format('Hello, {}!', 'World') should be 'Hello, World!'");
 println(string.format("Hello, {}!", "World"));
-println(string.format("Hello, {} {} {}!", "World", "Hello", "World"));
-println(string.format("Hello, {} {} {}!", "World", "Hello", "World"));
+if (string.format("{} + {} = {}", 1, 2, 3) != "1 + 2 = 3") throw("string.format('{} + {} = {}', 1, 2, 3) should be '1 + 2 = 3'");
+println(string.format("{} + {} = {}", 1, 2, 3));
+if (string.format("Empty placeholder: '{}'", "") != "Empty placeholder: ''") throw("string.format('Empty placeholder: '{}'', '') should be 'Empty placeholder: '''");
+println(string.format("Empty placeholder: '{}'", ""));

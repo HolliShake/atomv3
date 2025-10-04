@@ -22,8 +22,9 @@ func string_len(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 		return
 	}
 
-	str := arg.Str
-	frame.Stack.Push(NewAtomValueNum(float64(len(str))))
+	runes := []rune(arg.Str)
+
+	frame.Stack.Push(NewAtomValueNum(float64(len(runes))))
 }
 
 func string_toUpper(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
@@ -85,7 +86,7 @@ func string_contains(interpreter *AtomInterpreter, frame *AtomCallFrame, argc in
 	arg1 := frame.Stack.GetOffset(argc, 1)
 
 	if !CheckType(arg0, AtomTypeStr) {
-		CleanupStack(frame, argc-2)
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "string.contains expected a string"),
 		))
@@ -93,12 +94,14 @@ func string_contains(interpreter *AtomInterpreter, frame *AtomCallFrame, argc in
 	}
 
 	if !CheckType(arg1, AtomTypeStr) {
-		CleanupStack(frame, argc-2)
+		CleanupStack(frame, argc)
 		frame.Stack.Push(NewAtomValueError(
 			FormatError(frame, "string.contains expected a string"),
 		))
 		return
 	}
+
+	CleanupStack(frame, argc)
 
 	str0 := arg0.Str
 	str1 := arg1.Str
