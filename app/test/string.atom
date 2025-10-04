@@ -1,0 +1,6 @@
+import "atom:string";
+import [print, println] from "atom:std";
+
+println(string.format("Hello, {}!", "World"));
+println(string.format("Hello, {} {} {}!", "World", "Hello", "World"));
+println(string.format("Hello, {} {} {}!", "World", "Hello", "World"));
