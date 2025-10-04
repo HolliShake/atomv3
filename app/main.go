@@ -19,7 +19,7 @@ func readFile(file string) string {
 	return string(content)
 }
 
-func runTests() {
+func runTests(testFile string) {
 	execPath, err := os.Executable()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -28,24 +28,49 @@ func runTests() {
 	execDir := filepath.Dir(execPath)
 	testsDir := filepath.Join(execDir, "test")
 
+	// If a specific test file is provided
+	if testFile != "" {
+		fileDir := filepath.Join(testsDir, testFile)
+
+		// Add .atom extension if not present
+		if !strings.HasSuffix(testFile, ".atom") {
+			fileDir += ".atom"
+		}
+
+		// Check if file exists
+		if _, err := os.Stat(fileDir); os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "Test file %s not found\n", testFile)
+			os.Exit(1)
+		}
+
+		runFile(fileDir)
+		return
+	}
+
+	// Run all tests in the directory
 	files, err := os.ReadDir(testsDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
+
 	success := 0
+	total := 0
+
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".atom") {
 			continue
 		}
-		if !strings.HasSuffix(file.Name(), ".atom") {
-			continue
-		}
-		runFile(filepath.Join(testsDir, file.Name()))
+
+		total++
+		testPath := filepath.Join(testsDir, file.Name())
+
+		// We could add error handling here to continue testing even if one test fails
+		runFile(testPath)
 		success++
 	}
-	// Will stop if has error on tests
-	fmt.Println("Success:", success, "Total:", success)
+
+	fmt.Printf("Success: %d Total: %d\n", success, total)
 }
 
 func printStartupBanner() {
@@ -89,7 +114,11 @@ func main() {
 	}
 
 	if os.Args[1] == "--test" {
-		runTests()
+		testFile := ""
+		if len(os.Args) > 2 {
+			testFile = os.Args[2]
+		}
+		runTests(testFile)
 		os.Exit(0)
 	}
 
