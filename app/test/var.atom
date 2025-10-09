@@ -136,4 +136,10 @@ if (mathResult2 != 9) std.throw("Expected pow3(2) to return 9, got " + mathResul
 println("=== Variable Stress Test Completed Successfully ===");
 
 import "date";
-println(date.Date.create());
+var d = date.Date.now();
+println(d, d.toString(), d.toLocale());
+
+// Test date parsing
+var parsedDate = date.Date.parse("2024-01-15");
+println("Parsed date:", parsedDate.toString());
+if (parsedDate == null) std.throw("Expected date.Date.parse to return a valid date");

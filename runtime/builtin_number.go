@@ -89,6 +89,30 @@ func number_toString(interpreter *AtomInterpreter, frame *AtomCallFrame, argc in
 	frame.Stack.Push(NewAtomValueStr(strconv.FormatFloat(num, 'g', -1, 64)))
 }
 
+// cast
+func number_int(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "Error: int expects 1 argument"),
+		))
+		return
+	}
+
+	value := frame.Stack.Pop()
+
+	if !IsNumberType(value) {
+		CleanupStack(frame, argc-1)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "Error: int expects a number"),
+		))
+		return
+	}
+
+	num := CoerceToInt(value)
+	frame.Stack.Push(NewAtomValueInt(int(num)))
+}
+
 var EXPORT_NUMBER = map[string]*AtomValue{
 	"parseInt": NewAtomGenericValue(
 		AtomTypeNativeFunc,
@@ -101,5 +125,9 @@ var EXPORT_NUMBER = map[string]*AtomValue{
 	"toString": NewAtomGenericValue(
 		AtomTypeNativeFunc,
 		NewNativeFunc("number.toString", 1, number_toString),
+	),
+	"int": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("number.int", 1, number_int),
 	),
 }

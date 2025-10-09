@@ -1,15 +1,142 @@
 import [epoch] from "atom:std";
-
+import [parseInt, int] from "atom:number";
+import [format, split] from "atom:string";
 
 class Date {
-    func init(self) {
-        self.epoch = epoch();
-        self.month = 0;
-        self.day   = 0;
-        self.year  = 0;
+    func init(self, timestamp) {
+        self.timestamp = if (timestamp == null) epoch() else timestamp;
+        self._calculate();
     }
 
-    func create() {
-        return new Date();
+    func _calculate(self) {
+        // Calculate date components from Unix timestamp
+        local seconds = self.timestamp;
+        local days = int(seconds / 86400);
+        local remaining = seconds % 86400;
+        
+        // Time components
+        self.hours = int(remaining / 3600);
+        self.minutes = int((remaining % 3600) / 60);
+        self.seconds = int(remaining % 60);
+        
+        // Calculate date from 1970-01-01
+        local year = 1970;
+        local month = 1;
+        local day = 1;
+        local daysToAdd = days;
+        
+        // Year loop
+        while (daysToAdd >= (if (self._isLeapYear(year)) 366 else 365)) {
+            daysToAdd -= (if (self._isLeapYear(year)) 366 else 365);
+            year += 1;
+        }
+        
+        // Month loop
+        while (true) {
+            local dim = self._getDaysInMonth(month, year);
+            if (daysToAdd >= dim) {
+                daysToAdd -= dim;
+                month += 1;
+                if (month > 12) {
+                    month = 1;
+                    year += 1;
+                }
+            } else {
+                break;
+            }
+        }
+        
+        day += daysToAdd;
+        
+        self.year = year;
+        self.month = month;
+        self.day = int(day);
+        
+        // Day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+        // Jan 1, 1970 was a Thursday (4)
+        self.dayOfWeek = int((days + 4) % 7);
+    }
+
+    func _isLeapYear(self, year) {
+        return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+    }
+
+    func _getDaysInMonth(self, month, year) {
+        if (month == 2) {
+            return if (self._isLeapYear(year)) 29 else 28;
+        }
+        if (month == 4 || month == 6 || month == 9 || month == 11) return 30;
+        return 31;
+    }
+
+    // --- Instance Getters ---
+    func getDay(self)       { return self.dayOfWeek; }
+    func getDate(self)      { return self.day; }
+    func getYear(self)      { return self.year; }
+    func getMonth(self)     { return self.month - 1; } // 0-indexed
+    func getHours(self)     { return self.hours; }
+    func getMinutes(self)   { return self.minutes; }
+    func getSeconds(self)   { return self.seconds; }
+    func getTime(self)      { return self.timestamp * 1000; } // milliseconds
+
+    func setTime(self, milliseconds) {
+        self.timestamp = int(milliseconds / 1000);
+        self._calculate();
+    }
+
+    // --- String output ---
+    func toString(self) {
+        local pad = func(n) { return if (n < 10) "0" + n else n; };
+        return format("{}-{}-{} {}:{}:{}", 
+            self.year, pad(self.month), pad(self.day),
+            pad(self.hours), pad(self.minutes), pad(self.seconds));
+    }
+
+    func toLocale(self) {
+        local monthNames = ["January", "February", "March", "April", "May", "June",
+                           "July", "August", "September", "October", "November", "December"];
+        local dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        
+        local pad = func(n) { return if (n < 10) "0" + n else n; };
+        return format("{}, {} {}, {} {}:{}:{}", 
+            dayNames[self.dayOfWeek],
+            monthNames[self.month - 1],
+            self.day, self.year,
+            pad(self.hours), pad(self.minutes), pad(self.seconds));
+    }
+
+    // --- Static methods ---
+    func _staticGetDaysInMonth(month, year) {
+        if (month == 2)
+            return if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28;
+        if (month == 4 || month == 6 || month == 9 || month == 11) return 30;
+        return 31;
+    }
+
+    func parse(dateString) {
+        // Basic ISO 8601 parsing (YYYY-MM-DD)
+        local parts = split(dateString, "-");
+        if (parts.length() != 3) return null;
+        
+        local year = parseInt(parts[0]);
+        local month = parseInt(parts[1]);
+        local day = parseInt(parts[2]);
+        
+        // Build timestamp from components
+        local timestamp = 0;
+        
+        for (local y = 1970; y < year; y += 1)
+            timestamp += (if (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) 366 else 365) * 86400;
+        
+        for (local m = 1; m < month; m += 1)
+            timestamp += Date._staticGetDaysInMonth(m, year) * 86400;
+        
+        timestamp += (day - 1) * 86400;
+        
+        return new Date(timestamp);
+    }
+
+    func now() {
+        return new Date(null);
     }
 }

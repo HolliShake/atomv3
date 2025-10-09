@@ -134,7 +134,7 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 
 	case AtomTypeNum:
 		// Fast path: direct conversion without fmt.Sprintf
-		return strconv.FormatFloat(v.F64, 'g', -1, 64)
+		return strconv.FormatFloat(v.F64, 'f', -1, 64)
 
 	case AtomTypeBigInt:
 		// Fast path: direct conversion without fmt.Sprintf

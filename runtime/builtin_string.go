@@ -241,6 +241,52 @@ func string_format(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)
 	frame.Stack.Push(NewAtomValueStr(result))
 }
 
+func string_split(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 2 {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "string.split expected 2 arguments"),
+		))
+		return
+	}
+
+	arg0 := frame.Stack.GetOffset(argc, 0)
+	arg1 := frame.Stack.GetOffset(argc, 1)
+
+	if !CheckType(arg0, AtomTypeStr) {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "string.split expected a string"),
+		))
+		return
+	}
+
+	if !CheckType(arg1, AtomTypeStr) {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "string.split expected a string"),
+		))
+		return
+	}
+
+	CleanupStack(frame, argc)
+
+	str0 := arg0.Str
+	str1 := arg1.Str
+
+	splits := strings.Split(str0, str1)
+
+	items := make([]*AtomValue, len(splits))
+	for i, split := range splits {
+		items[i] = NewAtomValueStr(split)
+	}
+
+	frame.Stack.Push(NewAtomGenericValue(
+		AtomTypeArray,
+		NewAtomArray(items),
+	))
+}
+
 var EXPORT_STRING = map[string]*AtomValue{
 	"len": NewAtomGenericValue(
 		AtomTypeNativeFunc,
@@ -273,5 +319,9 @@ var EXPORT_STRING = map[string]*AtomValue{
 	"format": NewAtomGenericValue(
 		AtomTypeNativeFunc,
 		NewNativeFunc("string.format", Variadict, string_format),
+	),
+	"split": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("string.split", 2, string_split),
 	),
 }
