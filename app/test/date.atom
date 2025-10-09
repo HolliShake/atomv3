@@ -1,0 +1,91 @@
+import [Date] from "date";
+import [println] from "atom:std";
+
+println("=== Date Stress Test Starting ===");
+
+// Test Date.now()
+var now = Date.now();
+println("Current date:", now.toString());
+println("Current locale:", now.toLocale());
+
+// Test getters
+println("Day of week:", now.getDay());
+println("Date:", now.getDate());
+println("Year:", now.getYear());
+println("Month:", now.getMonth());
+println("Hours:", now.getHours());
+println("Minutes:", now.getMinutes());
+println("Seconds:", now.getSeconds());
+println("Timestamp (ms):", now.getTime());
+
+// Test Date parsing
+var parsed = Date.parse("2024-03-15");
+println("Parsed date:", parsed.toString());
+println("Parsed locale:", parsed.toLocale());
+
+if (parsed.getYear() != 2024) std.throw("Expected year 2024, got " + parsed.getYear());
+if (parsed.getMonth() != 2) std.throw("Expected month 2 (0-indexed), got " + parsed.getMonth());
+if (parsed.getDate() != 15) std.throw("Expected date 15, got " + parsed.getDate());
+
+// Test specific timestamp
+var specificDate = new Date(1609459200); // 2021-01-01 00:00:00 UTC
+println("Specific date:", specificDate.toString());
+println("Specific locale:", specificDate.toLocale());
+
+if (specificDate.getYear() != 2021) std.throw("Expected year 2021, got " + specificDate.getYear());
+if (specificDate.getMonth() != 0) std.throw("Expected month 0, got " + specificDate.getMonth());
+if (specificDate.getDate() != 1) std.throw("Expected date 1, got " + specificDate.getDate());
+
+// Test leap year date
+var leapDay = Date.parse("2020-02-29");
+println("Leap day:", leapDay.toString());
+if (leapDay.getMonth() != 1) std.throw("Expected month 1 (February), got " + leapDay.getMonth());
+if (leapDay.getDate() != 29) std.throw("Expected date 29, got " + leapDay.getDate());
+
+// Test setTime
+var mutableDate = new Date(0);
+println("Initial:", mutableDate.toString());
+mutableDate.setTime(1609459200000); // milliseconds
+println("After setTime:", mutableDate.toString());
+
+if (mutableDate.getYear() != 2021) std.throw("Expected year 2021 after setTime, got " + mutableDate.getYear());
+
+// Test various dates across different years
+var testDates = [
+    "1970-01-01",
+    "2000-12-31",
+    "2024-06-15",
+    "1999-03-20",
+    "2025-11-11"
+];
+
+for (local i = 0; i < testDates.length(); i += 1) {
+    local testDate = Date.parse(testDates[i]);
+    println("Test date", i, ":", testDate.toString(), "->", testDate.toLocale());
+}
+
+// Test invalid parse
+var invalid = Date.parse("invalid-date");
+if (invalid != null) std.throw("Expected null for invalid date parse");
+
+invalid = Date.parse("2024-13-01"); // Still parses but creates invalid date
+println("Invalid month parse:", invalid);
+
+// Test day of week consistency
+var thursday = Date.parse("1970-01-01"); // Jan 1, 1970 was Thursday (4)
+if (thursday.getDay() != 4) std.throw("Expected Thursday (4), got " + thursday.getDay());
+
+var friday = Date.parse("1970-01-02");
+if (friday.getDay() != 5) std.throw("Expected Friday (5), got " + friday.getDay());
+
+var sunday = Date.parse("1970-01-04");
+if (sunday.getDay() != 0) std.throw("Expected Sunday (0), got " + sunday.getDay());
+
+// Test date with time components
+var dateWithTime = new Date(1609459200 + 3600 + 120 + 45); // 01:02:45
+println("Date with time:", dateWithTime.toString());
+if (dateWithTime.getHours() != 1) std.throw("Expected hours 1, got " + dateWithTime.getHours());
+if (dateWithTime.getMinutes() != 2) std.throw("Expected minutes 2, got " + dateWithTime.getMinutes());
+if (dateWithTime.getSeconds() != 45) std.throw("Expected seconds 45, got " + dateWithTime.getSeconds());
+
+println("=== Date Stress Test Completed Successfully ===");
