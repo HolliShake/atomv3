@@ -89,7 +89,7 @@ func number_toString(interpreter *AtomInterpreter, frame *AtomCallFrame, argc in
 	frame.Stack.Push(NewAtomValueStr(strconv.FormatFloat(num, 'g', -1, 64)))
 }
 
-// cast
+// cast to int
 func number_int(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	if argc != 1 {
 		CleanupStack(frame, argc)
@@ -113,6 +113,53 @@ func number_int(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	frame.Stack.Push(NewAtomValueInt(int(num)))
 }
 
+// cast to num
+func number_num(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "Error: num expects 1 argument"),
+		))
+		return
+	}
+
+	value := frame.Stack.Pop()
+
+	if !IsNumberType(value) {
+		CleanupStack(frame, argc-1)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "Error: num expects a number"),
+		))
+		return
+	}
+
+	num := CoerceToNum(value)
+	frame.Stack.Push(NewAtomValueNum(float64(num)))
+}
+
+func number_bigInt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
+	if argc != 1 {
+		CleanupStack(frame, argc)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "Error: bigInt expects 1 argument"),
+		))
+		return
+	}
+
+	value := frame.Stack.Pop()
+
+	if !IsNumberType(value) {
+		CleanupStack(frame, argc-1)
+		frame.Stack.Push(NewAtomValueError(
+			FormatError(frame, "Error: bigInt expects a number"),
+		))
+		return
+	}
+
+	num := CoerceToBigInt(value)
+	frame.Stack.Push(NewAtomValueBigInt(num))
+}
+
 var EXPORT_NUMBER = map[string]*AtomValue{
 	"parseInt": NewAtomGenericValue(
 		AtomTypeNativeFunc,
@@ -129,5 +176,13 @@ var EXPORT_NUMBER = map[string]*AtomValue{
 	"int": NewAtomGenericValue(
 		AtomTypeNativeFunc,
 		NewNativeFunc("number.int", 1, number_int),
+	),
+	"num": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("number.num", 1, number_num),
+	),
+	"bigInt": NewAtomGenericValue(
+		AtomTypeNativeFunc,
+		NewNativeFunc("number.bigInt", 1, number_bigInt),
 	),
 }

@@ -174,6 +174,16 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 		defer delete(visited, ptr)
 
 		classInstance := v.Obj.(*AtomClassInstance)
+
+		if (reflect.TypeOf(classInstance.Property.Obj) != reflect.TypeOf(&AtomValue{})) {
+			// For builtin class, obj might not be an AtomObject
+			builder := StringBuilderPool.Get().(*strings.Builder)
+			builder.Reset()
+			builder.WriteString(classInstance.Prototype.Obj.(*AtomClass).Name)
+			builder.WriteString(EmptyClassInstanceStr)
+			return builder.String()
+		}
+
 		prototype := classInstance.Prototype.Obj.(*AtomClass)
 		properties := classInstance.Property.Obj.(*AtomObject).Elements
 

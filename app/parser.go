@@ -236,6 +236,9 @@ func (p *AtomParser) primary() *AtomAst {
 
 func (p *AtomParser) memberOrCall() *AtomAst {
 	ast := p.primary()
+	if ast == nil {
+		return nil
+	}
 	for p.checkT(TokenTypeSym) && (p.checkV(".") || p.checkV("[") || p.checkV("(")) {
 		if p.checkV(".") {
 			p.acceptV(".")
@@ -350,7 +353,7 @@ func (p *AtomParser) postfix() *AtomAst {
 }
 
 func (p *AtomParser) unary() *AtomAst {
-	if p.checkT(TokenTypeSym) && (p.checkV("!") || p.checkV("+") || p.checkV("-")) {
+	if p.checkT(TokenTypeSym) && (p.checkV("~") || p.checkV("!") || p.checkV("+") || p.checkV("-")) {
 		opt := p.lookahead
 		p.acceptV(opt.Value)
 		rhs := p.allocation()

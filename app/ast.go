@@ -37,6 +37,7 @@ const (
 	AstTypeAllocation
 	AstTypePostfixInc
 	AstTypePostfixDec
+	AstTypeUnaryBitNot
 	AstTypeUnaryNot
 	AstTypeUnaryNeg
 	AstTypeUnaryPos
@@ -127,6 +128,8 @@ func getPostfixAstType(op AtomToken) AtomAstType {
 
 func getUnaryAstType(op AtomToken) AtomAstType {
 	switch op.Value {
+	case "~":
+		return AstTypeUnaryBitNot
 	case "!":
 		return AstTypeUnaryNot
 	case "-":
