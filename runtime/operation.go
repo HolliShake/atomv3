@@ -3,7 +3,6 @@ package runtime
 import (
 	"fmt"
 	"math"
-	"reflect"
 )
 
 func DoMakeModule(interpreter *AtomInterpreter, frame *AtomCallFrame, size int) {
@@ -544,7 +543,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		property := classInstance.Property
 
 		// Direct property?
-		if reflect.TypeOf(property.Obj) == reflect.TypeOf(&AtomObject{}) && property.Obj.(*AtomObject).Get(index.String()) != nil {
+		if property.Type == AtomTypeObj && property.Obj.(*AtomObject).Get(index.String()) != nil {
 			frame.Stack.Push(property.Obj.(*AtomObject).Get(index.String()))
 			return
 		}

@@ -31,6 +31,7 @@ const (
 	AtomTypeNativeFunc
 	AtomTypeErr
 	AtomTypePromise
+	AtomTypeExternal
 )
 
 // String builder pool for memory efficiency
@@ -175,7 +176,8 @@ func (v *AtomValue) StringWithVisited(visited map[uintptr]bool) string {
 
 		classInstance := v.Obj.(*AtomClassInstance)
 
-		if (reflect.TypeOf(classInstance.Property.Obj) != reflect.TypeOf(&AtomValue{})) {
+		// For external type | builtin classess
+		if classInstance.Property.Type == AtomTypeExternal {
 			// For builtin class, obj might not be an AtomObject
 			builder := StringBuilderPool.Get().(*strings.Builder)
 			builder.Reset()

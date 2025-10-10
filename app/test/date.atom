@@ -71,18 +71,21 @@ if (invalid != null) std.throw("Expected null for invalid date parse");
 invalid = Date.parse("2024-13-01"); // Still parses but creates invalid date
 println("Invalid month parse:", invalid);
 
-// Test day of week consistency
+// Test day of week consistency - using fixed known dates
 var thursday = Date.parse("1970-01-01"); // Jan 1, 1970 was Thursday (4)
+println("Thursday check (1970-01-01):", thursday.getDay());
 if (thursday.getDay() != 4) std.throw("Expected Thursday (4), got " + thursday.getDay());
 
 var friday = Date.parse("1970-01-02");
+println("Friday check (1970-01-02):", friday.getDay());
 if (friday.getDay() != 5) std.throw("Expected Friday (5), got " + friday.getDay());
 
 var sunday = Date.parse("1970-01-04");
+println("Sunday check (1970-01-04):", sunday.getDay());
 if (sunday.getDay() != 0) std.throw("Expected Sunday (0), got " + sunday.getDay());
 
-// Test date with time components
-var dateWithTime = new Date(1609459200 + 3600 + 120 + 45); // 01:02:45
+// Test date with time components - using fixed timestamp
+var dateWithTime = new Date(1609459200 + 3600 + 120 + 45); // 2021-01-01 01:02:45
 println("Date with time:", dateWithTime.toString());
 if (dateWithTime.getHours() != 1) std.throw("Expected hours 1, got " + dateWithTime.getHours());
 if (dateWithTime.getMinutes() != 2) std.throw("Expected minutes 2, got " + dateWithTime.getMinutes());

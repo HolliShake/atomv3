@@ -104,7 +104,7 @@ func builtin_init_gin() *AtomValue {
 			this := NewAtomGenericValue(
 				AtomTypeClassInstance,
 				// prototype, property
-				NewAtomClassInstance(class, NewAtomGenericValue(AtomTypeObj, gin.New())),
+				NewAtomClassInstance(class, NewAtomGenericValue(AtomTypeExternal, gin.New())),
 			)
 			frame.Stack.Push(this)
 		}),
