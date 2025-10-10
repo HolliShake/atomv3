@@ -593,6 +593,34 @@ const person = new Person("Alice", 30);
 println(person.greet());
 ```
 
+#### Web API with Gin Framework
+```atom
+import [println] from "atom:std";
+import [Gin, ok, unauthorized] from "atom:GinBinding";
+
+// Create a new Gin web server
+(new Gin())
+.get("api/users/:id", func(config) {
+    local userId = config.params.id;
+    println("Fetching user:", userId);
+    return ok({ id: userId, name: "John Doe", email: "john@example.com" });
+})
+.post("api/users", func(config) {
+    local userData = config.body;
+    println("Creating user:", userData);
+    return ok({ message: "User created successfully", user: userData });
+})
+.put("api/users/:id", func(config) {
+    if (config.params.id == "admin") {
+        return unauthorized("Cannot modify admin user");
+    }
+    return ok({ message: "User updated successfully" });
+})
+.serve(8080) catch(err) {
+    std.throw(err);
+};
+```
+
 ## Standard Library
 
 Atom comes with a comprehensive standard library:
@@ -602,6 +630,7 @@ Atom comes with a comprehensive standard library:
 - **atom:object**: Object utilities like `freeze`, `keys`
 - **atom:os**: Operating system interface
 - **atom:path**: Path manipulation utilities
+- **atom:GinBinding**: Web framework integration powered by [Gin](https://github.com/gin-gonic/gin) - a high-performance HTTP web framework written in Go
 
 ## Language Design Philosophy
 
