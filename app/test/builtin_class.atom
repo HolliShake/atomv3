@@ -1,0 +1,5 @@
+import [println] from "atom:std";
+
+
+println("Hello World!");
+

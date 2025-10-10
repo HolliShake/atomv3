@@ -1,7 +1,457 @@
-import "atom:std";
+import [ println, throw ] from "atom:std";
+import [ bytes ] from "atom:string";
+import [ toString, int, num, bigInt ] from "atom:number";
 
+// Using string built-ins; no local string polyfills needed
 
-std.println("lib/hash:: Hello, World!");
+// Polyfill for toString with radix (not available in atom:string)
+func toStringWithRadix(num, radix) {
+    if (radix == 16) {
+        local hex = "";
+        local hexChars = "0123456789abcdef";
+        local n = num;
+        if (n == 0) return "0";
+        while (n > 0) {
+            // hexChars is ASCII; index access is safe here
+            hex = hexChars[n % 16] + hex;
+            n = (n - (n % 16)) / 16;
+        }
+        return hex;
+    }
+    // For other radixes, just return decimal string representation
+    return toString(num);
+}
 
+// MD5 hash implementation
+func md5(data) {
+    local bytesArr = bytes(data);
+    
+    // MD5 constants
+    local s = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+             5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
+             4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+             6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21];
+    
+    local K = [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
+             0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+             0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
+             0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+             0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
+             0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+             0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
+             0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+             0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
+             0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+             0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05,
+             0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+             0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
+             0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+             0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
+             0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391];
+    
+    local h0 = 0x67452301;
+    local h1 = 0xefcdab89;
+    local h2 = 0x98badcfe;
+    local h3 = 0x10325476;
+    
+    local msgLen = bytesArr.length();
+    bytesArr = bytesArr + [0x80];
+    while ((bytesArr.length() % 64) != 56) {
+        bytesArr = bytesArr + [0];
+    }
+    
+    for (local i = 0; i < 8; i = i + 1) {
+        bytesArr = bytesArr + [(msgLen * 8) >> (i * 8) & 0xff];
+    }
+    
+    for (local offset = 0; offset < bytesArr.length(); offset = offset + 64) {
+        local w = [];
+        for (local i = 0; i < 16; i = i + 1) {
+            w = w + [bytesArr[offset + i*4] | (bytesArr[offset + i*4+1] << 8) | 
+                     (bytesArr[offset + i*4+2] << 16) | (bytesArr[offset + i*4+3] << 24)];
+        }
+        
+        local a = h0;
+        local b = h1;
+        local c = h2;
+        local d = h3;
+        
+        for (local i = 0; i < 64; i = i + 1) {
+            local f = 0;
+            local g = 0;
+            
+            if (i < 16) {
+                f = (b & c) | ((~b) & d);
+                g = i;
+            } else if (i < 32) {
+                f = (d & b) | ((~d) & c);
+                g = (5*i + 1) % 16;
+            } else if (i < 48) {
+                f = b ^ c ^ d;
+                g = (3*i + 5) % 16;
+            } else {
+                f = c ^ (b | (~d));
+                g = (7*i) % 16;
+            }
+            
+            f = (f + a + K[i] + w[g]) & 0xffffffff;
+            a = d;
+            d = c;
+            c = b;
+            b = (b + ((f << s[i]) | (f >> (32 - s[i])))) & 0xffffffff;
+        }
+        
+        h0 = (h0 + a) & 0xffffffff;
+        h1 = (h1 + b) & 0xffffffff;
+        h2 = (h2 + c) & 0xffffffff;
+        h3 = (h3 + d) & 0xffffffff;
+    }
+    
+    local result = "";
+    local hashVals = [h0, h1, h2, h3];
+    for (local valIdx = 0; valIdx < hashVals.length(); valIdx = valIdx + 1) {
+        local val = hashVals[valIdx];
+        for (local i = 0; i < 4; i = i + 1) {
+            local byte = (val >> (i * 8)) & 0xff;
+            local hex = toStringWithRadix(byte, 16);
+            if (length(hex) == 1) hex = "0" + hex;
+            result = result + hex;
+        }
+    }
+    
+    return result;
+}
 
+// SHA-1 hash implementation
+func sha1(data) {
+    local bytesArr = bytes(data);
+    
+    local h0 = 0x67452301;
+    local h1 = 0xEFCDAB89;
+    local h2 = 0x98BADCFE;
+    local h3 = 0x10325476;
+    local h4 = 0xC3D2E1F0;
+    
+    local msgLen = bytesArr.length();
+    bytesArr = bytesArr + [0x80];
+    while ((bytesArr.length() % 64) != 56) {
+        bytesArr = bytesArr + [0];
+    }
+    
+    for (local i = 7; i >= 0; i = i - 1) {
+        bytesArr = bytesArr + [(msgLen * 8) >> (i * 8) & 0xff];
+    }
+    
+    for (local offset = 0; offset < bytesArr.length(); offset = offset + 64) {
+        local w = [];
+        for (local i = 0; i < 16; i = i + 1) {
+            w = w + [(bytesArr[offset + i*4] << 24) | (bytesArr[offset + i*4+1] << 16) | 
+                     (bytesArr[offset + i*4+2] << 8) | bytesArr[offset + i*4+3]];
+        }
+        
+        for (local i = 16; i < 80; i = i + 1) {
+            local val = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16];
+            w = w + [((val << 1) | (val >> 31)) & 0xffffffff];
+        }
+        
+        local a = h0;
+        local b = h1;
+        local c = h2;
+        local d = h3;
+        local e = h4;
+        
+        for (local i = 0; i < 80; i = i + 1) {
+            local f = 0;
+            local k = 0;
+            
+            if (i < 20) {
+                f = (b & c) | ((~b) & d);
+                k = 0x5A827999;
+            } else if (i < 40) {
+                f = b ^ c ^ d;
+                k = 0x6ED9EBA1;
+            } else if (i < 60) {
+                f = (b & c) | (b & d) | (c & d);
+                k = 0x8F1BBCDC;
+            } else {
+                f = b ^ c ^ d;
+                k = 0xCA62C1D6;
+            }
+            
+            local temp = (((a << 5) | (a >> 27)) + f + e + k + w[i]) & 0xffffffff;
+            e = d;
+            d = c;
+            c = ((b << 30) | (b >> 2)) & 0xffffffff;
+            b = a;
+            a = temp;
+        }
+        
+        h0 = (h0 + a) & 0xffffffff;
+        h1 = (h1 + b) & 0xffffffff;
+        h2 = (h2 + c) & 0xffffffff;
+        h3 = (h3 + d) & 0xffffffff;
+        h4 = (h4 + e) & 0xffffffff;
+    }
+    
+    local result = "";
+    local hashVals = [h0, h1, h2, h3, h4];
+    for (local valIdx = 0; valIdx < hashVals.length(); valIdx = valIdx + 1) {
+        local val = hashVals[valIdx];
+        for (local i = 3; i >= 0; i = i - 1) {
+            local byte = (val >> (i * 8)) & 0xff;
+            local hex = toStringWithRadix(byte, 16);
+            if (length(hex) == 1) hex = "0" + hex;
+            result = result + hex;
+        }
+    }
+    
+    return result;
+}
 
+// SHA-256 hash implementation
+func sha256(data) {
+    local bytesArr = bytes(data);
+    
+    local k = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ];
+    
+    local h0 = 0x6a09e667;
+    local h1 = 0xbb67ae85;
+    local h2 = 0x3c6ef372;
+    local h3 = 0xa54ff53a;
+    local h4 = 0x510e527f;
+    local h5 = 0x9b05688c;
+    local h6 = 0x1f83d9ab;
+    local h7 = 0x5be0cd19;
+    
+    local msgLen = bytesArr.length();
+    bytesArr = bytesArr + [0x80];
+    while ((bytesArr.length() % 64) != 56) {
+        bytesArr = bytesArr + [0];
+    }
+    
+    for (local i = 7; i >= 0; i = i - 1) {
+        bytesArr = bytesArr + [(msgLen * 8) >> (i * 8) & 0xff];
+    }
+    
+    for (local offset = 0; offset < bytesArr.length(); offset = offset + 64) {
+        local w = [];
+        for (local i = 0; i < 16; i = i + 1) {
+            w = w + [(bytesArr[offset + i*4] << 24) | (bytesArr[offset + i*4+1] << 16) | 
+                     (bytesArr[offset + i*4+2] << 8) | bytesArr[offset + i*4+3]];
+        }
+        
+        for (local i = 16; i < 64; i = i + 1) {
+            local s0 = (((w[i-15] >> 7) | (w[i-15] << 25)) ^ ((w[i-15] >> 18) | (w[i-15] << 14)) ^ (w[i-15] >> 3)) & 0xffffffff;
+            local s1 = (((w[i-2] >> 17) | (w[i-2] << 15)) ^ ((w[i-2] >> 19) | (w[i-2] << 13)) ^ (w[i-2] >> 10)) & 0xffffffff;
+            w = w + [(w[i-16] + s0 + w[i-7] + s1) & 0xffffffff];
+        }
+        
+        local a = h0;
+        local b = h1;
+        local c = h2;
+        local d = h3;
+        local e = h4;
+        local f = h5;
+        local g = h6;
+        local h = h7;
+        
+        for (local i = 0; i < 64; i = i + 1) {
+            local S1 = (((e >> 6) | (e << 26)) ^ ((e >> 11) | (e << 21)) ^ ((e >> 25) | (e << 7))) & 0xffffffff;
+            local ch = ((e & f) ^ ((~e) & g)) & 0xffffffff;
+            local temp1 = (h + S1 + ch + k[i] + w[i]) & 0xffffffff;
+            local S0 = (((a >> 2) | (a << 30)) ^ ((a >> 13) | (a << 19)) ^ ((a >> 22) | (a << 10))) & 0xffffffff;
+            local maj = ((a & b) ^ (a & c) ^ (b & c)) & 0xffffffff;
+            local temp2 = (S0 + maj) & 0xffffffff;
+            
+            h = g;
+            g = f;
+            f = e;
+            e = (d + temp1) & 0xffffffff;
+            d = c;
+            c = b;
+            b = a;
+            a = (temp1 + temp2) & 0xffffffff;
+        }
+        
+        h0 = (h0 + a) & 0xffffffff;
+        h1 = (h1 + b) & 0xffffffff;
+        h2 = (h2 + c) & 0xffffffff;
+        h3 = (h3 + d) & 0xffffffff;
+        h4 = (h4 + e) & 0xffffffff;
+        h5 = (h5 + f) & 0xffffffff;
+        h6 = (h6 + g) & 0xffffffff;
+        h7 = (h7 + h) & 0xffffffff;
+    }
+    
+    local result = "";
+    local hashVals = [h0, h1, h2, h3, h4, h5, h6, h7];
+    for (local valIdx = 0; valIdx < hashVals.length(); valIdx = valIdx + 1) {
+        local val = hashVals[valIdx];
+        for (local i = 3; i >= 0; i = i - 1) {
+            local byte = (val >> (i * 8)) & 0xff;
+            local hex = toStringWithRadix(byte, 16);
+            if (length(hex) == 1) hex = "0" + hex;
+            result = result + hex;
+        }
+    }
+    
+    return result;
+}
+
+// SHA-512 hash implementation
+func sha512(data) {
+    // 64-bit helpers using BigInt
+    local MASK = 0xffffffffffffffffn;
+    local U64 = func(x) { return x & MASK; };
+    local ROTR = func(x, n) { return U64((x >> (n + 0n)) | (x << (64n - (n + 0n)))); };
+    local SHR  = func(x, n) { return x >> (n + 0n); };
+
+    // Initial hash values (first 64 bits of the fractional parts of the square roots of the first 8 primes 2..19)
+    local h0 = 0x6a09e667f3bcc908n;
+    local h1 = 0xbb67ae8584caa73bn;
+    local h2 = 0x3c6ef372fe94f82bn;
+    local h3 = 0xa54ff53a5f1d36f1n;
+    local h4 = 0x510e527fade682d1n;
+    local h5 = 0x9b05688c2b3e6c1fn;
+    local h6 = 0x1f83d9abfb41bd6bn;
+    local h7 = 0x5be0cd19137e2179n;
+
+    // Round constants (first 64 bits of the fractional parts of the cube roots of the first 80 primes 2..409)
+    local K = [
+        0x428a2f98d728ae22n, 0x7137449123ef65cdn, 0xb5c0fbcfec4d3b2fn, 0xe9b5dba58189dbbcn,
+        0x3956c25bf348b538n, 0x59f111f1b605d019n, 0x923f82a4af194f9bn, 0xab1c5ed5da6d8118n,
+        0xd807aa98a3030242n, 0x12835b0145706fben, 0x243185be4ee4b28cn, 0x550c7dc3d5ffb4e2n,
+        0x72be5d74f27b896fn, 0x80deb1fe3b1696b1n, 0x9bdc06a725c71235n, 0xc19bf174cf692694n,
+        0xe49b69c19ef14ad2n, 0xefbe4786384f25e3n, 0x0fc19dc68b8cd5b5n, 0x240ca1cc77ac9c65n,
+        0x2de92c6f592b0275n, 0x4a7484aa6ea6e483n, 0x5cb0a9dcbd41fbd4n, 0x76f988da831153b5n,
+        0x983e5152ee66dfabn, 0xa831c66d2db43210n, 0xb00327c898fb213fn, 0xbf597fc7beef0ee4n,
+        0xc6e00bf33da88fc2n, 0xd5a79147930aa725n, 0x06ca6351e003826fn, 0x142929670a0e6e70n,
+        0x27b70a8546d22ffcn, 0x2e1b21385c26c926n, 0x4d2c6dfc5ac42aedn, 0x53380d139d95b3dfn,
+        0x650a73548baf63den, 0x766a0abb3c77b2a8n, 0x81c2c92e47edaee6n, 0x92722c851482353bn,
+        0xa2bfe8a14cf10364n, 0xa81a664bbc423001n, 0xc24b8b70d0f89791n, 0xc76c51a30654be30n,
+        0xd192e819d6ef5218n, 0xd69906245565a910n, 0xf40e35855771202an, 0x106aa07032bbd1b8n,
+        0x19a4c116b8d2d0c8n, 0x1e376c085141ab53n, 0x2748774cdf8eeb99n, 0x34b0bcb5e19b48a8n,
+        0x391c0cb3c5c95a63n, 0x4ed8aa4ae3418acbn, 0x5b9cca4f7763e373n, 0x682e6ff3d6b2b8a3n,
+        0x748f82ee5defb2fcn, 0x78a5636f43172f60n, 0x84c87814a1f0ab72n, 0x8cc702081a6439ecn,
+        0x90befffa23631e28n, 0xa4506cebde82bde9n, 0xbef9a3f7b2c67915n, 0xc67178f2e372532bn,
+        0xca273eceea26619cn, 0xd186b8c721c0c207n, 0xeada7dd6cde0eb1en, 0xf57d4f7fee6ed178n,
+        0x06f067aa72176fban, 0x0a637dc5a2c898a6n, 0x113f9804bef90daen, 0x1b710b35131c471bn,
+        0x28db77f523047d84n, 0x32caab7b40c72493n, 0x3c9ebe0a15c9bebcn, 0x431d67c49c100d4cn,
+        0x4cc5d4becb3e42b6n, 0x597f299cfc657e2an, 0x5fcb6fab3ad6faecn, 0x6c44198c4a475817n
+    ];
+
+    // Convert input to bytes
+    local b = bytes(data);
+
+    // Pad message (128-byte blocks). Append 0x80, then zeros, then 128-bit length
+    local bitLen = bigInt(b.length() * 8);
+    b = b + [0x80];
+    while ((b.length() % 128) != 112) {
+        b = b + [0];
+    }
+    // Append 128-bit length (we support up to 2^64-1 bits effectively; upper 64 are zero)
+    for (local i = 0; i < 8; i = i + 1) { b = b + [0]; }
+    for (local i = 7; i >= 0; i = i - 1) {
+        local v = int((bitLen >> (bigInt(i) * 8n)) & 0xffn);
+        b = b + [v];
+    }
+
+    for (local offset = 0; offset < b.length(); offset = offset + 128) {
+        // Prepare message schedule W[0..79]
+        local W = [];
+        for (local t = 0; t < 16; t = t + 1) {
+            local i = offset + t * 8;
+            // big-endian 64-bit
+            local w = bigInt(b[i]) << 56n |
+                      bigInt(b[i+1]) << 48n |
+                      bigInt(b[i+2]) << 40n |
+                      bigInt(b[i+3]) << 32n |
+                      bigInt(b[i+4]) << 24n |
+                      bigInt(b[i+5]) << 16n |
+                      bigInt(b[i+6]) << 8n |
+                      bigInt(b[i+7]);
+            W = W + [U64(w)];
+        }
+        for (local t = 16; t < 80; t = t + 1) {
+            local s0 = U64(ROTR(W[t-15], 1n) ^ ROTR(W[t-15], 8n) ^ SHR(W[t-15], 7n));
+            local s1 = U64(ROTR(W[t-2], 19n) ^ ROTR(W[t-2], 61n) ^ SHR(W[t-2], 6n));
+            W = W + [U64(W[t-16] + s0 + W[t-7] + s1)];
+        }
+
+        // Initialize working variables
+        local a = h0; local b0 = h1; local c = h2; local d = h3;
+        local e = h4; local f = h5; local g = h6; local h = h7;
+
+        for (local t = 0; t < 80; t = t + 1) {
+            local S1 = U64(ROTR(e, 14n) ^ ROTR(e, 18n) ^ ROTR(e, 41n));
+            local ch = U64((e & f) ^ ((~e) & g));
+            local temp1 = U64(h + S1 + ch + K[t] + W[t]);
+            local S0 = U64(ROTR(a, 28n) ^ ROTR(a, 34n) ^ ROTR(a, 39n));
+            local maj = U64((a & b0) ^ (a & c) ^ (b0 & c));
+            local temp2 = U64(S0 + maj);
+
+            h = g;
+            g = f;
+            f = e;
+            e = U64(d + temp1);
+            d = c;
+            c = b0;
+            b0 = a;
+            a = U64(temp1 + temp2);
+        }
+
+        h0 = U64(h0 + a);
+        h1 = U64(h1 + b0);
+        h2 = U64(h2 + c);
+        h3 = U64(h3 + d);
+        h4 = U64(h4 + e);
+        h5 = U64(h5 + f);
+        h6 = U64(h6 + g);
+        h7 = U64(h7 + h);
+    }
+
+    // Output 512-bit digest (big-endian)
+    local result = "";
+    local H = [h0, h1, h2, h3, h4, h5, h6, h7];
+    for (local idx = 0; idx < H.length(); idx = idx + 1) {
+        local val = H[idx];
+        for (local i = 7; i >= 0; i = i - 1) {
+            local byte = int((val >> (bigInt(i) * 8n)) & 0xffn);
+            local hex = toStringWithRadix(byte, 16);
+            if (length(hex) == 1) hex = "0" + hex;
+            result = result + hex;
+        }
+    }
+    return result;
+}
+
+// SHA-2 dispatcher (supports 256 and 512)
+func sha2(data, bits) {
+    if (bits == 512) return sha512(data);
+    return sha256(data);
+}
+
+// Generic hash function that accepts algorithm type
+func hash(data, algorithm) {
+    if (algorithm == "md5") {
+        return md5(data);
+    } else if (algorithm == "sha1") {
+        return sha1(data);
+    } else if (algorithm == "sha256") {
+        return sha256(data);
+    } else if (algorithm == "sha512") {
+        return sha512(data);
+    } else if (algorithm == "sha2") {
+        return sha2(data, 256);
+    }
+    return "";
+}

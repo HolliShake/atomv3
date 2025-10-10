@@ -194,6 +194,10 @@ func (i *AtomInterpreter) ExecuteFrame(frame *AtomCallFrame) {
 				return
 			}
 
+		case OpBitNot:
+			val := frame.Stack.Pop()
+			DoBitNot(i, frame, val)
+
 		case OpNot:
 			val := frame.Stack.Pop()
 			DoNot(i, frame, val)
@@ -457,6 +461,7 @@ func (i *AtomInterpreter) Interpret(atomFunc *AtomValue) {
 	DefineModule(i, "file", EXPORT_FILE)
 	DefineModule(i, "string", EXPORT_STRING)
 	DefineModule(i, "number", EXPORT_NUMBER)
+	DefineModule(i, "GinBinding", EXPORT_GIN)
 
 	// Run while the frame is not empty
 	i.ExecuteFrame(NewAtomCallFrame(nil, atomFunc, 0))

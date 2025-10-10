@@ -134,6 +134,3 @@ if (mathResult1 != 8) std.throw("Expected pow2(3) to return 8, got " + mathResul
 if (mathResult2 != 9) std.throw("Expected pow3(2) to return 9, got " + mathResult2);
 
 println("=== Variable Stress Test Completed Successfully ===");
-
-import "date";
-println(date.Date.create());

@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"math"
+	"reflect"
 )
 
 func DoMakeModule(interpreter *AtomInterpreter, frame *AtomCallFrame, size int) {
@@ -379,16 +380,35 @@ func DoCallInit(interpreter *AtomInterpreter, frame *AtomCallFrame, fn *AtomValu
 
 		nativeFunc.Callable(interpreter, frame, argc)
 
-		// Pop return
-		frame.Stack.Pop()
+		// Native constructor emits their own "this"
+		// frame.Stack.Pop()
 		// Push this
-		frame.Stack.Push(this)
+		// frame.Stack.Push(this)
 
 	} else {
 		CleanupStack(frame, argc)
 		message := FormatError(frame, fmt.Sprintf("Error: %s is not a function", GetTypeString(fn)))
 		frame.Stack.Push(NewAtomValueError(message))
 	}
+}
+
+func DoBitNot(interpreter *AtomInterpreter, frame *AtomCallFrame, val *AtomValue) {
+	if !IsNumberType(val) {
+		message := FormatError(frame, fmt.Sprintf("Error: cannot bitwise not type: %s", GetTypeString(val)))
+		frame.Stack.Push(NewAtomValueError(message))
+		return
+	}
+
+	if CheckType(val, AtomTypeBigInt) {
+		bigInt := CoerceToBigInt(val)
+		newBig := BigInt("0").Not(bigInt)
+		frame.Stack.Push(NewAtomValueBigInt(
+			newBig,
+		))
+		return
+	}
+
+	frame.Stack.Push(NewAtomValueInt(int(^CoerceToInt(val))))
 }
 
 func DoNot(interpreter *AtomInterpreter, frame *AtomCallFrame, val *AtomValue) {
@@ -524,7 +544,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		property := classInstance.Property
 
 		// Direct property?
-		if property.Obj.(*AtomObject).Get(index.String()) != nil {
+		if reflect.TypeOf(property.Obj) == reflect.TypeOf(&AtomObject{}) && property.Obj.(*AtomObject).Get(index.String()) != nil {
 			frame.Stack.Push(property.Obj.(*AtomObject).Get(index.String()))
 			return
 		}
@@ -538,6 +558,13 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 					frame.Stack.Push(NewAtomGenericValue(
 						AtomTypeMethod,
 						NewAtomMethod(obj, attribute),
+					))
+					return
+				} else if CheckType(attribute, AtomTypeNativeFunc) {
+					nativeFunc := attribute.Obj.(*AtomNativeFunc)
+					frame.Stack.Push(NewAtomGenericValue(
+						AtomTypeNativeMethod,
+						NewAtomNativeMethod(nativeFunc.Name, nativeFunc.Paramc, obj, nativeFunc.Callable),
 					))
 					return
 				}

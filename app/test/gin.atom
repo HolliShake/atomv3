@@ -1,0 +1,26 @@
+import [println] from "atom:std";
+import [Gin, ok, unauthorized] from "atom:GinBinding";
+import [parseInt] from "atom:number";
+
+
+(new Gin())
+.get("path/:param", func(config) {
+    println(">>", config);
+    return ok(config);
+})
+.post("path/:name", func(config) {
+    if (config.params.name == "Doy") {
+        return unauthorized("Shit");
+    }
+    return ok(config);
+})
+.put("path/:name", func(config) {
+    if (config.params.name == "Doy") {
+        return unauthorized("Shit");
+    }
+    return ok(config);
+})
+.serve(8080) catch(err) {
+    std.throw(err);
+};
+

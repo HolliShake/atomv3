@@ -24,6 +24,7 @@ const (
 	OpAwait                                //
 	OpInc                                  //
 	OpDec                                  //
+	OpBitNot                               //
 	OpNot                                  //
 	OpNeg                                  //
 	OpPos                                  //

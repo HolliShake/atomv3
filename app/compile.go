@@ -647,6 +647,13 @@ func (c *AtomCompile) expression(scope *AtomScope, fn *runtime.AtomValue, ast *A
 			c.assignOp1(scope, fn, ast.Ast0, true)
 		}
 
+	case AstTypeUnaryBitNot:
+		{
+			c.expression(scope, fn, ast.Ast0)
+			c.emitLine(fn, ast.Position)
+			c.emit(fn, runtime.OpBitNot)
+		}
+
 	case AstTypeUnaryNot:
 		{
 			c.expression(scope, fn, ast.Ast0)
