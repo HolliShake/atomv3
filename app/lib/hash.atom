@@ -1,4 +1,5 @@
 import [ println, throw ] from "atom:std";
+import [ runes ] from "atom:string";
 
 // String helper functions (polyfills for missing atom:string functions)
 func charAt(str, index) {
