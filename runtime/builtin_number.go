@@ -160,29 +160,33 @@ func number_bigInt(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)
 	frame.Stack.Push(NewAtomValueBigInt(num))
 }
 
-var EXPORT_NUMBER = map[string]*AtomValue{
-	"parseInt": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("number.parseInt", 1, number_parseInt),
-	),
-	"parseFloat": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("number.parseFloat", 1, number_parseFloat),
-	),
-	"toString": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("number.toString", 1, number_toString),
-	),
-	"int": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("number.int", 1, number_int),
-	),
-	"num": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("number.num", 1, number_num),
-	),
-	"bigInt": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("number.bigInt", 1, number_bigInt),
-	),
+func EXPORT_NUMBER() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("number"),
+		/*******************************/
+		"parseInt": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("number.parseInt", 1, number_parseInt),
+		),
+		"parseFloat": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("number.parseFloat", 1, number_parseFloat),
+		),
+		"toString": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("number.toString", 1, number_toString),
+		),
+		"int": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("number.int", 1, number_int),
+		),
+		"num": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("number.num", 1, number_num),
+		),
+		"bigInt": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("number.bigInt", 1, number_bigInt),
+		),
+	}))
 }

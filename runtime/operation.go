@@ -102,7 +102,7 @@ func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name strin
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
-	frame.Stack.Push(module)
+	frame.Stack.Push(module())
 }
 
 func DoLoadFunction(interpreter *AtomInterpreter, frame *AtomCallFrame, offset int) {
@@ -1370,7 +1370,9 @@ func DoXor(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 func DoStoreModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
 	module := frame.Stack.Pop()
 	module.Obj.(*AtomObject).Set("__name__", NewAtomValueStr(name))
-	interpreter.ModuleTable[name] = module
+	interpreter.ModuleTable[name] = func() *AtomValue {
+		return module
+	}
 }
 
 func DoInitLocal(interpreter *AtomInterpreter, frame *AtomCallFrame, name string, value *AtomValue) {

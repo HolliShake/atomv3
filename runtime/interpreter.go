@@ -12,13 +12,13 @@ const (
 type AtomInterpreter struct {
 	State       *AtomState
 	Scheduler   *AtomScheduler
-	ModuleTable map[string]*AtomValue
+	ModuleTable map[string]AtomNativeModuleCallback
 }
 
 func NewInterpreter(state *AtomState) *AtomInterpreter {
 	interpreter := &AtomInterpreter{
 		State:       state,
-		ModuleTable: map[string]*AtomValue{},
+		ModuleTable: map[string]AtomNativeModuleCallback{},
 	}
 	interpreter.Scheduler = NewAtomScheduler(interpreter)
 	return interpreter

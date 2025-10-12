@@ -48,15 +48,19 @@ func os_exec(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
-var EXPORT_OS = map[string]*AtomValue{
-	"failure": NewAtomValueInt(1),
-	"success": NewAtomValueInt(0),
-	"exit": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("exit", 1, os_exit),
-	),
-	"exec": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("exec", 1, os_exec),
-	),
+func EXPORT_OS() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("os"),
+		/*******************************/
+		"failure": NewAtomValueInt(1),
+		"success": NewAtomValueInt(0),
+		"exit": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("exit", 1, os_exit),
+		),
+		"exec": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("exec", 1, os_exec),
+		),
+	}))
 }

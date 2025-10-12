@@ -287,41 +287,45 @@ func string_split(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) 
 	))
 }
 
-var EXPORT_STRING = map[string]*AtomValue{
-	"len": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.len", 1, string_len),
-	),
-	"toUpper": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.toUpper", 1, string_toUpper),
-	),
-	"toLower": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.toLower", 1, string_toLower),
-	),
-	"contains": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.contains", 2, string_contains),
-	),
-	"reverse": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.reverse", 1, string_reverse),
-	),
-	"runes": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.rune", 1, string_runes),
-	),
-	"bytes": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.bytes", 1, string_bytes),
-	),
-	"format": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.format", Variadict, string_format),
-	),
-	"split": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("string.split", 2, string_split),
-	),
+func EXPORT_STRING() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("string"),
+		/*******************************/
+		"len": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.len", 1, string_len),
+		),
+		"toUpper": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.toUpper", 1, string_toUpper),
+		),
+		"toLower": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.toLower", 1, string_toLower),
+		),
+		"contains": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.contains", 2, string_contains),
+		),
+		"reverse": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.reverse", 1, string_reverse),
+		),
+		"runes": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.rune", 1, string_runes),
+		),
+		"bytes": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.bytes", 1, string_bytes),
+		),
+		"format": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.format", Variadict, string_format),
+		),
+		"split": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("string.split", 2, string_split),
+		),
+	}))
 }

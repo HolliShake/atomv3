@@ -164,37 +164,41 @@ func std_sleep(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	frame.Stack.Push(interpreter.State.NullValue)
 }
 
-var EXPORT_STD = map[string]*AtomValue{
-	"decompile": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("decompile", 1, std_decompile),
-	),
-	"println": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("println", Variadict, std_println),
-	),
-	"print": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("print", Variadict, std_print),
-	),
-	"clear": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("clear", 0, std_clear),
-	),
-	"readLine": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("readLine", 1, std_readLine),
-	),
-	"throw": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("throw", 1, std_throw),
-	),
-	"epoch": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("epoch", 0, std_epoch),
-	),
-	"sleep": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("sleep", 1, std_sleep),
-	),
+func EXPORT_STD() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("std"),
+		/*******************************/
+		"decompile": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("decompile", 1, std_decompile),
+		),
+		"println": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("println", Variadict, std_println),
+		),
+		"print": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("print", Variadict, std_print),
+		),
+		"clear": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("clear", 0, std_clear),
+		),
+		"readLine": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("readLine", 1, std_readLine),
+		),
+		"throw": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("throw", 1, std_throw),
+		),
+		"epoch": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("epoch", 0, std_epoch),
+		),
+		"sleep": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("sleep", 1, std_sleep),
+		),
+	}))
 }
