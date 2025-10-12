@@ -240,45 +240,49 @@ func math_sin(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	frame.Stack.Push(NewAtomValueNum(math.Sin(val)))
 }
 
-var EXPORT_MATH = map[string]*AtomValue{
-	"rand": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("rand", 1, math_rand),
-	),
-	"abs": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("abs", 1, math_abs),
-	),
-	"floor": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("floor", 1, math_floor),
-	),
-	"ceil": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("ceil", 1, math_ceil),
-	),
-	"round": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("round", 1, math_round),
-	),
-	"pow": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("pow", 2, math_pow),
-	),
-	"sqrt": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("sqrt", 1, math_sqrt),
-	),
-	"log": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("log", 1, math_log),
-	),
-	"cos": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("cos", 1, math_cos),
-	),
-	"sin": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("sin", 1, math_sin),
-	),
+func EXPORT_MATH() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("math"),
+		/*******************************/
+		"rand": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("rand", 1, math_rand),
+		),
+		"abs": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("abs", 1, math_abs),
+		),
+		"floor": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("floor", 1, math_floor),
+		),
+		"ceil": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("ceil", 1, math_ceil),
+		),
+		"round": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("round", 1, math_round),
+		),
+		"pow": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("pow", 2, math_pow),
+		),
+		"sqrt": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("sqrt", 1, math_sqrt),
+		),
+		"log": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("log", 1, math_log),
+		),
+		"cos": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("cos", 1, math_cos),
+		),
+		"sin": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("sin", 1, math_sin),
+		),
+	}))
 }

@@ -77,17 +77,21 @@ func obj_values(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 }
 
-var EXPORT_OBJECT = map[string]*AtomValue{
-	"freeze": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("freeze", 1, obj_freeze),
-	),
-	"keys": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("keys", 1, obj_keys),
-	),
-	"values": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("values", 1, obj_values),
-	),
+func EXPORT_OBJECT() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("object"),
+		/*******************************/
+		"freeze": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("freeze", 1, obj_freeze),
+		),
+		"keys": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("keys", 1, obj_keys),
+		),
+		"values": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("values", 1, obj_values),
+		),
+	}))
 }

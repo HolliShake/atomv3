@@ -3,7 +3,6 @@ package runtime
 import (
 	"fmt"
 	"math"
-	"reflect"
 )
 
 func DoMakeModule(interpreter *AtomInterpreter, frame *AtomCallFrame, size int) {
@@ -103,7 +102,7 @@ func DoLoadModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name strin
 		frame.Stack.Push(NewAtomValueError(message))
 		return
 	}
-	frame.Stack.Push(module)
+	frame.Stack.Push(module())
 }
 
 func DoLoadFunction(interpreter *AtomInterpreter, frame *AtomCallFrame, offset int) {
@@ -544,7 +543,7 @@ func DoIndex(interpreter *AtomInterpreter, frame *AtomCallFrame, obj *AtomValue,
 		property := classInstance.Property
 
 		// Direct property?
-		if reflect.TypeOf(property.Obj) == reflect.TypeOf(&AtomObject{}) && property.Obj.(*AtomObject).Get(index.String()) != nil {
+		if property.Type == AtomTypeObj && property.Obj.(*AtomObject).Get(index.String()) != nil {
 			frame.Stack.Push(property.Obj.(*AtomObject).Get(index.String()))
 			return
 		}
@@ -1371,7 +1370,9 @@ func DoXor(frame *AtomCallFrame, val0 *AtomValue, val1 *AtomValue) {
 func DoStoreModule(interpreter *AtomInterpreter, frame *AtomCallFrame, name string) {
 	module := frame.Stack.Pop()
 	module.Obj.(*AtomObject).Set("__name__", NewAtomValueStr(name))
-	interpreter.ModuleTable[name] = module
+	interpreter.ModuleTable[name] = func() *AtomValue {
+		return module
+	}
 }
 
 func DoInitLocal(interpreter *AtomInterpreter, frame *AtomCallFrame, name string, value *AtomValue) {

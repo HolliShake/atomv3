@@ -105,25 +105,29 @@ func path_exists(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 }
 
-var EXPORT_PATH = map[string]*AtomValue{
-	"cwd": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("cwd", 0, path_cwd),
-	),
-	"join": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("join", Variadict, path_join),
-	),
-	"isDir": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("isDir", 1, path_isDir),
-	),
-	"isFile": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("isFile", 1, path_isFile),
-	),
-	"exists": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("exists", 1, path_exists),
-	),
+func EXPORT_PATH() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("path"),
+		/*******************************/
+		"cwd": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("cwd", 0, path_cwd),
+		),
+		"join": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("join", Variadict, path_join),
+		),
+		"isDir": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("isDir", 1, path_isDir),
+		),
+		"isFile": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("isFile", 1, path_isFile),
+		),
+		"exists": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("exists", 1, path_exists),
+		),
+	}))
 }

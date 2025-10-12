@@ -6,6 +6,8 @@ type AtomNativeFunc struct {
 	Callable func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)
 }
 
+type AtomNativeModuleCallback func() *AtomValue
+
 const Variadict = -1
 
 func NewNativeFunc(name string, paramc int, callable func(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int)) *AtomNativeFunc {
@@ -16,7 +18,6 @@ func NewNativeFunc(name string, paramc int, callable func(interpreter *AtomInter
 	}
 }
 
-func DefineModule(interpreter *AtomInterpreter, name string, values map[string]*AtomValue) {
-	values["__name__"] = NewAtomValueStr(name)
-	interpreter.ModuleTable[name] = NewAtomGenericValue(AtomTypeObj, NewAtomObject(values))
+func DefineModule(interpreter *AtomInterpreter, name string, callback AtomNativeModuleCallback) {
+	interpreter.ModuleTable[name] = callback
 }

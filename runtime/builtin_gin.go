@@ -104,7 +104,7 @@ func builtin_init_gin() *AtomValue {
 			this := NewAtomGenericValue(
 				AtomTypeClassInstance,
 				// prototype, property
-				NewAtomClassInstance(class, NewAtomGenericValue(AtomTypeObj, gin.New())),
+				NewAtomClassInstance(class, NewAtomGenericValue(AtomTypeExternal, gin.New())),
 			)
 			frame.Stack.Push(this)
 		}),
@@ -593,39 +593,43 @@ func gin_response(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) 
 	frame.Stack.Push(objValue)
 }
 
-var EXPORT_GIN = map[string]*AtomValue{
-	"Gin": builtin_init_gin(),
-	"created": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("created", 1, gin_created),
-	),
-	"ok": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("ok", 1, gin_ok),
-	),
-	"badRequest": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("badRequest", 1, gin_badRequest),
-	),
-	"unauthorized": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("unauthorized", 1, gin_unauthorized),
-	),
-	"forbidden": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("forbidden", 1, gin_forbidden),
-	),
-	"notFound": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("notFound", 1, gin_notFound),
-	),
-	"internalServerError": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("internalServerError", 1, gin_internalServerError),
-	),
-	// Generic
-	"response": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("response", 2, gin_response),
-	),
+func EXPORT_GIN() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("GinBinding"),
+		/*******************************/
+		"Gin": builtin_init_gin(),
+		"created": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("created", 1, gin_created),
+		),
+		"ok": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("ok", 1, gin_ok),
+		),
+		"badRequest": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("badRequest", 1, gin_badRequest),
+		),
+		"unauthorized": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("unauthorized", 1, gin_unauthorized),
+		),
+		"forbidden": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("forbidden", 1, gin_forbidden),
+		),
+		"notFound": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("notFound", 1, gin_notFound),
+		),
+		"internalServerError": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("internalServerError", 1, gin_internalServerError),
+		),
+		// Generic
+		"response": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("response", 2, gin_response),
+		),
+	}))
 }

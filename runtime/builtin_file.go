@@ -168,13 +168,17 @@ func file_write(interpreter *AtomInterpreter, frame *AtomCallFrame, argc int) {
 	}
 }
 
-var EXPORT_FILE = map[string]*AtomValue{
-	"read": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("read", 2, file_read),
-	),
-	"write": NewAtomGenericValue(
-		AtomTypeNativeFunc,
-		NewNativeFunc("write", 3, file_write),
-	),
+func EXPORT_FILE() *AtomValue {
+	return NewAtomGenericValue(AtomTypeObj, NewAtomObject(map[string]*AtomValue{
+		"__name__": NewAtomValueStr("file"),
+		/*******************************/
+		"read": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("read", 2, file_read),
+		),
+		"write": NewAtomGenericValue(
+			AtomTypeNativeFunc,
+			NewNativeFunc("write", 3, file_write),
+		),
+	}))
 }
